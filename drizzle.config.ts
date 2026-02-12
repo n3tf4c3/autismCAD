@@ -1,0 +1,16 @@
+import { config } from "dotenv";
+import { defineConfig } from "drizzle-kit";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+export default defineConfig({
+  schema: "./src/server/db/schema.ts",
+  out: "./src/server/db/migrations",
+  dialect: "postgresql",
+  dbCredentials: {
+    url:
+      process.env.DATABASE_URL ??
+      "postgresql://postgres:postgres@localhost:5432/autismcad",
+  },
+});
