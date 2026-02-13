@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { useShell } from "@/components/shell/shell-provider.client";
 
 function roleLabel(role?: string | null): string {
   const key = String(role || "").trim().toUpperCase();
@@ -28,12 +29,23 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
   const pathname = usePathname();
   const meta = useMemo(() => pageMeta(pathname), [pathname]);
   const role = roleLabel(props.userRole);
+  const shell = useShell();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between bg-white px-8 shadow-sm">
-      <div>
-        <p className="text-sm text-gray-500">{meta.kicker}</p>
-        <h2 className="text-xl font-semibold text-[var(--marrom)]">{meta.title}</h2>
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between bg-white px-4 shadow-sm md:px-8">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 md:hidden"
+          onClick={shell.toggleSidebar}
+          aria-label="Abrir menu"
+        >
+          ☰
+        </button>
+        <div>
+          <p className="text-sm text-gray-500">{meta.kicker}</p>
+          <h2 className="text-xl font-semibold text-[var(--marrom)]">{meta.title}</h2>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right">
@@ -49,4 +61,3 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
     </header>
   );
 }
-

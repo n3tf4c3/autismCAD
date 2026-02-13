@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { signOut } from "next-auth/react";
+import { useShell } from "@/components/shell/shell-provider.client";
 
 type NavItem = {
   key: string;
@@ -47,100 +48,105 @@ export function SidebarClient() {
   const pathname = usePathname();
   const router = useRouter();
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
+  const shell = useShell();
 
-  const items = useMemo<NavItem[]>(() => {
-    return [
-      {
-        key: "dashboard",
-        label: "Dashboard",
-        icon: "🏠",
-        href: "/",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/", p),
+  const items: NavItem[] = [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      icon: "🏠",
+      href: "/",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/", p),
+    },
+    {
+      key: "cadastros",
+      label: "Cadastros",
+      icon: "📁",
+      kind: "action",
+      onClick: () => {
+        setCadastrosOpen(true);
+        shell.closeSidebar();
       },
-      {
-        key: "cadastros",
-        label: "Cadastros",
-        icon: "📁",
-        kind: "action",
-        onClick: () => setCadastrosOpen(true),
-        activeWhen: (p) => isActivePrefix("/pacientes", p) || isActivePrefix("/terapeutas", p),
+      activeWhen: (p) => isActivePrefix("/pacientes", p) || isActivePrefix("/terapeutas", p),
+    },
+    {
+      key: "pacientes",
+      label: "Pacientes",
+      icon: "👥",
+      href: "/pacientes",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/pacientes", p),
+    },
+    {
+      key: "terapeutas",
+      label: "Terapeutas",
+      icon: "🧑‍⚕️",
+      href: "/terapeutas",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/terapeutas", p),
+    },
+    {
+      key: "consultas",
+      label: "Consultas",
+      icon: "🔎",
+      href: "/consultas",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/consultas", p),
+    },
+    {
+      key: "calendario",
+      label: "Calendario",
+      icon: "📅",
+      href: "/calendario",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/calendario", p),
+    },
+    { key: "sep1", label: "-", icon: "", kind: "separator" },
+    {
+      key: "anamnese",
+      label: "Anamnese",
+      icon: "📝",
+      href: "/anamnese",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/anamnese", p),
+    },
+    {
+      key: "prontuario",
+      label: "Prontuario",
+      icon: "📚",
+      href: "/prontuario",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/prontuario", p),
+    },
+    { key: "sep2", label: "-", icon: "", kind: "separator" },
+    {
+      key: "relatorios",
+      label: "Relatorios",
+      icon: "📊",
+      href: "/relatorios",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/relatorios", p),
+    },
+    {
+      key: "configuracoes",
+      label: "Configuracoes",
+      icon: "⚙",
+      href: "/configuracoes",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/configuracoes", p),
+    },
+    {
+      key: "logout",
+      label: "Sair",
+      icon: "🚪",
+      kind: "action",
+      onClick: () => {
+        shell.closeSidebar();
+        void signOut({ callbackUrl: "/login" });
       },
-      {
-        key: "pacientes",
-        label: "Pacientes",
-        icon: "👥",
-        href: "/pacientes",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/pacientes", p),
-      },
-      {
-        key: "terapeutas",
-        label: "Terapeutas",
-        icon: "🧑‍⚕️",
-        href: "/terapeutas",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/terapeutas", p),
-      },
-      {
-        key: "consultas",
-        label: "Consultas",
-        icon: "🔎",
-        href: "/consultas",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/consultas", p),
-      },
-      {
-        key: "calendario",
-        label: "Calendario",
-        icon: "📅",
-        href: "/calendario",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/calendario", p),
-      },
-      { key: "sep1", label: "-", icon: "", kind: "separator" },
-      {
-        key: "anamnese",
-        label: "Anamnese",
-        icon: "📝",
-        href: "/anamnese",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/anamnese", p),
-      },
-      {
-        key: "prontuario",
-        label: "Prontuario",
-        icon: "📚",
-        href: "/prontuario",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/prontuario", p),
-      },
-      { key: "sep2", label: "-", icon: "", kind: "separator" },
-      {
-        key: "relatorios",
-        label: "Relatorios",
-        icon: "📊",
-        href: "/relatorios",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/relatorios", p),
-      },
-      {
-        key: "configuracoes",
-        label: "Configuracoes",
-        icon: "⚙",
-        href: "/configuracoes",
-        kind: "link",
-        activeWhen: (p) => isActivePrefix("/configuracoes", p),
-      },
-      {
-        key: "logout",
-        label: "Sair",
-        icon: "🚪",
-        kind: "action",
-        onClick: () => void signOut({ callbackUrl: "/login" }),
-      },
-    ];
-  }, []);
+    },
+  ];
 
   function renderItem(item: NavItem) {
     if (item.kind === "separator") {
@@ -179,7 +185,12 @@ export function SidebarClient() {
     }
 
     return (
-      <Link key={item.key} href={item.href ?? "#"} className={cls}>
+      <Link
+        key={item.key}
+        href={item.href ?? "#"}
+        className={cls}
+        onClick={() => shell.closeSidebar()}
+      >
         {content}
       </Link>
     );
@@ -187,7 +198,8 @@ export function SidebarClient() {
 
   return (
     <>
-      <aside className="fixed inset-y-0 z-30 flex w-64 flex-col bg-[var(--laranja)] text-white">
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col bg-[var(--laranja)] text-white md:flex">
         <div className="flex flex-col items-center gap-4 px-6 py-8">
           <Image
             src="/sunflower-svgrepo-com.svg"
@@ -207,6 +219,55 @@ export function SidebarClient() {
           <p>contato@clinicagirassois.com</p>
         </div>
       </aside>
+
+      {/* Mobile drawer */}
+      <div className="md:hidden">
+        <div
+          className={[
+            "fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity",
+            shell.sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0",
+          ].join(" ")}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) shell.closeSidebar();
+          }}
+        />
+
+        <aside
+          className={[
+            "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[var(--laranja)] text-white shadow-xl transition-transform duration-200 ease-out",
+            shell.sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+        >
+          <div className="flex items-start justify-between gap-3 px-6 py-6">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/sunflower-svgrepo-com.svg"
+                alt="Logo Girassol"
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded-xl bg-white p-2 drop-shadow-lg"
+                priority
+              />
+              <p className="text-sm font-bold tracking-wide text-white">Clinica Girassois</p>
+            </div>
+            <button
+              type="button"
+              className="text-2xl leading-none text-white/90 hover:text-white"
+              onClick={shell.closeSidebar}
+              aria-label="Fechar menu"
+            >
+              &times;
+            </button>
+          </div>
+
+          <nav className="flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
+
+          <div className="p-4 text-xs text-white/90">
+            <p className="font-semibold">Suporte</p>
+            <p>contato@clinicagirassois.com</p>
+          </div>
+        </aside>
+      </div>
 
       <Modal open={cadastrosOpen} onClose={() => setCadastrosOpen(false)}>
         <div className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl">
@@ -233,6 +294,7 @@ export function SidebarClient() {
               className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left hover:border-[var(--laranja)] hover:bg-[#fff6e6]"
               onClick={() => {
                 setCadastrosOpen(false);
+                shell.closeSidebar();
                 router.push("/pacientes");
               }}
             >
@@ -244,6 +306,7 @@ export function SidebarClient() {
               className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left hover:border-[var(--laranja)] hover:bg-[#fff6e6]"
               onClick={() => {
                 setCadastrosOpen(false);
+                shell.closeSidebar();
                 router.push("/terapeutas");
               }}
             >

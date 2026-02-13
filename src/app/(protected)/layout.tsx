@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
 import { SidebarClient } from "@/components/sidebar/sidebar.client";
 import { TopbarClient } from "@/components/topbar.client";
+import { ShellProvider } from "@/components/shell/shell-provider.client";
 
 type ProtectedLayoutProps = {
   children: React.ReactNode;
@@ -27,19 +28,21 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
   const initials = initialsFromName(userName);
 
   return (
-    <div className="min-h-screen bg-[var(--cinza)] text-[var(--texto)]">
-      <div className="min-h-screen flex">
-        <SidebarClient />
+    <ShellProvider>
+      <div className="min-h-screen bg-[var(--cinza)] text-[var(--texto)]">
+        <div className="min-h-screen flex">
+          <SidebarClient />
 
-        <div className="flex min-w-0 flex-1 flex-col ml-64">
-          <TopbarClient
-            userName={userName}
-            userRole={session.user.role}
-            initials={initials}
-          />
-          <div className="p-8">{children}</div>
+          <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+            <TopbarClient
+              userName={userName}
+              userRole={session.user.role}
+              initials={initials}
+            />
+            <div className="p-4 md:p-8">{children}</div>
+          </div>
         </div>
       </div>
-    </div>
+    </ShellProvider>
   );
 }
