@@ -20,6 +20,7 @@ function pageMeta(pathname: string): { kicker: string; title: string } {
   if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendario" };
   if (pathname.startsWith("/prontuario")) return { kicker: "Clinico", title: "Prontuario" };
   if (pathname.startsWith("/anamnese")) return { kicker: "Clinico", title: "Anamnese" };
+  if (pathname.startsWith("/relatorios/evolutivo")) return { kicker: "Relatorio evolutivo", title: "Paciente" };
   if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatorios" };
   if (pathname.startsWith("/configuracoes")) return { kicker: "Admin", title: "Configuracoes" };
   return { kicker: "Sistema", title: "Clinica Girassois" };

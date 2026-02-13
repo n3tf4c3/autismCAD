@@ -69,6 +69,12 @@ export default async function ProntuarioPacientePage(props: {
               Nova Evolucao
             </Link>
             <Link
+              href={`/relatorios/evolutivo?pacienteId=${paciente.id}`}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+            >
+              Relatorio Evolutivo
+            </Link>
+            <Link
               href={`/prontuario/${paciente.id}/novo-documento?tipo=ANAMNESE`}
               className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
             >
