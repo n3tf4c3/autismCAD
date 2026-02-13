@@ -25,7 +25,7 @@ function pageMeta(pathname: string): { kicker: string; title: string } {
   if (pathname.startsWith("/relatorios/assiduidade")) return { kicker: "Relatorios", title: "Assiduidade e presenca" };
   if (pathname.startsWith("/relatorios/clinico")) return { kicker: "Relatorios", title: "Relatorio Clinico" };
   if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatorios" };
-  if (pathname.startsWith("/configuracoes")) return { kicker: "Admin", title: "Configuracoes" };
+  if (pathname.startsWith("/configuracoes")) return { kicker: "Administracao", title: "Permissoes por papel" };
   return { kicker: "Sistema", title: "Clinica Girassois" };
 }
 
