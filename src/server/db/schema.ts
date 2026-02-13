@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -183,5 +184,37 @@ export const atendimentos = pgTable(
     index("idx_atend_terapeuta").on(table.terapeutaId),
     index("idx_atend_data_terapeuta").on(table.data, table.terapeutaId),
     index("idx_atend_deleted_at").on(table.deletedAt),
+  ]
+);
+
+export const anamnese = pgTable(
+  "anamnese",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    pacienteId: bigint("paciente_id", { mode: "number" })
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("uk_anamnese_paciente").on(table.pacienteId)]
+);
+
+export const anamneseVersions = pgTable(
+  "anamnese_versions",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    pacienteId: bigint("paciente_id", { mode: "number" })
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uk_anamnese_versions_paciente_version").on(table.pacienteId, table.version),
+    index("idx_anamnese_versions_paciente_created").on(table.pacienteId, table.createdAt),
   ]
 );

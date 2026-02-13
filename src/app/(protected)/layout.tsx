@@ -13,6 +13,7 @@ const navItems = [
   { href: "/terapeutas", label: "Terapeutas" },
   { href: "/consultas", label: "Consultas" },
   { href: "/calendario", label: "Calendario" },
+  { href: "/anamnese", label: "Anamnese" },
 ];
 
 export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {
