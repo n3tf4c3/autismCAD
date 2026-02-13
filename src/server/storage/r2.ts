@@ -8,6 +8,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 import { env } from "@/lib/env";
+import { AppError } from "@/server/shared/errors";
 
 const globalR2 = globalThis as unknown as {
   r2Client?: S3Client;
@@ -38,7 +39,7 @@ function assertR2Config() {
   const required = ["R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const;
   const missing = required.filter((key) => !env[key]);
   if (missing.length) {
-    throw new Error(`R2 nao configurado: ${missing.join(", ")}`);
+    throw new AppError(`R2 nao configurado: ${missing.join(", ")}`, 500, "R2_NOT_CONFIGURED");
   }
 }
 
