@@ -307,11 +307,11 @@ export function SidebarClient() {
               onClick={() => {
                 setCadastrosOpen(false);
                 shell.closeSidebar();
-                router.push("/terapeutas");
+                router.push("/terapeutas/novo");
               }}
             >
               <p className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</p>
-              <p className="text-xs text-gray-600">Consultar e gerenciar terapeutas.</p>
+              <p className="text-xs text-gray-600">Cadastrar profissional e especialidade.</p>
             </button>
           </div>
         </div>

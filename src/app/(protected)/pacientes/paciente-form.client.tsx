@@ -69,10 +69,11 @@ function normalizeApiError(error: unknown): string {
 }
 
 function corsHintForR2(origin: string): string {
+  const origins = Array.from(new Set([origin, "http://localhost:3000"].filter(Boolean)));
   return (
     `O navegador bloqueou o upload para o R2 (CORS).\n` +
     `Configure o CORS do bucket no Cloudflare R2 para permitir PUT/GET/HEAD da origem: ${origin}\n` +
-    `Dica rapida (dev): AllowedOrigins [\"${origin}\", \"http://localhost:3000\"] e AllowedHeaders [\"*\"]`
+    `Dica rapida (dev): AllowedOrigins [${origins.map((o) => JSON.stringify(o)).join(", ")}] e AllowedHeaders [\"*\"]`
   );
 }
 
@@ -235,8 +236,14 @@ export function PacienteFormClient(props: {
         throw new Error(origin ? corsHintForR2(origin) : normalizeApiError(err));
       }
       if (!put.ok) {
+        const bodyText = await put
+          .text()
+          .catch(() => "")
+          .then((t) => t.replace(/\s+/g, " ").trim().slice(0, 220));
         throw new Error(
-          `Falha no upload de ${labelForKind(item.kind)} (HTTP ${put.status}). Verifique o CORS do R2.`
+          `Falha no upload de ${labelForKind(item.kind)} (HTTP ${put.status}).` +
+            (bodyText ? ` Resposta: ${bodyText}` : "") +
+            ` Verifique o CORS do R2.`
         );
       }
       await commitKey(pacienteId, item.kind, key);

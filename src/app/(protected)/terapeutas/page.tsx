@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 type Terapeuta = {
   id: number;
@@ -67,15 +68,23 @@ export default function TerapeutasPage() {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--marrom)]">Terapeutas</h1>
-          <p className="text-sm text-gray-600">Primeira tela migrada para Next.js</p>
+          <p className="text-sm text-gray-600">Consultar e gerenciar terapeutas cadastrados.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadTerapeutas()}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-        >
-          Recarregar
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/terapeutas/novo"
+            className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+          >
+            + Novo cadastro
+          </Link>
+          <button
+            type="button"
+            onClick={() => void loadTerapeutas()}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Recarregar
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-4">
@@ -140,6 +149,7 @@ export default function TerapeutasPage() {
               <th className="px-3 py-2">CPF</th>
               <th className="px-3 py-2">Especialidade</th>
               <th className="px-3 py-2">Contato</th>
+              <th className="px-3 py-2">Acoes</th>
             </tr>
           </thead>
           <tbody>
@@ -151,11 +161,27 @@ export default function TerapeutasPage() {
                 <td className="px-3 py-3 text-gray-700">
                   {item.email || item.telefone || "-"}
                 </td>
+                <td className="px-3 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/terapeutas/${item.id}/editar`}
+                      className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                    >
+                      Editar
+                    </Link>
+                    <Link
+                      href={`/calendario?terapeutaId=${item.id}`}
+                      className="inline-flex items-center justify-center rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Agenda
+                    </Link>
+                  </div>
+                </td>
               </tr>
             ))}
             {!loading && !items.length ? (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-sm text-gray-500">
+                <td colSpan={5} className="px-3 py-6 text-center text-sm text-gray-500">
                   Nenhum terapeuta encontrado.
                 </td>
               </tr>
