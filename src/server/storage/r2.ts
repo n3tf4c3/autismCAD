@@ -14,7 +14,20 @@ const globalR2 = globalThis as unknown as {
 };
 
 function resolveEndpoint(): string {
-  if (env.R2_ENDPOINT) return env.R2_ENDPOINT;
+  if (env.R2_ENDPOINT) {
+    // Some dashboards show "S3 API" including "/<bucket>" path. For S3Client,
+    // use the account endpoint base and let the SDK add the bucket.
+    try {
+      const url = new URL(env.R2_ENDPOINT);
+      const bucket = env.R2_BUCKET ? `/${env.R2_BUCKET}` : null;
+      if (bucket && (url.pathname === bucket || url.pathname === `${bucket}/`)) {
+        return url.origin;
+      }
+      return env.R2_ENDPOINT;
+    } catch {
+      return env.R2_ENDPOINT;
+    }
+  }
   if (!env.R2_ACCOUNT_ID) {
     throw new Error("R2_ACCOUNT_ID ou R2_ENDPOINT deve ser configurado.");
   }
