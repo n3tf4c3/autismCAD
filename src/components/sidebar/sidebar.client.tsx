@@ -155,7 +155,8 @@ export function SidebarClient() {
 
     const active = item.activeWhen ? item.activeWhen(pathname) : false;
     const base =
-      "sidebar-link flex items-center gap-3 rounded-md px-3 py-2 text-base font-semibold transition";
+      // `w-full` keeps hover/active backgrounds consistent across <Link> and <button> items.
+      "sidebar-link flex w-full items-center gap-3 rounded-md px-3 py-2 text-base font-semibold transition";
     const cls = joinClass(
       base,
       active ? "bg-white/10" : "bg-transparent",
@@ -176,7 +177,7 @@ export function SidebarClient() {
         <button
           type="button"
           key={item.key}
-          className={cls}
+          className={joinClass(cls, "text-left")}
           onClick={item.onClick}
         >
           {content}
