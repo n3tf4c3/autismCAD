@@ -218,3 +218,71 @@ export const anamneseVersions = pgTable(
     index("idx_anamnese_versions_paciente_created").on(table.pacienteId, table.createdAt),
   ]
 );
+
+export const prontuarioDocumentos = pgTable(
+  "prontuario_documentos",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    pacienteId: bigint("paciente_id", { mode: "number" })
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    tipo: varchar("tipo", { length: 40 }).notNull(),
+    version: integer("version").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
+    titulo: varchar("titulo", { length: 180 }),
+    payload: jsonb("payload").notNull(),
+    createdByUserId: bigint("created_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdByRole: varchar("created_by_role", { length: 32 }),
+    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    uniqueIndex("uk_prontuario_documentos_paciente_tipo_version").on(
+      table.pacienteId,
+      table.tipo,
+      table.version
+    ),
+    index("idx_prontuario_documentos_paciente").on(table.pacienteId),
+    index("idx_prontuario_documentos_tipo").on(table.tipo),
+    index("idx_prontuario_documentos_created_at").on(table.createdAt),
+    index("idx_prontuario_documentos_deleted_at").on(table.deletedAt),
+  ]
+);
+
+export const evolucoes = pgTable(
+  "evolucoes",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    pacienteId: bigint("paciente_id", { mode: "number" })
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    terapeutaId: bigint("terapeuta_id", { mode: "number" })
+      .notNull()
+      .references(() => terapeutas.id, { onDelete: "restrict" }),
+    atendimentoId: bigint("atendimento_id", { mode: "number" }).references(() => atendimentos.id, {
+      onDelete: "set null",
+    }),
+    data: date("data").notNull(),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    uniqueIndex("uk_evolucoes_paciente_terapeuta_data_ativo")
+      .on(table.pacienteId, table.terapeutaId, table.data)
+      .where(sql`${table.deletedAt} is null`),
+    index("idx_evolucoes_paciente").on(table.pacienteId),
+    index("idx_evolucoes_terapeuta").on(table.terapeutaId),
+    index("idx_evolucoes_data").on(table.data),
+    index("idx_evolucoes_deleted_at").on(table.deletedAt),
+  ]
+);

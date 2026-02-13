@@ -14,6 +14,7 @@ const navItems = [
   { href: "/consultas", label: "Consultas" },
   { href: "/calendario", label: "Calendario" },
   { href: "/anamnese", label: "Anamnese" },
+  { href: "/prontuario", label: "Prontuario" },
 ];
 
 export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {

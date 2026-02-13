@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, eq, ilike } from "drizzle-orm";
+import { and, asc, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { terapeutas } from "@/server/db/schema";
+import { atendimentos, terapeutas } from "@/server/db/schema";
 import {
   especialidadesPermitidas,
   SaveTerapeutaInput,
@@ -131,6 +131,22 @@ export async function obterTerapeutaPorUsuario(userId: number) {
     .where(eq(terapeutas.usuarioId, userId))
     .limit(1);
   return row ?? null;
+}
+
+export async function terapeutaAtendePaciente(pacienteId: number, terapeutaId: number) {
+  if (!pacienteId || !terapeutaId) return false;
+  const [row] = await db
+    .select({ one: atendimentos.id })
+    .from(atendimentos)
+    .where(
+      and(
+        eq(atendimentos.pacienteId, pacienteId),
+        eq(atendimentos.terapeutaId, terapeutaId),
+        isNull(atendimentos.deletedAt)
+      )
+    )
+    .limit(1);
+  return !!row;
 }
 
 export async function deleteTerapeuta(id: number) {
