@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { runDbTransaction } from "@/server/db/transaction";
 import {
   evolucoes,
   prontuarioDocumentos,
@@ -102,7 +103,7 @@ export async function salvarDocumento(
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     try {
-      const created = await db.transaction(async (tx) => {
+      const created = await runDbTransaction(async (tx) => {
         const [row] = await tx
           .select({ ver: max(prontuarioDocumentos.version).as("ver") })
           .from(prontuarioDocumentos)

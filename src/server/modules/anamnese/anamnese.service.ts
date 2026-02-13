@@ -1,6 +1,7 @@
 import "server-only";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { runDbTransaction } from "@/server/db/transaction";
 import { anamnese, anamneseVersions, pacientes } from "@/server/db/schema";
 import { AppError } from "@/server/shared/errors";
 
@@ -225,7 +226,7 @@ export async function salvarAnamneseCompleta(params: {
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     try {
-      return await db.transaction(async (tx) => {
+      return await runDbTransaction(async (tx) => {
         await tx
           .insert(anamnese)
           .values({
@@ -282,4 +283,3 @@ export async function salvarAnamneseCompleta(params: {
 
   throw new AppError("Erro ao salvar anamnese", 500, "INTERNAL_ERROR");
 }
-

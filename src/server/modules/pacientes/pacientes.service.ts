@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { pacienteTerapia, pacientes, terapias } from "@/server/db/schema";
+import { runDbTransaction } from "@/server/db/transaction";
 import {
   conveniosPermitidos,
   PacientesQueryInput,
@@ -140,7 +141,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
     String(input.ativo ?? "1") === "0" || input.ativo === false ? false : true;
   const terapiaNomes = normalizeTerapias(input);
 
-  return db.transaction(async (tx) => {
+  return runDbTransaction(async (tx) => {
     let pacienteId = id ?? null;
 
     if (pacienteId) {
