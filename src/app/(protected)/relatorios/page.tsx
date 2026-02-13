@@ -20,7 +20,7 @@ export default async function RelatoriosIndexPage() {
             <div>
               <h1 className="text-2xl font-bold text-[var(--marrom)]">Relatorios</h1>
               <p className="text-sm text-gray-600">
-                Selecione um paciente para gerar o Relatorio Evolutivo.
+                Acesse indicadores gerais ou gere relatorios por paciente.
               </p>
             </div>
           </div>
@@ -28,7 +28,28 @@ export default async function RelatoriosIndexPage() {
       </section>
 
       <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[var(--marrom)]">Pacientes</h2>
+        <h2 className="text-lg font-bold text-[var(--marrom)]">Indicadores gerais</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Assiduidade e presenca por paciente no periodo selecionado.
+        </p>
+        <div className="mt-4">
+          <Link
+            href="/relatorios/assiduidade"
+            className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+          >
+            Abrir Assiduidade
+          </Link>
+          <Link
+            href="/relatorios/clinico"
+            className="ml-3 inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+          >
+            Relatorio Clinico
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorio Evolutivo (por paciente)</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
@@ -67,4 +88,3 @@ export default async function RelatoriosIndexPage() {
     </main>
   );
 }
-
