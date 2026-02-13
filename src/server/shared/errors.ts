@@ -1,3 +1,5 @@
+import { ZodError } from "zod";
+
 export class AppError extends Error {
   status: number;
   code: string;
@@ -12,5 +14,8 @@ export class AppError extends Error {
 
 export function toAppError(error: unknown): AppError {
   if (error instanceof AppError) return error;
+  if (error instanceof ZodError) {
+    return new AppError("Payload invalido", 400, "VALIDATION_ERROR");
+  }
   return new AppError("Erro interno", 500, "INTERNAL_ERROR");
 }
