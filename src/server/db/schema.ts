@@ -7,6 +7,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  time,
   timestamp,
   uniqueIndex,
   varchar,
@@ -108,4 +109,79 @@ export const pacienteTerapia = pgTable(
       .references(() => terapias.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.pacienteId, table.terapiaId], name: "pk_paciente_terapia" })]
+);
+
+export const terapeutas = pgTable(
+  "terapeutas",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    nome: varchar("nome", { length: 120 }).notNull(),
+    cpf: varchar("cpf", { length: 11 }).notNull(),
+    dataNascimento: date("data_nascimento"),
+    email: varchar("email", { length: 120 }),
+    telefone: varchar("telefone", { length: 20 }),
+    endereco: varchar("endereco", { length: 255 }),
+    logradouro: varchar("logradouro", { length: 180 }),
+    numero: varchar("numero", { length: 20 }),
+    bairro: varchar("bairro", { length: 120 }),
+    cidade: varchar("cidade", { length: 120 }),
+    cep: varchar("cep", { length: 8 }),
+    especialidade: varchar("especialidade", { length: 80 }).notNull(),
+    usuarioId: bigint("usuario_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uk_terapeutas_cpf").on(table.cpf),
+    index("idx_terapeutas_usuario").on(table.usuarioId),
+    index("idx_terapeutas_nome").on(table.nome),
+  ]
+);
+
+export const atendimentos = pgTable(
+  "atendimentos",
+  {
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedByDefaultAsIdentity(),
+    pacienteId: bigint("paciente_id", { mode: "number" })
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    terapeutaId: bigint("terapeuta_id", { mode: "number" }).references(
+      () => terapeutas.id,
+      { onDelete: "set null" }
+    ),
+    data: date("data").notNull(),
+    horaInicio: time("hora_inicio").notNull(),
+    horaFim: time("hora_fim").notNull(),
+    turno: varchar("turno", { length: 20 }).notNull().default("Matutino"),
+    periodoInicio: date("periodo_inicio"),
+    periodoFim: date("periodo_fim"),
+    presenca: varchar("presenca", { length: 20 })
+      .notNull()
+      .default("Nao informado"),
+    realizado: boolean("realizado").notNull().default(false),
+    statusRepasse: varchar("status_repasse", { length: 20 })
+      .notNull()
+      .default("Pendente"),
+    resumoRepasse: text("resumo_repasse"),
+    motivo: text("motivo"),
+    observacoes: text("observacoes"),
+    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }),
+    createdAt: timestamp("created_at", { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: false })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_atend_paciente").on(table.pacienteId),
+    index("idx_atend_terapeuta").on(table.terapeutaId),
+    index("idx_atend_data_terapeuta").on(table.data, table.terapeutaId),
+    index("idx_atend_deleted_at").on(table.deletedAt),
+  ]
 );

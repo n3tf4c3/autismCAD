@@ -10,6 +10,8 @@ type ProtectedLayoutProps = {
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/pacientes", label: "Pacientes" },
+  { href: "/terapeutas", label: "Terapeutas" },
+  { href: "/consultas", label: "Consultas" },
 ];
 
 export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {

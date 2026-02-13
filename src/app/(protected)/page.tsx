@@ -11,6 +11,10 @@ export default function DashboardPage() {
           <p className="text-sm font-semibold text-[var(--marrom)]">Pacientes</p>
           <p className="mt-1 text-xs text-gray-600">Listagem inicial migrada</p>
         </div>
+        <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+          <p className="text-sm font-semibold text-[var(--marrom)]">Terapeutas</p>
+          <p className="mt-1 text-xs text-gray-600">Listagem inicial migrada</p>
+        </div>
         <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
           <p className="text-sm font-semibold text-[var(--marrom)]">Agenda</p>
           <p className="mt-1 text-xs text-gray-600">Proximo modulo</p>
