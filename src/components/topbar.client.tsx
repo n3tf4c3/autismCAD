@@ -21,6 +21,7 @@ function pageMeta(pathname: string): { kicker: string; title: string } {
   if (pathname.startsWith("/prontuario")) return { kicker: "Clinico", title: "Prontuario" };
   if (pathname.startsWith("/anamnese")) return { kicker: "Clinico", title: "Anamnese" };
   if (pathname.startsWith("/relatorios/evolutivo")) return { kicker: "Relatorio evolutivo", title: "Paciente" };
+  if (pathname.startsWith("/relatorios/periodo")) return { kicker: "Relatorio por periodo", title: "Consolidado" };
   if (pathname.startsWith("/relatorios/assiduidade")) return { kicker: "Relatorios", title: "Assiduidade e presenca" };
   if (pathname.startsWith("/relatorios/clinico")) return { kicker: "Relatorios", title: "Relatorio Clinico" };
   if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatorios" };

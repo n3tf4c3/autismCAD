@@ -50,6 +50,9 @@ export default async function RelatoriosIndexPage() {
 
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorio Evolutivo (por paciente)</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Gere o relatorio evolutivo e o consolidado por periodo a partir da timeline do prontuario.
+        </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
@@ -70,6 +73,12 @@ export default async function RelatoriosIndexPage() {
                       className="inline-flex rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
                     >
                       Relatorio Evolutivo
+                    </Link>
+                    <Link
+                      href={`/relatorios/periodo?pacienteId=${row.id}`}
+                      className="ml-3 inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                    >
+                      Relatorio por periodo
                     </Link>
                   </td>
                 </tr>
