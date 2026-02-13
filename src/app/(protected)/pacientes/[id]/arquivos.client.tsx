@@ -22,6 +22,14 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao processar arquivo";
 }
 
+function corsHintForR2(origin: string): string {
+  return (
+    `O navegador bloqueou o upload para o R2 (CORS).\n` +
+    `Configure o CORS do bucket no Cloudflare R2 para permitir PUT/GET/HEAD da origem: ${origin}\n` +
+    `Dica rapida (dev): AllowedOrigins [\"${origin}\", \"http://localhost:3000\"] e AllowedHeaders [\"*\"]`
+  );
+}
+
 async function readJson(resp: Response): Promise<unknown> {
   return resp.json().catch(() => null);
 }
@@ -114,12 +122,20 @@ export function PacienteArquivosClient(props: { pacienteId: number; existing: Ex
     setBusyKind(kind);
     try {
       const { key, url } = await presignUpload(props.pacienteId, kind, file);
-      const put = await fetch(url, {
-        method: "PUT",
-        headers: { "content-type": file.type || "application/octet-stream" },
-        body: file,
-      });
-      if (!put.ok) throw new Error("Falha no upload (verifique o CORS do R2 e tente novamente).");
+      let put: Response;
+      try {
+        put = await fetch(url, {
+          method: "PUT",
+          headers: { "content-type": file.type || "application/octet-stream" },
+          body: file,
+        });
+      } catch (err) {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        throw new Error(origin ? corsHintForR2(origin) : normalizeApiError(err));
+      }
+      if (!put.ok) {
+        throw new Error(`Falha no upload (HTTP ${put.status}). Verifique o CORS do R2 e tente novamente.`);
+      }
       await commitKey(props.pacienteId, kind, key);
       setSelected((cur) => ({ ...cur, [kind]: null }));
       setMsg(`${labelForKind(kind)} enviado com sucesso.`);

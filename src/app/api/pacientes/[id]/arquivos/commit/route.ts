@@ -2,12 +2,12 @@ import { z } from "zod";
 import { idParamSchema, parseJsonBody } from "@/lib/zod/api";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { AppError, toAppError } from "@/server/shared/errors";
 import { jsonError } from "@/server/shared/http";
 import { deleteObjectFromR2 } from "@/server/storage/r2";
+import { runDbTransaction } from "@/server/db/transaction";
 
 export const runtime = "nodejs";
 
@@ -33,7 +33,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const input = await parseJsonBody(request, bodySchema);
 
-    const { previousKey } = await db.transaction(async (tx) => {
+    const { previousKey } = await runDbTransaction(async (tx) => {
       const [row] = await tx
         .select({
           id: pacientes.id,
@@ -87,4 +87,3 @@ export async function POST(request: Request, context: RouteContext) {
     return jsonError(toAppError(error));
   }
 }
-
