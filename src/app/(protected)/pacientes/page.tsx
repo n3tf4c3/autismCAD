@@ -67,15 +67,23 @@ export default function PacientesPage() {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--marrom)]">Pacientes</h1>
-          <p className="text-sm text-gray-600">Primeira tela migrada para Next.js</p>
+          <p className="text-sm text-gray-600">Consultar, cadastrar e gerenciar pacientes.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadPacientes()}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-        >
-          Recarregar
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/pacientes/novo"
+            className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+          >
+            Novo paciente
+          </Link>
+          <button
+            type="button"
+            onClick={() => void loadPacientes()}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Recarregar
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">

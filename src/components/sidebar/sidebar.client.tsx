@@ -295,11 +295,11 @@ export function SidebarClient() {
               onClick={() => {
                 setCadastrosOpen(false);
                 shell.closeSidebar();
-                router.push("/pacientes");
+                router.push("/pacientes/novo");
               }}
             >
               <p className="text-sm font-semibold text-[var(--marrom)]">Paciente</p>
-              <p className="text-xs text-gray-600">Consultar e gerenciar pacientes.</p>
+              <p className="text-xs text-gray-600">Registrar ou editar dados do paciente.</p>
             </button>
             <button
               type="button"

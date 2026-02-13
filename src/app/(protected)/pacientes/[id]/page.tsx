@@ -78,6 +78,12 @@ export default async function PacienteDetalhePage(props: {
               &larr; Voltar
             </Link>
             <Link
+              href={`/pacientes/${paciente.id}/editar`}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+            >
+              Editar cadastro
+            </Link>
+            <Link
               href={`/prontuario/${paciente.id}`}
               className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
             >
@@ -112,4 +118,3 @@ export default async function PacienteDetalhePage(props: {
     </main>
   );
 }
-
