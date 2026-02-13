@@ -14,7 +14,8 @@ function roleLabel(role?: string | null): string {
 
 function pageMeta(pathname: string): { kicker: string; title: string } {
   if (pathname === "/") return { kicker: "Painel principal", title: "Bem-vindo(a)" };
-  if (pathname.startsWith("/pacientes")) return { kicker: "Consulta", title: "Pacientes cadastrados" };
+  if (pathname === "/pacientes") return { kicker: "Consulta", title: "Pacientes cadastrados" };
+  if (pathname.startsWith("/pacientes/")) return { kicker: "Consulta", title: "Paciente" };
   if (pathname.startsWith("/terapeutas")) return { kicker: "Cadastro", title: "Terapeutas" };
   if (pathname.startsWith("/consultas")) return { kicker: "Agenda", title: "Consultas / Sessoes" };
   if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendario" };

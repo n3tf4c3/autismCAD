@@ -14,6 +14,8 @@ const envSchema = z.object({
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
+  // Optional: Cloudflare dashboard API token (not required for S3-compatible SDK).
+  R2_API_TOKEN: z.string().optional(),
   R2_BUCKET: z.string().optional(),
   R2_REGION: z.string().default("auto"),
   R2_ENDPOINT: z.string().url().optional(),

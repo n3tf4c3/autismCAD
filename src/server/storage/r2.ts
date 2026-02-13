@@ -36,6 +36,7 @@ export function getR2Client(): S3Client {
   globalR2.r2Client = new S3Client({
     region: env.R2_REGION,
     endpoint: resolveEndpoint(),
+    forcePathStyle: true, // Cloudflare R2 works reliably with path-style URLs.
     credentials: {
       accessKeyId: env.R2_ACCESS_KEY_ID!,
       secretAccessKey: env.R2_SECRET_ACCESS_KEY!,
@@ -85,5 +86,22 @@ export async function createSignedReadUrl(key: string, expiresInSeconds = 300) {
       Key: key,
     }),
     { expiresIn: expiresInSeconds }
+  );
+}
+
+export async function createSignedWriteUrl(params: {
+  key: string;
+  contentType: string;
+  expiresInSeconds?: number;
+}) {
+  const client = getR2Client();
+  return getSignedUrl(
+    client,
+    new PutObjectCommand({
+      Bucket: env.R2_BUCKET!,
+      Key: params.key,
+      ContentType: params.contentType,
+    }),
+    { expiresIn: params.expiresInSeconds ?? 300 }
   );
 }

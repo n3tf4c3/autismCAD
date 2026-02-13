@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 type Paciente = {
   id: number;
@@ -130,6 +131,7 @@ export default function PacientesPage() {
               <th className="px-3 py-2">Convenio</th>
               <th className="px-3 py-2">Contato</th>
               <th className="px-3 py-2">Terapias</th>
+              <th className="px-3 py-2">Acoes</th>
             </tr>
           </thead>
           <tbody>
@@ -144,11 +146,21 @@ export default function PacientesPage() {
                 <td className="px-3 py-3 text-gray-700">
                   {item.terapias?.length ? item.terapias.join(", ") : "-"}
                 </td>
+                <td className="px-3 py-3 text-gray-700">
+                  <div className="flex flex-wrap gap-3">
+                    <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/pacientes/${item.id}`}>
+                      Ver
+                    </Link>
+                    <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/prontuario/${item.id}`}>
+                      Prontuario
+                    </Link>
+                  </div>
+                </td>
               </tr>
             ))}
             {!loading && !items.length ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-3 py-6 text-center text-sm text-gray-500">
                   Nenhum paciente encontrado.
                 </td>
               </tr>
