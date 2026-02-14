@@ -130,23 +130,31 @@ export default async function DashboardPage() {
           <div className="mb-2 flex items-center justify-between">
             <p className="font-semibold">Pendentes de hoje</p>
             <span className="text-xs text-gray-600">
-              {pendentesHoje.length ? `${pendentesHoje.length} itens` : ""}
+              {pendentesHoje.length ? `${pendentesHoje.length} restante(s)` : ""}
             </span>
           </div>
           <ul className="max-h-40 space-y-2 overflow-auto pr-1">
-            {pendentesHoje.map((a) => (
-              <li key={a.id} className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--marrom)]">
-                    {a.pacienteNome}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {a.terapeutaNome || "Terapeuta"} · {a.hora_inicio}-{a.hora_fim}
-                  </p>
-                </div>
-                <span className="rounded bg-white px-2 py-1 text-xs text-gray-700">#{a.id}</span>
-              </li>
-            ))}
+            {pendentesHoje.map((a) => {
+              const ini = String(a.hora_inicio ?? "").slice(0, 5);
+              const fim = String(a.hora_fim ?? "").slice(0, 5);
+              const faixa = ini && fim ? `${ini} - ${fim}` : "";
+
+              return (
+                <li key={a.id} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--marrom)]">{a.pacienteNome}</p>
+                    <p className="text-xs text-gray-600">
+                      Terapeuta: {a.terapeutaNome || "Nao informado"}
+                    </p>
+                  </div>
+                  {faixa ? (
+                    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-amber-200">
+                      {faixa}
+                    </span>
+                  ) : null}
+                </li>
+              );
+            })}
             {!pendentesHoje.length ? (
               <li className="text-sm text-gray-600">Nenhuma consulta pendente hoje.</li>
             ) : null}
