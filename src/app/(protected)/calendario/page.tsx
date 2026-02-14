@@ -40,6 +40,19 @@ function fmtShort(d: Date): string {
   return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
 }
 
+function parseYmdToLocalDate(value: string): Date | null {
+  const trimmed = value.trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!y || !mo || !d) return null;
+  const dt = new Date(y, mo - 1, d);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt;
+}
+
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Erro na requisicao";
@@ -80,19 +93,7 @@ export default function CalendarioPage() {
     });
   }, [weekStart]);
 
-  async function bootstrap() {
-    try {
-      const [tResp, pResp] = await Promise.all([
-        fetch("/api/terapeutas", { cache: "no-store" }),
-        fetch("/api/pacientes", { cache: "no-store" }),
-      ]);
-      const [tData, pData] = await Promise.all([tResp.json(), pResp.json()]);
-      setTerapeutas(Array.isArray(tData) ? tData : []);
-      setPacientes(Array.isArray(pData) ? pData : []);
-    } catch {
-      // optional
-    }
-  }
+  // Bootstrap is handled via an effect to avoid hook dependency warnings.
 
   async function loadAgenda() {
     const id = terapeutaId ? Number(terapeutaId) : 0;
@@ -158,11 +159,80 @@ export default function CalendarioPage() {
   }
 
   useEffect(() => {
-    void bootstrap();
+    async function run() {
+      try {
+        const [tResp, pResp] = await Promise.all([
+          fetch("/api/terapeutas", { cache: "no-store" }),
+          fetch("/api/pacientes", { cache: "no-store" }),
+        ]);
+        const [tData, pData] = await Promise.all([tResp.json(), pResp.json()]);
+        const tList = Array.isArray(tData) ? tData : [];
+        const pList = Array.isArray(pData) ? pData : [];
+        setTerapeutas(tList);
+        setPacientes(pList);
+
+        // Keep behavior close to legacy: preselect last therapist (or therapistId in URL) when available.
+        const search = new URLSearchParams(window.location.search);
+        const qsTerapeutaId = (search.get("terapeutaId") ?? "").trim();
+        const qsData = (search.get("data") ?? "").trim();
+        const storedTerapeutaId = (localStorage.getItem("calendario.terapeutaId") ?? "").trim();
+
+        const candidate =
+          qsTerapeutaId ||
+          storedTerapeutaId ||
+          (tList.length === 1 ? String(tList[0]?.id ?? "") : "");
+
+        if (candidate && tList.some((t: Terapeuta) => String(t.id) === candidate)) {
+          setTerapeutaId(candidate);
+        }
+
+        if (qsData) {
+          const dt = parseYmdToLocalDate(qsData);
+          if (dt) {
+            setWeekStart(weekMonday(dt));
+            setData(qsData);
+          }
+        }
+      } catch {
+        // optional
+      }
+    }
+
+    void run();
   }, []);
 
   useEffect(() => {
+    if (!terapeutaId) return;
+    try {
+      localStorage.setItem("calendario.terapeutaId", terapeutaId);
+      const url = new URL(window.location.href);
+      url.searchParams.set("terapeutaId", terapeutaId);
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      // ignore
+    }
+  }, [terapeutaId]);
+
+  useEffect(() => {
     void loadAgenda();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terapeutaId, weekStart]);
+
+  useEffect(() => {
+    function refreshOnFocus() {
+      void loadAgenda();
+    }
+
+    function onVisibilityChange() {
+      if (!document.hidden) refreshOnFocus();
+    }
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terapeutaId, weekStart]);
 
@@ -231,16 +301,20 @@ export default function CalendarioPage() {
                 <div key={dayStr} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="text-sm font-semibold text-[var(--marrom)]">{fmtShort(d)}</div>
-                    <button
-                      type="button"
-                      className="text-xs text-[var(--laranja)] hover:underline"
-                      onClick={() => setData(dayStr)}
-                    >
-                      + reservar
-                    </button>
+                    {terapeutaId ? (
+                      <button
+                        type="button"
+                        className="text-xs text-[var(--laranja)] hover:underline"
+                        onClick={() => setData(dayStr)}
+                      >
+                        + reservar
+                      </button>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    {slots.length ? (
+                    {!terapeutaId ? (
+                      <p className="text-xs text-gray-500">Selecione um terapeuta</p>
+                    ) : slots.length ? (
                       slots.map((a) => (
                         <div
                           key={a.id}

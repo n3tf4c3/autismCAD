@@ -38,13 +38,14 @@ export default async function DashboardPage() {
         pacienteNome: pacientes.nome,
         terapeutaNome: terapeutas.nome,
         realizado: atendimentos.realizado,
+        presenca: atendimentos.presenca,
       })
       .from(atendimentos)
       .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
       .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
       .where(and(eq(atendimentos.data, today), isNull(atendimentos.deletedAt)))
       .orderBy(asc(atendimentos.horaInicio), asc(atendimentos.id))
-      .limit(10),
+      .limit(60),
     db
       .select({ data: atendimentos.data })
       .from(atendimentos)
@@ -58,7 +59,11 @@ export default async function DashboardPage() {
       .groupBy(atendimentos.data),
   ]);
 
-  const pendentesHoje = pendentes.filter((a) => !a.realizado).slice(0, 6);
+  const pendentesAll = pendentes.filter((a) => {
+    const cancelado = String(a.presenca ?? "").toLowerCase() === "ausente";
+    return !a.realizado && !cancelado;
+  });
+  const pendentesHoje = pendentesAll.slice(0, 6);
   const daysWithSessions = monthDays
     .map((r) => String(r.data).slice(0, 10))
     .filter(Boolean);
@@ -130,7 +135,7 @@ export default async function DashboardPage() {
           <div className="mb-2 flex items-center justify-between">
             <p className="font-semibold">Pendentes de hoje</p>
             <span className="text-xs text-gray-600">
-              {pendentesHoje.length ? `${pendentesHoje.length} restante(s)` : ""}
+              {pendentesAll.length ? `${pendentesAll.length} restante(s)` : ""}
             </span>
           </div>
           <ul className="max-h-40 space-y-2 overflow-auto pr-1">
@@ -140,23 +145,24 @@ export default async function DashboardPage() {
               const faixa = ini && fim ? `${ini} - ${fim}` : "";
 
               return (
-                <li key={a.id} className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[var(--marrom)]">{a.pacienteNome}</p>
-                    <p className="text-xs text-gray-600">
-                      Terapeuta: {a.terapeutaNome || "Nao informado"}
-                    </p>
+                <li key={a.id} className="p-2 rounded-md bg-white border border-amber-100 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-[var(--marrom)] text-sm">{a.pacienteNome || "Paciente"}</p>
+                    {faixa ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-[var(--marrom)] font-semibold">
+                        {faixa}
+                      </span>
+                    ) : null}
                   </div>
-                  {faixa ? (
-                    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-amber-200">
-                      {faixa}
-                    </span>
-                  ) : null}
+                  <p className="text-xs text-gray-700">Terapeuta: {a.terapeutaNome || "-"}</p>
                 </li>
               );
             })}
-            {!pendentesHoje.length ? (
-              <li className="text-sm text-gray-600">Nenhuma consulta pendente hoje.</li>
+            {!pendentesAll.length ? (
+              <li className="text-xs text-gray-600">Nenhuma consulta pendente hoje.</li>
+            ) : null}
+            {pendentesAll.length > pendentesHoje.length ? (
+              <li className="text-xs text-gray-600">+{pendentesAll.length - pendentesHoje.length} consulta(s)</li>
             ) : null}
           </ul>
         </div>
