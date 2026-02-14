@@ -167,7 +167,8 @@ export async function criarEvolucao(
   const dataVal = toIsoDate(input.data ?? new Date().toISOString().slice(0, 10));
   const payload = input.payload ?? {};
 
-  let terapeutaId = input.terapeutaId ? Number(input.terapeutaId) : null;
+  const terapeutaRaw = input.terapeutaId ?? input.terapeuta_id ?? null;
+  let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : null;
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
@@ -178,7 +179,8 @@ export async function criarEvolucao(
     throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
-  const atendimentoId = input.atendimentoId ? Number(input.atendimentoId) : null;
+  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
+  const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
 
   try {
     const [saved] = await db
@@ -243,7 +245,8 @@ export async function atualizarEvolucao(
     unknown
   >;
 
-  let terapeutaId = input.terapeutaId ? Number(input.terapeutaId) : Number(current.terapeuta_id);
+  const terapeutaRaw = input.terapeutaId ?? input.terapeuta_id ?? null;
+  let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : Number(current.terapeuta_id);
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
@@ -254,8 +257,9 @@ export async function atualizarEvolucao(
     throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
-  const atendimentoId = input.atendimentoId
-    ? Number(input.atendimentoId)
+  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
+  const atendimentoId = atendimentoRaw
+    ? Number(atendimentoRaw)
     : ((current as { atendimento_id?: number | null }).atendimento_id ?? null);
 
   try {

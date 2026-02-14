@@ -32,7 +32,11 @@ export const evolucaoPayloadSchema = z.object({}).passthrough();
 export const criarEvolucaoSchema = z.object({
   data: z.string().trim().optional(),
   atendimentoId: z.coerce.number().int().positive().optional().nullable(),
+  // Compatibilidade com o legado (snake_case).
+  atendimento_id: z.coerce.number().int().positive().optional().nullable(),
   terapeutaId: z.coerce.number().int().positive().optional().nullable(),
+  // Compatibilidade com o legado (snake_case).
+  terapeuta_id: z.coerce.number().int().positive().optional().nullable(),
   payload: evolucaoPayloadSchema.optional().default({}),
 });
 
@@ -40,4 +44,3 @@ export type CriarEvolucaoInput = z.infer<typeof criarEvolucaoSchema>;
 
 export const atualizarEvolucaoSchema = criarEvolucaoSchema.partial();
 export type AtualizarEvolucaoInput = z.infer<typeof atualizarEvolucaoSchema>;
-

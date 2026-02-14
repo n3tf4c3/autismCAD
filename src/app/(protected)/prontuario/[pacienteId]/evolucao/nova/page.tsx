@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
+import { canonicalRoleName } from "@/server/auth/permissions";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
 
@@ -44,6 +45,8 @@ export default async function NovaEvolucaoPage(props: { params: Promise<{ pacien
     );
   }
 
+  const isTerapeuta = (canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA";
+
   return (
     <main className="space-y-4">
       <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -63,7 +66,7 @@ export default async function NovaEvolucaoPage(props: { params: Promise<{ pacien
         </div>
       </section>
 
-      <EvolucaoFormClient pacienteId={paciente.id} />
+      <EvolucaoFormClient pacienteId={paciente.id} isTerapeuta={isTerapeuta} />
     </main>
   );
 }

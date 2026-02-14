@@ -76,6 +76,8 @@ export default async function EditarEvolucaoPage(props: {
     );
   }
 
+  const isTerapeuta = (canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA";
+
   return (
     <main className="space-y-4">
       <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -98,9 +100,11 @@ export default async function EditarEvolucaoPage(props: {
       <EvolucaoFormClient
         pacienteId={paciente.id}
         evolucaoId={evolucao.id}
+        isTerapeuta={isTerapeuta}
         initial={{
           data: evolucao.data,
           atendimento_id: evolucao.atendimento_id ? Number(evolucao.atendimento_id) : null,
+          terapeuta_id: evolucao.terapeuta_id ? Number(evolucao.terapeuta_id) : null,
           payload: (evolucao.payload ?? {}) as Record<string, unknown>,
         }}
       />
