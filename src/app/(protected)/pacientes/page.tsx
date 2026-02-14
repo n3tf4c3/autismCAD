@@ -13,6 +13,8 @@ type Paciente = {
   terapias: string[];
 };
 
+type Terapeuta = { id: number; nome: string };
+
 function formatCpf(cpf: string): string {
   const digits = (cpf || "").replace(/\D/g, "").slice(0, 11);
   if (digits.length !== 11) return digits;
@@ -24,12 +26,54 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao carregar pacientes";
 }
 
+function ymdToday(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getApiErrorMessage(json: unknown): string | null {
+  if (!json || typeof json !== "object") return null;
+  const rec = json as Record<string, unknown>;
+  const value = rec.error;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+async function safeJson(resp: Response): Promise<unknown> {
+  try {
+    return await resp.json();
+  } catch {
+    return {};
+  }
+}
+
 export default function PacientesPage() {
   const [items, setItems] = useState<Paciente[]>([]);
+  const [terapeutas, setTerapeutas] = useState<Terapeuta[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
+
+  const [consultaOpen, setConsultaOpen] = useState(false);
+  const [consultaPaciente, setConsultaPaciente] = useState<Paciente | null>(null);
+  const [consultaTerapeutaId, setConsultaTerapeutaId] = useState<string>("");
+  const [consultaHoraInicio, setConsultaHoraInicio] = useState<string>("08:00");
+  const [consultaHoraFim, setConsultaHoraFim] = useState<string>("09:00");
+  const [consultaTurno, setConsultaTurno] = useState<string>("Matutino");
+  const [consultaPeriodoInicio, setConsultaPeriodoInicio] = useState<string>(ymdToday());
+  const [consultaPeriodoFim, setConsultaPeriodoFim] = useState<string>(ymdToday());
+  const [consultaPresenca, setConsultaPresenca] = useState<string>("Nao informado");
+  const [consultaMotivo, setConsultaMotivo] = useState<string>("");
+  const [consultaDias, setConsultaDias] = useState<Set<number>>(
+    () => new Set([1, 2, 3, 4, 5]) // seg..sex
+  );
+  const [consultaBusy, setConsultaBusy] = useState(false);
+  const [consultaMsg, setConsultaMsg] = useState<string | null>(null);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -57,7 +101,113 @@ export default function PacientesPage() {
     }
   }
 
+  async function bootstrap() {
+    try {
+      const resp = await fetch("/api/terapeutas", { cache: "no-store" });
+      const data = await safeJson(resp);
+      if (!resp.ok) return;
+      setTerapeutas(Array.isArray(data) ? (data as Terapeuta[]) : []);
+    } catch {
+      // optional
+    }
+  }
+
+  function abrirConsulta(paciente: Paciente) {
+    setConsultaPaciente(paciente);
+    setConsultaOpen(true);
+    setConsultaMsg(null);
+    setConsultaMotivo("");
+    setConsultaPresenca("Nao informado");
+    setConsultaTurno("Matutino");
+    setConsultaHoraInicio("08:00");
+    setConsultaHoraFim("09:00");
+    const today = ymdToday();
+    setConsultaPeriodoInicio(today);
+    setConsultaPeriodoFim(today);
+    setConsultaDias(new Set([1, 2, 3, 4, 5]));
+  }
+
+  function fecharConsulta() {
+    setConsultaOpen(false);
+    setConsultaPaciente(null);
+    setConsultaBusy(false);
+  }
+
+  function toggleDia(dow: number) {
+    setConsultaDias((cur) => {
+      const next = new Set(cur);
+      if (next.has(dow)) next.delete(dow);
+      else next.add(dow);
+      return next;
+    });
+  }
+
+  async function salvarConsultaPorPeriodo() {
+    const paciente = consultaPaciente;
+    if (!paciente) return;
+
+    setConsultaMsg(null);
+
+    if (!consultaTerapeutaId) {
+      setConsultaMsg("Selecione um terapeuta.");
+      return;
+    }
+    if (!consultaHoraInicio || !consultaHoraFim) {
+      setConsultaMsg("Preencha horarios do atendimento.");
+      return;
+    }
+    if (!consultaPeriodoInicio || !consultaPeriodoFim) {
+      setConsultaMsg("Informe inicio e fim do periodo.");
+      return;
+    }
+    if (!consultaDias.size) {
+      setConsultaMsg("Selecione pelo menos um dia da semana.");
+      return;
+    }
+
+    const motivo = consultaMotivo.trim();
+    if (consultaPresenca === "Ausente" && !motivo) {
+      setConsultaMsg("Informe o motivo da ausencia.");
+      return;
+    }
+
+    setConsultaBusy(true);
+    try {
+      const payload = {
+        pacienteId: paciente.id,
+        terapeutaId: Number(consultaTerapeutaId),
+        horaInicio: consultaHoraInicio,
+        horaFim: consultaHoraFim,
+        turno: consultaTurno || "Matutino",
+        periodoInicio: consultaPeriodoInicio,
+        periodoFim: consultaPeriodoFim,
+        presenca: consultaPresenca || "Nao informado",
+        motivo: motivo || null,
+        observacoes: null,
+        diasSemana: Array.from(consultaDias.values()).sort((a, b) => a - b),
+      };
+
+      const resp = await fetch("/api/atendimentos/recorrente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      const json = await safeJson(resp);
+      if (!resp.ok) {
+        throw new Error(getApiErrorMessage(json) || "Erro ao salvar atendimento");
+      }
+      const created = (json as { criados?: number }).criados;
+      setConsultaMsg(`Atendimentos criados: ${Number(created ?? 0)}`);
+    } catch (err) {
+      setConsultaMsg(normalizeApiError(err));
+    } finally {
+      setConsultaBusy(false);
+    }
+  }
+
   useEffect(() => {
+    void bootstrap();
     void loadPacientes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -162,6 +312,13 @@ export default function PacientesPage() {
                     <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/prontuario/${item.id}`}>
                       Prontuario
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => abrirConsulta(item)}
+                      className="text-sm font-semibold text-[var(--laranja)] hover:underline"
+                    >
+                      Agendar por periodo
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -176,6 +333,174 @@ export default function PacientesPage() {
           </tbody>
         </table>
       </div>
+
+      {consultaOpen && consultaPaciente ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) fecharConsulta();
+          }}
+        >
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Novo atendimento (por periodo)</p>
+                <h3 className="text-lg font-bold text-[var(--marrom)]">
+                  {consultaPaciente.nome} <span className="text-gray-500">#{consultaPaciente.id}</span>
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="text-2xl leading-none text-gray-500 hover:text-[var(--laranja)]"
+                aria-label="Fechar"
+                onClick={fecharConsulta}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Terapeuta</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaTerapeutaId}
+                  onChange={(e) => setConsultaTerapeutaId(e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {terapeutas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Turno</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaTurno}
+                  onChange={(e) => setConsultaTurno(e.target.value)}
+                >
+                  <option value="Matutino">Matutino</option>
+                  <option value="Vespertino">Vespertino</option>
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Horario inicio</span>
+                <input
+                  type="time"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaHoraInicio}
+                  onChange={(e) => setConsultaHoraInicio(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Horario fim</span>
+                <input
+                  type="time"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaHoraFim}
+                  onChange={(e) => setConsultaHoraFim(e.target.value)}
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Periodo - inicio</span>
+                <input
+                  type="date"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaPeriodoInicio}
+                  onChange={(e) => setConsultaPeriodoInicio(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Periodo - fim</span>
+                <input
+                  type="date"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaPeriodoFim}
+                  onChange={(e) => setConsultaPeriodoFim(e.target.value)}
+                />
+              </label>
+
+              <div className="md:col-span-2">
+                <p className="font-semibold text-gray-700">Dias da semana</p>
+                <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+                  {[
+                    { v: 1, label: "Segunda" },
+                    { v: 2, label: "Terca" },
+                    { v: 3, label: "Quarta" },
+                    { v: 4, label: "Quinta" },
+                    { v: 5, label: "Sexta" },
+                    { v: 6, label: "Sabado" },
+                    { v: 0, label: "Domingo" },
+                  ].map((d) => (
+                    <label key={d.v} className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="rounded text-[var(--laranja)]"
+                        checked={consultaDias.has(d.v)}
+                        onChange={() => toggleDia(d.v)}
+                      />
+                      <span>{d.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Presenca</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaPresenca}
+                  onChange={(e) => setConsultaPresenca(e.target.value)}
+                >
+                  <option value="Nao informado">Nao informado</option>
+                  <option value="Presente">Presente</option>
+                  <option value="Ausente">Ausente</option>
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-2 md:col-span-2">
+                <span className="font-semibold text-gray-700">Motivo/Observacao</span>
+                <textarea
+                  rows={3}
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={consultaMotivo}
+                  onChange={(e) => setConsultaMotivo(e.target.value)}
+                  placeholder="Motivo da ausencia ou observacoes"
+                />
+              </label>
+            </div>
+
+            {consultaMsg ? <p className="mt-3 text-sm text-gray-700">{consultaMsg}</p> : null}
+
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={fecharConsulta}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={consultaBusy}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void salvarConsultaPorPeriodo()}
+                className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                disabled={consultaBusy}
+              >
+                {consultaBusy ? "Salvando..." : "Salvar atendimento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

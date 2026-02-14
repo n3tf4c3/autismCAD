@@ -44,6 +44,15 @@ function normalizeDate(value: string): string {
   return trimmed;
 }
 
+function parseDateOnlyUtc(value: string): Date {
+  const trimmed = normalizeDate(value);
+  const dt = new Date(`${trimmed}T00:00:00.000Z`);
+  if (Number.isNaN(dt.getTime())) {
+    throw new AppError("Data invalida", 400, "INVALID_DATE");
+  }
+  return dt;
+}
+
 async function existeConflitoHorario(params: {
   pacienteId: number;
   data: string;
@@ -219,11 +228,8 @@ export async function softDeleteAtendimento(id: number, deletedByUserId?: number
 }
 
 export async function criarRecorrentes(payload: RecorrenteInput) {
-  const inicio = new Date(payload.periodoInicio);
-  const fim = new Date(payload.periodoFim);
-  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
-    throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
-  }
+  const inicio = parseDateOnlyUtc(payload.periodoInicio);
+  const fim = parseDateOnlyUtc(payload.periodoFim);
   if (inicio > fim) {
     throw new AppError("Data inicial maior que final", 400, "INVALID_PERIOD");
   }
@@ -232,8 +238,9 @@ export async function criarRecorrentes(payload: RecorrenteInput) {
   const results: { id: number; data: string }[] = [];
   let total = 0;
 
-  for (let dt = new Date(inicio); dt <= fim; dt.setDate(dt.getDate() + 1)) {
-    const dow = dt.getDay(); // 0..6
+  // Use UTC to avoid timezone-dependent getDay() behavior for date-only strings.
+  for (let dt = new Date(inicio); dt <= fim; dt.setUTCDate(dt.getUTCDate() + 1)) {
+    const dow = dt.getUTCDay(); // 0..6 (Sun..Sat) matches Postgres extract(dow)
     if (!dias.has(dow)) continue;
     total += 1;
     if (total > 400) {
@@ -259,15 +266,20 @@ export async function criarRecorrentes(payload: RecorrenteInput) {
     results.push({ id, data });
   }
 
+  if (!results.length) {
+    throw new AppError(
+      "Nenhum atendimento gerado para o periodo e dias selecionados",
+      400,
+      "NO_MATCH"
+    );
+  }
+
   return { criados: results.length, atendimentos: results };
 }
 
 export async function excluirDia(payload: ExcluirDiaInput) {
-  const inicio = new Date(payload.periodoInicio);
-  const fim = new Date(payload.periodoFim);
-  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
-    throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
-  }
+  const inicio = parseDateOnlyUtc(payload.periodoInicio);
+  const fim = parseDateOnlyUtc(payload.periodoFim);
   if (inicio > fim) {
     throw new AppError("Data inicial maior que final", 400, "INVALID_PERIOD");
   }
