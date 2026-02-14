@@ -68,7 +68,9 @@ export function SidebarClient() {
         setCadastrosOpen(true);
         shell.closeSidebar();
       },
-      activeWhen: (p) => isActivePrefix("/pacientes", p) || isActivePrefix("/terapeutas", p),
+      // "Cadastros" opens a modal, so it should only look active while the modal is open.
+      // Otherwise it double-highlights together with "Pacientes"/"Terapeutas".
+      activeWhen: () => cadastrosOpen,
     },
     {
       key: "pacientes",
