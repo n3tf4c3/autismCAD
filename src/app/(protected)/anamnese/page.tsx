@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { db } from "@/db";
+import { requirePermission } from "@/server/auth/auth";
 import { pacientes } from "@/server/db/schema";
 import { asc, isNull } from "drizzle-orm";
 
 export default async function AnamneseIndexPage() {
+  await requirePermission("pacientes:view");
   const rows = await db
     .select({ id: pacientes.id, nome: pacientes.nome })
     .from(pacientes)
@@ -55,4 +57,3 @@ export default async function AnamneseIndexPage() {
     </main>
   );
 }
-

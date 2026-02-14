@@ -7,6 +7,13 @@ import { AppError } from "@/server/shared/errors";
 
 type AnyRecord = Record<string, unknown>;
 
+function isUniqueViolation(error: unknown): boolean {
+  const anyErr = error as { code?: string; message?: string };
+  if (anyErr?.code === "23505") return true; // Postgres unique violation
+  const msg = anyErr?.message ?? "";
+  return msg.includes("duplicate key value violates unique constraint");
+}
+
 const ANAMNESE_FIELDS = [
   "entrevistaPor",
   "dataEntrevista",
@@ -61,11 +68,19 @@ function asTrimmedOrNull(value: unknown): string | null {
   return parsed ? parsed : null;
 }
 
+function asDateOnlyOrNull(value: unknown): string | null {
+  const raw = asTrimmedOrNull(value);
+  if (!raw) return null;
+  // Accept ISO strings and "YYYY-MM-DD". Normalize to date-only for <input type="date"> compat.
+  const dateOnly = raw.length >= 10 ? raw.slice(0, 10) : raw;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return null;
+  return dateOnly;
+}
 function asBoolOrNull(value: unknown): boolean | null {
   if (value === undefined || value === null || value === "") return null;
   const normalized = String(value).trim().toLowerCase();
   if (["1", "true", "sim", "yes", "on"].includes(normalized)) return true;
-  if (["0", "false", "nao", "não", "no", "off"].includes(normalized)) return false;
+  if (["0", "false", "nao", "não", "nÃ£o", "no", "off"].includes(normalized)) return false;
   return null;
 }
 
@@ -73,7 +88,7 @@ export function buildAnamnesePayload(pacienteId: number, body: AnyRecord) {
   const payload: AnyRecord = { paciente_id: pacienteId };
 
   payload.entrevistaPor = asTrimmedOrNull(readValue(body, "entrevistaPor", "entrevista_por"));
-  payload.dataEntrevista = asTrimmedOrNull(readValue(body, "dataEntrevista", "data_entrevista"));
+  payload.dataEntrevista = asDateOnlyOrNull(readValue(body, "dataEntrevista", "data_entrevista"));
   payload.possuiDiagnostico = asBoolOrNull(readValue(body, "possuiDiagnostico", "possui_diagnostico"));
   payload.diagnostico = asTrimmedOrNull(readValue(body, "diagnostico", "diagnostico"));
   payload.laudoDiagnostico = asTrimmedOrNull(readValue(body, "laudoDiagnostico", "laudo_diagnostico"));
@@ -274,7 +289,11 @@ export async function salvarAnamneseCompleta(params: {
     } catch (error) {
       // Unique violation -> retry.
       const message = (error as Error)?.message || "";
-      if (message.includes("uk_anamnese_versions_paciente_version") && attempt < maxRetries) {
+      if (
+        attempt < maxRetries &&
+        (isUniqueViolation(error) ||
+          message.includes("uk_anamnese_versions_paciente_version"))
+      ) {
         continue;
       }
       throw error;
