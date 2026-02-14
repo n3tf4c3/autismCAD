@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
+import { QuickCalendarClient } from "./quick-calendar.client";
 
 function ymdToday(): string {
   return new Date().toISOString().slice(0, 10);
@@ -9,10 +10,11 @@ function ymdToday(): string {
 
 function monthRange(ym: string) {
   const [y, m] = ym.split("-").map(Number);
-  const start = new Date(y, (m ?? 1) - 1, 1);
-  const end = new Date(y, (m ?? 1), 0);
-  const startIso = start.toISOString().slice(0, 10);
-  const endIso = end.toISOString().slice(0, 10);
+  const year = y || new Date().getFullYear();
+  const month1 = m || new Date().getMonth() + 1; // 1..12
+  const startIso = `${year}-${String(month1).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month1, 0).getDate();
+  const endIso = `${year}-${String(month1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
   return { startIso, endIso };
 }
 
@@ -28,7 +30,7 @@ export default async function DashboardPage() {
   const ym = ymNow();
   const { startIso, endIso } = monthRange(ym);
 
-  const [pendentes, monthDays] = await Promise.all([
+  const [pendentes, monthAtendimentos] = await Promise.all([
     db
       .select({
         id: atendimentos.id,
@@ -47,8 +49,19 @@ export default async function DashboardPage() {
       .orderBy(asc(atendimentos.horaInicio), asc(atendimentos.id))
       .limit(60),
     db
-      .select({ data: atendimentos.data })
+      .select({
+        id: atendimentos.id,
+        data: atendimentos.data,
+        hora_inicio: atendimentos.horaInicio,
+        hora_fim: atendimentos.horaFim,
+        pacienteNome: pacientes.nome,
+        terapeutaNome: terapeutas.nome,
+        realizado: atendimentos.realizado,
+        presenca: atendimentos.presenca,
+      })
       .from(atendimentos)
+      .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
+      .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
       .where(
         and(
           isNull(atendimentos.deletedAt),
@@ -56,7 +69,7 @@ export default async function DashboardPage() {
           lte(atendimentos.data, endIso)
         )
       )
-      .groupBy(atendimentos.data),
+      .orderBy(asc(atendimentos.data), asc(atendimentos.horaInicio), asc(atendimentos.id)),
   ]);
 
   const pendentesAll = pendentes.filter((a) => {
@@ -64,9 +77,16 @@ export default async function DashboardPage() {
     return !a.realizado && !cancelado;
   });
   const pendentesHoje = pendentesAll.slice(0, 6);
-  const daysWithSessions = monthDays
-    .map((r) => String(r.data).slice(0, 10))
-    .filter(Boolean);
+  const monthItems = monthAtendimentos.map((a) => ({
+    id: Number(a.id),
+    data: String(a.data).slice(0, 10),
+    hora_inicio: String(a.hora_inicio),
+    hora_fim: String(a.hora_fim),
+    pacienteNome: a.pacienteNome,
+    terapeutaNome: a.terapeutaNome,
+    realizado: a.realizado ? 1 : 0,
+    presenca: a.presenca,
+  }));
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -185,44 +205,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold text-[var(--marrom)]">{ym}</span>
-            <span className="text-xs text-gray-600">
-              {daysWithSessions.length ? `${daysWithSessions.length} dias` : "Sem sessoes"}
-            </span>
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-[11px] text-center text-gray-500">
-            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
-          </div>
-          <div className="mt-1 grid grid-cols-7 gap-1 text-sm">
-            {(() => {
-              const [y, m] = ym.split("-").map(Number);
-              const first = new Date(y, (m ?? 1) - 1, 1);
-              const offset = first.getDay(); // 0..6
-              const last = new Date(y, (m ?? 1), 0).getDate();
-              const marked = new Set(daysWithSessions.map((d) => Number(d.slice(8, 10))));
-              const cells: Array<React.ReactNode> = [];
-              for (let i = 0; i < offset; i += 1) cells.push(<div key={`e-${i}`} />);
-              for (let day = 1; day <= last; day += 1) {
-                const isToday = Number(today.slice(0, 4)) === y && Number(today.slice(5, 7)) === m && Number(today.slice(8, 10)) === day;
-                const has = marked.has(day);
-                cells.push(
-                  <div
-                    key={`d-${day}`}
-                    className={[
-                      "rounded-md border border-gray-200 bg-white px-0.5 py-1 text-center",
-                      has ? "border-amber-200" : "",
-                      isToday ? "bg-amber-100 font-semibold text-[var(--marrom)]" : "text-gray-700",
-                    ].join(" ")}
-                    title={has ? "Sessao marcada" : ""}
-                  >
-                    {day}
-                  </div>
-                );
-              }
-              return cells;
-            })()}
-          </div>
+          <QuickCalendarClient initialYm={ym} initialItems={monthItems} />
 
           <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-600">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--verde)]" />
