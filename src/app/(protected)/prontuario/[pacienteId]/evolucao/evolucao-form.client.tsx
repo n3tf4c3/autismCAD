@@ -628,25 +628,33 @@ export function EvolucaoFormClient(props: {
 
         {!isTerapeuta ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</label>
-              <select
-                value={terapeutaIdLocked ? String(atendimentoAtual?.terapeuta_id || "") : terapeutaId}
-                onChange={(e) => setTerapeutaId(e.target.value)}
-                disabled={busy || terapeutaIdLocked}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm disabled:opacity-60"
-              >
-                <option value="">Selecione</option>
-                {terapeutas.map((t) => (
-                  <option key={t.id} value={String(t.id)}>
-                    {t.nome} (#{t.id})
-                  </option>
-                ))}
-              </select>
-              {terapeutaIdLocked ? (
+            {terapeutaIdLocked ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</label>
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  {atendimentoAtual?.terapeutaNome ||
+                    (atendimentoAtual?.terapeuta_id ? `#${atendimentoAtual.terapeuta_id}` : "Vinculado ao atendimento")}
+                </p>
                 <p className="text-xs text-gray-500">Vinculado ao atendimento selecionado.</p>
-              ) : null}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-[var(--marrom)]">Terapeuta (quando sem atendimento)</label>
+                <select
+                  value={terapeutaId}
+                  onChange={(e) => setTerapeutaId(e.target.value)}
+                  disabled={busy}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm disabled:opacity-60"
+                >
+                  <option value="">Selecione</option>
+                  {terapeutas.map((t) => (
+                    <option key={t.id} value={String(t.id)}>
+                      {t.nome} (#{t.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         ) : null}
 

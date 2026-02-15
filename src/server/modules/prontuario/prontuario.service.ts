@@ -4,6 +4,7 @@ import { and, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
+  atendimentos,
   evolucoes,
   prontuarioDocumentos,
   terapeutas,
@@ -33,6 +34,22 @@ function toIsoDate(value: string): string {
     throw new AppError("Data invalida", 400, "INVALID_INPUT");
   }
   return d.toISOString().slice(0, 10);
+}
+
+async function obterTerapeutaIdDoAtendimento(pacienteId: number, atendimentoId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ pacienteId: atendimentos.pacienteId, terapeutaId: atendimentos.terapeutaId })
+    .from(atendimentos)
+    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)))
+    .limit(1);
+
+  if (!row) {
+    throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+  }
+  if (Number(row.pacienteId) !== Number(pacienteId)) {
+    throw new AppError("Atendimento nao pertence ao paciente", 400, "INVALID_INPUT");
+  }
+  return row.terapeutaId == null ? null : Number(row.terapeutaId);
 }
 
 export async function listarDocumentos(pacienteId: number, tipo?: string | null) {
@@ -167,6 +184,9 @@ export async function criarEvolucao(
   const dataVal = toIsoDate(input.data ?? new Date().toISOString().slice(0, 10));
   const payload = input.payload ?? {};
 
+  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
+  const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
+
   const terapeutaRaw = input.terapeutaId ?? input.terapeuta_id ?? null;
   let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : null;
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
@@ -174,13 +194,12 @@ export async function criarEvolucao(
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
     if (!terapeuta) throw new AppError("Terapeuta nao encontrado", 403, "FORBIDDEN");
     terapeutaId = terapeuta.id;
+  } else if (!terapeutaId && atendimentoId) {
+    terapeutaId = await obterTerapeutaIdDoAtendimento(pacienteId, atendimentoId);
   }
   if (!terapeutaId) {
     throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
-
-  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
-  const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
 
   try {
     const [saved] = await db
@@ -245,22 +264,26 @@ export async function atualizarEvolucao(
     unknown
   >;
 
+  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
+  const atendimentoId = atendimentoRaw
+    ? Number(atendimentoRaw)
+    : ((current as { atendimento_id?: number | null }).atendimento_id ?? null);
+
   const terapeutaRaw = input.terapeutaId ?? input.terapeuta_id ?? null;
+  const terapeutaExplicito = terapeutaRaw != null;
   let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : Number(current.terapeuta_id);
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
     if (!terapeuta) throw new AppError("Terapeuta nao encontrado", 403, "FORBIDDEN");
     terapeutaId = terapeuta.id;
+  } else if (!terapeutaExplicito && atendimentoRaw && atendimentoId) {
+    const tFromAtendimento = await obterTerapeutaIdDoAtendimento(Number(current.paciente_id), atendimentoId);
+    if (tFromAtendimento) terapeutaId = tFromAtendimento;
   }
   if (!terapeutaId) {
     throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
-
-  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
-  const atendimentoId = atendimentoRaw
-    ? Number(atendimentoRaw)
-    : ((current as { atendimento_id?: number | null }).atendimento_id ?? null);
 
   try {
     await db
