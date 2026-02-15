@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { formatDateBr, toLocalDateKey } from "@/lib/date-only";
 
 export type TimelineItem =
   | {
@@ -26,13 +27,6 @@ export type TimelineItem =
       profissional: string | null;
     };
 
-function fmtDate(value?: string | null): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString("pt-BR");
-}
-
 export function TimelineClient(props: { pacienteId: number; initialItems: TimelineItem[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -42,11 +36,13 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
   const [localItems, setLocalItems] = useState<TimelineItem[]>(props.initialItems);
 
   const items = useMemo(() => {
+    const iniKey = ini || "";
+    const fimKey = fim || "";
     return localItems.filter((i) => {
       if (tipo && i.kind !== tipo) return false;
-      const d = new Date(i.data);
-      if (ini && d < new Date(ini)) return false;
-      if (fim && d > new Date(fim)) return false;
+      const key = toLocalDateKey(i.data) ?? "";
+      if (iniKey && key && key < iniKey) return false;
+      if (fimKey && key && key > fimKey) return false;
       return true;
     });
   }, [fim, ini, localItems, tipo]);
@@ -128,7 +124,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-gray-500">{fmtDate(item.data)}</span>
+                  <span className="text-gray-500">{formatDateBr(item.data)}</span>
                 </div>
 
                 <h3 className="font-semibold text-[var(--marrom)]">{item.titulo || "Registro"}</h3>
@@ -181,4 +177,3 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
     </section>
   );
 }
-
