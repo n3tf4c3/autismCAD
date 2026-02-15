@@ -164,6 +164,12 @@ export default function TerapeutasPage() {
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
+                      href={`/terapeutas/${item.id}`}
+                      className="inline-flex items-center justify-center rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Ver
+                    </Link>
+                    <Link
                       href={`/terapeutas/${item.id}/editar`}
                       className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                     >

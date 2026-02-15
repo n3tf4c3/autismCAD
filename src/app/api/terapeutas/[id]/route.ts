@@ -6,6 +6,7 @@ import { saveTerapeutaSchema } from "@/server/modules/terapeutas/terapeutas.sche
 import {
   deleteTerapeuta,
   obterTerapeutaPorUsuario,
+  listarTerapeutas,
   salvarTerapeuta,
 } from "@/server/modules/terapeutas/terapeutas.service";
 import { AppError, toAppError } from "@/server/shared/errors";
@@ -14,6 +15,19 @@ import { jsonError } from "@/server/shared/http";
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    await requirePermission("terapeutas:view");
+    const { id } = idParamSchema.parse(await context.params);
+    const rows = await listarTerapeutas({ id });
+    const row = rows?.[0] ?? null;
+    if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+    return Response.json(row);
+  } catch (error) {
+    return jsonError(toAppError(error));
+  }
+}
 
 export async function PUT(request: Request, context: RouteContext) {
   try {
