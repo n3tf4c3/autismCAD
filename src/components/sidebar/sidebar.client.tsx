@@ -106,23 +106,6 @@ export function SidebarClient() {
     },
     { key: "sep1", label: "-", icon: "", kind: "separator" },
     {
-      key: "anamnese",
-      label: "Anamnese",
-      icon: "📝",
-      href: "/anamnese",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/anamnese", p),
-    },
-    {
-      key: "prontuario",
-      label: "Prontuario",
-      icon: "📚",
-      href: "/prontuario",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/prontuario", p),
-    },
-    { key: "sep2", label: "-", icon: "", kind: "separator" },
-    {
       key: "relatorios",
       label: "Relatorios",
       icon: "📊",
