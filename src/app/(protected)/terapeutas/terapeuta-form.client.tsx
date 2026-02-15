@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type TerapeutaFormInitial = {
@@ -19,6 +19,12 @@ type TerapeutaFormInitial = {
 };
 
 type ApiError = { error?: string };
+type ViaCepResp = {
+  erro?: boolean;
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+};
 
 const ESPECIALIDADES = [
   "Psicologia",
@@ -114,6 +120,9 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [cepHint, setCepHint] = useState<string | null>(null);
+  const lastAutoRef = useRef<{ cepDigits: string; logradouro: string; bairro: string; cidade: string } | null>(null);
 
   const enderecoResumo = useMemo(
     () =>
@@ -125,6 +134,74 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
       }) || "-",
     [logradouro, numero, bairro, cidade]
   );
+
+  useEffect(() => {
+    const cepDigits = digitsOnly(cep).slice(0, 8);
+    if (cepDigits.length !== 8) {
+      setCepStatus("idle");
+      setCepHint(null);
+      return;
+    }
+    if (lastAutoRef.current?.cepDigits === cepDigits) return;
+
+    const ac = new AbortController();
+    setCepStatus("loading");
+    setCepHint("Buscando CEP...");
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const resp = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, { signal: ac.signal });
+          const data = (await resp.json().catch(() => null)) as ViaCepResp | null;
+          if (!resp.ok) throw new Error("Falha ao consultar CEP");
+          if (!data || data.erro) {
+            setCepStatus("error");
+            setCepHint("CEP nao encontrado.");
+            return;
+          }
+
+          const prev = lastAutoRef.current;
+          const viacepLogradouro = String(data.logradouro ?? "").trim();
+          const viacepBairro = String(data.bairro ?? "").trim();
+          const viacepCidade = String(data.localidade ?? "").trim();
+
+          const currLogradouro = (logradouro ?? "").trim();
+          const currBairro = (bairro ?? "").trim();
+          const currCidade = (cidade ?? "").trim();
+
+          const canReplaceLogradouro = !currLogradouro || (prev && currLogradouro === prev.logradouro.trim());
+          const canReplaceBairro = !currBairro || (prev && currBairro === prev.bairro.trim());
+          const canReplaceCidade = !currCidade || (prev && currCidade === prev.cidade.trim());
+
+          const nextLogradouro = canReplaceLogradouro ? (viacepLogradouro || currLogradouro) : currLogradouro;
+          const nextBairro = canReplaceBairro ? (viacepBairro || currBairro) : currBairro;
+          const nextCidade = canReplaceCidade ? (viacepCidade || currCidade) : currCidade;
+
+          if (canReplaceLogradouro && viacepLogradouro) setLogradouro(viacepLogradouro);
+          if (canReplaceBairro && viacepBairro) setBairro(viacepBairro);
+          if (canReplaceCidade && viacepCidade) setCidade(viacepCidade);
+
+          lastAutoRef.current = {
+            cepDigits,
+            logradouro: nextLogradouro,
+            bairro: nextBairro,
+            cidade: nextCidade,
+          };
+          setCepStatus("ok");
+          setCepHint("Endereco preenchido pelo CEP.");
+        } catch (e) {
+          if ((e as { name?: string }).name === "AbortError") return;
+          setCepStatus("error");
+          setCepHint("Nao foi possivel consultar o CEP.");
+        }
+      })();
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+      ac.abort();
+    };
+  }, [bairro, cep, cidade, logradouro]);
 
   async function submit() {
     setBusy(true);
@@ -263,6 +340,16 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                   onChange={(e) => setCep(formatCep(e.target.value))}
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
                 />
+                {cepHint ? (
+                  <p
+                    className={[
+                      "text-xs",
+                      cepStatus === "error" ? "text-red-600" : cepStatus === "ok" ? "text-emerald-700" : "text-gray-500",
+                    ].join(" ")}
+                  >
+                    {cepHint}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
@@ -379,8 +466,11 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                     setBairro("");
                     setCidade("");
                     setEmail("");
-                    setEspecialidade("");
+                   setEspecialidade("");
                     setMsg(null);
+                    setCepStatus("idle");
+                    setCepHint(null);
+                    lastAutoRef.current = null;
                   }}
                 >
                   Limpar
@@ -454,4 +544,3 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
     </main>
   );
 }
-
