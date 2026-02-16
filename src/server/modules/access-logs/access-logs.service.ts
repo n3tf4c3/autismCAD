@@ -208,17 +208,16 @@ export async function recordLoginAttemptAccess(params: {
     const meta = extractLoginRequestMeta(params.headers);
     const status = normalizeAccessLogStatus(params.status);
 
-    await db.transaction(async (tx) => {
-      await tx.delete(accessLogs).where(lt(accessLogs.createdAt, cutoff));
-      await tx.insert(accessLogs).values({
-        userId: typeof params.userId === "number" ? params.userId : null,
-        userEmail: normalizeAccessLogEmail(params.userEmail),
-        ipOrigem: meta.ipOrigem,
-        userAgent: meta.userAgent,
-        browser: meta.browser,
-        status,
-        createdAt: now,
-      });
+    // neon-http (driver atual) nao suporta transacoes.
+    await db.delete(accessLogs).where(lt(accessLogs.createdAt, cutoff));
+    await db.insert(accessLogs).values({
+      userId: typeof params.userId === "number" ? params.userId : null,
+      userEmail: normalizeAccessLogEmail(params.userEmail),
+      ipOrigem: meta.ipOrigem,
+      userAgent: meta.userAgent,
+      browser: meta.browser,
+      status,
+      createdAt: now,
     });
   });
 }
