@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 import { useShell } from "@/components/shell/shell-provider.client";
+import { canonicalRoleName } from "@/server/auth/permissions";
 
 type NavItem = {
   key: string;
@@ -44,11 +45,13 @@ function Modal(props: {
   );
 }
 
-export function SidebarClient() {
+export function SidebarClient(props: { userRole?: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
   const shell = useShell();
+  const roleCanon = canonicalRoleName(props.userRole) ?? props.userRole ?? null;
+  const isAdminGeral = roleCanon === "ADMIN_GERAL";
 
   const items: NavItem[] = [
     {
@@ -121,6 +124,18 @@ export function SidebarClient() {
       kind: "link",
       activeWhen: (p) => isActivePrefix("/configuracoes", p),
     },
+    ...(isAdminGeral
+      ? [
+          {
+            key: "logs-acesso",
+            label: "Log de acessos",
+            icon: "LG",
+            href: "/logs-acesso",
+            kind: "link",
+            activeWhen: (p: string) => isActivePrefix("/logs-acesso", p),
+          } satisfies NavItem,
+        ]
+      : []),
     {
       key: "logout",
       label: "Sair",

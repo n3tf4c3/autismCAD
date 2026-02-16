@@ -30,6 +30,27 @@ export const users = pgTable(
   (table) => [uniqueIndex("uk_users_email").on(table.email)]
 );
 
+export const accessLogs = pgTable(
+  "access_logs",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    userId: bigint("user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    userEmail: varchar("user_email", { length: 160 }).notNull(),
+    ipOrigem: varchar("ip_origem", { length: 64 }),
+    userAgent: varchar("user_agent", { length: 512 }),
+    browser: varchar("browser", { length: 120 }),
+    status: varchar("status", { length: 16 }).notNull().default("SUCESSO"),
+    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_access_logs_created_at").on(table.createdAt),
+    index("idx_access_logs_user_id").on(table.userId),
+    index("idx_access_logs_status_created_at").on(table.status, table.createdAt),
+  ]
+);
+
 export const roles = pgTable("roles", {
   slug: varchar("slug", { length: 32 }).primaryKey(),
   nome: varchar("nome", { length: 80 }).notNull(),

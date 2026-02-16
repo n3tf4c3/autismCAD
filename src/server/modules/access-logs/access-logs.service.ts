@@ -1,0 +1,258 @@
+import "server-only";
+import { desc, eq, lt, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { accessLogs, users } from "@/server/db/schema";
+import { AppError } from "@/server/shared/errors";
+
+export const ACCESS_LOG_RETENTION_DAYS = 7;
+const ACCESS_LOG_RETENTION_MS = ACCESS_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const FALLBACK_UNKNOWN_EMAIL = "nao-informado";
+
+export const ACCESS_LOG_STATUSES = ["SUCESSO", "FALHA"] as const;
+export type AccessLogStatus = (typeof ACCESS_LOG_STATUSES)[number];
+
+type HeaderBag = Record<string, unknown> | undefined;
+
+type LoginRequestMeta = {
+  ipOrigem: string | null;
+  userAgent: string | null;
+  browser: string | null;
+};
+
+let accessLogsStorageEnsured = false;
+
+function retentionCutoff(now = new Date()) {
+  return new Date(now.getTime() - ACCESS_LOG_RETENTION_MS);
+}
+
+function toHeaderString(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  return null;
+}
+
+function readHeader(headers: HeaderBag, headerName: string): string | null {
+  if (!headers) return null;
+
+  const direct = toHeaderString(headers[headerName]);
+  if (direct) return direct;
+
+  const lookup = headerName.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === lookup) {
+      return toHeaderString(value);
+    }
+  }
+  return null;
+}
+
+function trimOrNull(value: string | null | undefined, maxLen: number): string | null {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  return normalized.slice(0, maxLen);
+}
+
+function parseForwardedFor(value: string | null): string | null {
+  if (!value) return null;
+  const chunk = value.split(",")[0]?.trim();
+  if (!chunk) return null;
+
+  // X-Forwarded-For may send ipv4 with port in some proxies.
+  if (/^\d+\.\d+\.\d+\.\d+:\d+$/.test(chunk)) {
+    return chunk.split(":")[0] ?? null;
+  }
+  return chunk;
+}
+
+function parseForwardedHeader(value: string | null): string | null {
+  if (!value) return null;
+  const firstPart = value.split(",")[0] ?? "";
+  const sections = firstPart.split(";");
+  for (const section of sections) {
+    const [rawKey, rawValue] = section.split("=");
+    const key = String(rawKey || "").trim().toLowerCase();
+    if (key !== "for") continue;
+    const cleaned = String(rawValue || "").trim().replace(/^"|"$/g, "");
+    if (!cleaned) continue;
+
+    if (cleaned.startsWith("[")) {
+      const endBracket = cleaned.indexOf("]");
+      if (endBracket > 1) {
+        return cleaned.slice(1, endBracket);
+      }
+    }
+    if (/^\d+\.\d+\.\d+\.\d+:\d+$/.test(cleaned)) {
+      return cleaned.split(":")[0] ?? null;
+    }
+    return cleaned;
+  }
+  return null;
+}
+
+function detectBrowser(userAgent: string | null): string | null {
+  const source = String(userAgent || "").toLowerCase();
+  if (!source) return null;
+  if (source.includes("edg/")) return "Edge";
+  if (source.includes("opr/") || source.includes("opera/")) return "Opera";
+  if (source.includes("firefox/")) return "Firefox";
+  if (source.includes("chrome/") || source.includes("chromium/")) return "Chrome";
+  if (source.includes("safari/")) return "Safari";
+  if (source.includes("trident/") || source.includes("msie")) return "Internet Explorer";
+  return "Outro";
+}
+
+function extractLoginRequestMeta(headers: HeaderBag): LoginRequestMeta {
+  const ipOrigem = trimOrNull(
+    parseForwardedFor(readHeader(headers, "x-forwarded-for")) ??
+      trimOrNull(readHeader(headers, "x-real-ip"), 64) ??
+      trimOrNull(readHeader(headers, "cf-connecting-ip"), 64) ??
+      parseForwardedHeader(readHeader(headers, "forwarded")) ??
+      trimOrNull(readHeader(headers, "x-client-ip"), 64),
+    64
+  );
+
+  const userAgent = trimOrNull(readHeader(headers, "user-agent"), 512);
+  const browser = trimOrNull(detectBrowser(userAgent), 120);
+
+  return { ipOrigem, userAgent, browser };
+}
+
+function normalizeAccessLogStatus(status: string | null | undefined): AccessLogStatus {
+  return status === "FALHA" ? "FALHA" : "SUCESSO";
+}
+
+function normalizeAccessLogEmail(value: string | null | undefined): string {
+  const email = String(value ?? "").trim().slice(0, 160);
+  return email || FALLBACK_UNKNOWN_EMAIL;
+}
+
+function isRecoverableAccessLogsStorageError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const meta = error as { code?: unknown; message?: unknown };
+  const code = String(meta.code ?? "");
+  if (code === "42P01") return true;
+  if (code !== "42703") return false;
+
+  const message = String(meta.message ?? "").toLowerCase();
+  return message.includes("status") || message.includes("access_logs");
+}
+
+async function ensureAccessLogsStorage() {
+  if (accessLogsStorageEnsured) return;
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS access_logs (
+      id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      user_email VARCHAR(160) NOT NULL,
+      ip_origem VARCHAR(64),
+      user_agent VARCHAR(512),
+      browser VARCHAR(120),
+      status VARCHAR(16) NOT NULL DEFAULT 'SUCESSO',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    ALTER TABLE access_logs
+      ADD COLUMN IF NOT EXISTS status VARCHAR(16) NOT NULL DEFAULT 'SUCESSO'
+  `);
+  await db.execute(sql`
+    UPDATE access_logs
+    SET status = 'SUCESSO'
+    WHERE status IS NULL
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_access_logs_created_at
+      ON access_logs(created_at)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_access_logs_user_id
+      ON access_logs(user_id)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_access_logs_status_created_at
+      ON access_logs(status, created_at DESC)
+  `);
+
+  accessLogsStorageEnsured = true;
+}
+
+async function runWithAccessLogsStorage<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isRecoverableAccessLogsStorageError(error)) throw error;
+
+    await ensureAccessLogsStorage();
+    return operation();
+  }
+}
+
+export async function purgeExpiredAccessLogs(now = new Date()) {
+  return runWithAccessLogsStorage(async () => {
+    const cutoff = retentionCutoff(now);
+    await db.delete(accessLogs).where(lt(accessLogs.createdAt, cutoff));
+    return cutoff;
+  });
+}
+
+export async function recordLoginAttemptAccess(params: {
+  userId?: number | null;
+  userEmail?: string | null;
+  status: AccessLogStatus;
+  headers?: Record<string, unknown>;
+}) {
+  await runWithAccessLogsStorage(async () => {
+    const now = new Date();
+    const cutoff = retentionCutoff(now);
+    const meta = extractLoginRequestMeta(params.headers);
+    const status = normalizeAccessLogStatus(params.status);
+
+    await db.transaction(async (tx) => {
+      await tx.delete(accessLogs).where(lt(accessLogs.createdAt, cutoff));
+      await tx.insert(accessLogs).values({
+        userId: typeof params.userId === "number" ? params.userId : null,
+        userEmail: normalizeAccessLogEmail(params.userEmail),
+        ipOrigem: meta.ipOrigem,
+        userAgent: meta.userAgent,
+        browser: meta.browser,
+        status,
+        createdAt: now,
+      });
+    });
+  });
+}
+
+export async function listRecentAccessLogs(limit = 200) {
+  return runWithAccessLogsStorage(async () => {
+    await purgeExpiredAccessLogs();
+
+    const normalizedLimit = Number.isFinite(limit) ? Math.max(1, Math.min(1000, limit)) : 200;
+    return db
+      .select({
+        id: accessLogs.id,
+        user_id: accessLogs.userId,
+        user_nome: users.nome,
+        user_email: accessLogs.userEmail,
+        ip_origem: accessLogs.ipOrigem,
+        browser: accessLogs.browser,
+        status: accessLogs.status,
+        user_agent: accessLogs.userAgent,
+        created_at: accessLogs.createdAt,
+      })
+      .from(accessLogs)
+      .leftJoin(users, eq(users.id, accessLogs.userId))
+      .orderBy(desc(accessLogs.createdAt))
+      .limit(normalizedLimit);
+  }).catch((error) => {
+    throw new AppError(
+      error instanceof Error ? error.message : "Falha ao carregar logs de acesso",
+      500,
+      "ACCESS_LOGS_ERROR"
+    );
+  });
+}
+
+export async function bootstrapAccessLogsStorage() {
+  await ensureAccessLogsStorage();
+}

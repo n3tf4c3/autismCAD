@@ -31,7 +31,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
     <ShellProvider>
       <div className="min-h-screen bg-[var(--cinza)] text-[var(--texto)]">
         <div className="min-h-screen flex">
-          <SidebarClient />
+          <SidebarClient userRole={session.user.role} />
 
           <div className="flex min-w-0 flex-1 flex-col md:ml-64">
             <TopbarClient
