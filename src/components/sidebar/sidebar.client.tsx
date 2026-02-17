@@ -217,7 +217,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
         <div className="p-4 text-xs text-white/90">
           <p className="font-semibold">Suporte</p>
-          <p>contato@clinicagirassois.com</p>
+          <p>contato@girassois.com.br</p>
         </div>
       </aside>
 
@@ -265,7 +265,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
           <div className="p-4 text-xs text-white/90">
             <p className="font-semibold">Suporte</p>
-            <p>contato@clinicagirassois.com</p>
+            <p>contato@girassois.com.br</p>
           </div>
         </aside>
       </div>
