@@ -96,7 +96,7 @@ export default async function DashboardPage() {
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
             <p className="text-sm text-gray-600">
-              Registre novos pacientes, contatos e perfis terapeuticos.
+              Registre novos pacientes, contatos e perfis terapêuticos.
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
           <div className="text-3xl">🔎</div>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
-            <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
+            <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes já cadastrados.</p>
           </div>
         </div>
         <Link
@@ -144,9 +144,9 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">📅</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessoes</h3>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessões</h3>
             <p className="text-sm text-gray-600">
-              Organize sessoes, confirme presenca e acompanhe evolucoes.
+              Organize sessões, confirme presença e acompanhe evoluções.
             </p>
           </div>
         </div>
@@ -199,8 +199,8 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">📅</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendario rapido</h3>
-            <p className="text-sm text-gray-600">Visao mensal com sessoes marcadas.</p>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendário rápido</h3>
+            <p className="text-sm text-gray-600">Visão mensal com sessões marcadas.</p>
           </div>
         </div>
 
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
 
           <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-600">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--verde)]" />
-            <span>Sessao marcada</span>
+            <span>Sessão marcada</span>
           </div>
         </div>
 
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
           className="mt-auto inline-block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
           href="/calendario"
         >
-          Abrir Calendario completo
+          Abrir Calendário completo
         </Link>
       </section>
 
@@ -225,9 +225,9 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">📈</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Relatorios</h3>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Relatórios</h3>
             <p className="text-sm text-gray-600">
-              Indicadores de progresso, assiduidade e evolucao clinica.
+              Indicadores de progresso, assiduidade e evolução clínica.
             </p>
           </div>
         </div>
@@ -235,7 +235,7 @@ export default async function DashboardPage() {
           href="/relatorios"
           className="mt-auto block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
         >
-          Ver Relatorios
+          Ver Relatórios
         </Link>
       </section>
     </div>

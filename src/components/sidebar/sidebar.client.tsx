@@ -101,7 +101,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
     },
     {
       key: "calendario",
-      label: "Calendario",
+      label: "Calendário",
       icon: "📅",
       href: "/calendario",
       kind: "link",
@@ -110,7 +110,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
     { key: "sep1", label: "-", icon: "", kind: "separator" },
     {
       key: "relatorios",
-      label: "Relatorios",
+      label: "Relatórios",
       icon: "📊",
       href: "/relatorios",
       kind: "link",
@@ -118,7 +118,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
     },
     {
       key: "configuracoes",
-      label: "Configuracoes",
+      label: "Configurações",
       icon: "⚙",
       href: "/configuracoes",
       kind: "link",
@@ -210,7 +210,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
             className="h-24 w-24 rounded-xl bg-white p-2 drop-shadow-lg"
             priority
           />
-          <h1 className="text-lg font-bold tracking-wide text-white">Clinica Girassois</h1>
+          <h1 className="text-lg font-bold tracking-wide text-white">Clínica Girassóis</h1>
         </div>
 
         <nav className="flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
@@ -249,7 +249,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
                 className="h-12 w-12 rounded-xl bg-white p-2 drop-shadow-lg"
                 priority
               />
-              <p className="text-sm font-bold tracking-wide text-white">Clinica Girassois</p>
+              <p className="text-sm font-bold tracking-wide text-white">Clínica Girassóis</p>
             </div>
             <button
               type="button"
@@ -276,7 +276,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
             <div>
               <p className="text-xs uppercase tracking-wide text-gray-500">Cadastros</p>
               <h2 className="text-lg font-semibold text-[var(--marrom)]">
-                O que voce quer abrir?
+                O que você quer abrir?
               </h2>
             </div>
             <button
