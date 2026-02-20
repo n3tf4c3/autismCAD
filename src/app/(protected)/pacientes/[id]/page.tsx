@@ -4,8 +4,11 @@ import { db } from "@/db";
 import { pacienteTerapia, pacientes, terapias } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
+import { loadUserAccess } from "@/server/auth/access";
+import { hasPermissionKey } from "@/server/auth/permissions";
 import { toAppError } from "@/server/shared/errors";
 import { createSignedReadUrl } from "@/server/storage/r2";
+import { PacienteActionsClient } from "@/app/(protected)/pacientes/[id]/paciente-actions.client";
 
 function digitsOnly(value: string): string {
   return (value || "").replace(/\D/g, "");
@@ -59,6 +62,7 @@ async function maybeSignedUrl(stored: string | null): Promise<string | null> {
 
 export default async function PacienteDetalhePage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requirePermission("pacientes:view");
+  const access = await loadUserAccess(Number(user.id));
   const { id } = await props.params;
   const pacienteId = Number(id);
 
@@ -133,6 +137,8 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
   const nascimentoLabel = paciente.dataNascimento
     ? `${formatBrDate(paciente.dataNascimento)}${idade !== null ? ` (${idade} anos)` : ""}`
     : "-";
+  const canArchive = hasPermissionKey(access.permissions, "pacientes:edit");
+  const canDelete = hasPermissionKey(access.permissions, "pacientes:delete");
 
   return (
     <div className="space-y-6">
@@ -190,6 +196,13 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                   Editar
                 </Link>
               </div>
+              <PacienteActionsClient
+                pacienteId={paciente.id}
+                pacienteNome={paciente.nome}
+                ativo={Boolean(paciente.ativo)}
+                canArchive={canArchive}
+                canDelete={canDelete}
+              />
             </div>
           </div>
         </div>
@@ -322,4 +335,3 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
     </div>
   );
 }
-

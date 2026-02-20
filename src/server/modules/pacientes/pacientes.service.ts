@@ -227,6 +227,24 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
 }
 
 export async function softDeletePaciente(id: number, deletedByUserId?: number | null) {
+  const [existing] = await db
+    .select({ id: pacientes.id, ativo: pacientes.ativo })
+    .from(pacientes)
+    .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
+    .limit(1);
+
+  if (!existing) {
+    throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+  }
+
+  if (existing.ativo) {
+    throw new AppError(
+      "Arquive o paciente antes de excluir",
+      409,
+      "PATIENT_MUST_BE_ARCHIVED_FIRST"
+    );
+  }
+
   const [result] = await db
     .update(pacientes)
     .set({
@@ -237,6 +255,20 @@ export async function softDeletePaciente(id: number, deletedByUserId?: number | 
     })
     .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
     .returning({ id: pacientes.id });
+
+  if (!result) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+  return result;
+}
+
+export async function setPacienteAtivo(id: number, ativo: boolean) {
+  const [result] = await db
+    .update(pacientes)
+    .set({
+      ativo,
+      updatedAt: sql`now()`,
+    })
+    .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
+    .returning({ id: pacientes.id, ativo: pacientes.ativo });
 
   if (!result) {
     throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
