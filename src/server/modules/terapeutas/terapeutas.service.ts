@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, terapeutas } from "@/server/db/schema";
+import { atendimentos, evolucoes, terapeutas } from "@/server/db/schema";
 import {
   especialidadesPermitidas,
   SaveTerapeutaInput,
@@ -150,6 +150,35 @@ export async function terapeutaAtendePaciente(pacienteId: number, terapeutaId: n
 }
 
 export async function deleteTerapeuta(id: number) {
-  await db.delete(terapeutas).where(eq(terapeutas.id, id));
+  const [row] = await db
+    .select({ id: terapeutas.id })
+    .from(terapeutas)
+    .where(eq(terapeutas.id, id))
+    .limit(1);
+  if (!row) {
+    throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  }
+
+  const [hasEvolucao] = await db
+    .select({ id: evolucoes.id })
+    .from(evolucoes)
+    .where(eq(evolucoes.terapeutaId, id))
+    .limit(1);
+  if (hasEvolucao) {
+    throw new AppError(
+      "Nao e possivel excluir terapeuta com evolucoes vinculadas",
+      409,
+      "THERAPIST_HAS_EVOLUCOES"
+    );
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(atendimentos)
+      .set({ terapeutaId: null, updatedAt: new Date() })
+      .where(eq(atendimentos.terapeutaId, id));
+    await tx.delete(terapeutas).where(eq(terapeutas.id, id));
+  });
+
   return { id };
 }
