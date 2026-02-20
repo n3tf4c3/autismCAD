@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 type Props = {
   pacienteId: number;
   pacienteNome: string;
-  ativo: boolean;
+  ativo: boolean | number | string | null;
   canArchive: boolean;
   canDelete: boolean;
 };
@@ -30,6 +30,18 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao executar acao";
 }
 
+function parseAtivo(value: Props["ativo"]): boolean {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    const parsed = value.trim().toLowerCase();
+    if (["1", "true", "ativo"].includes(parsed)) return true;
+    if (["0", "false", "inativo", "arquivado"].includes(parsed)) return false;
+  }
+  // Em caso de valor inesperado, assume ativo para nao expor "Excluir" indevidamente.
+  return true;
+}
+
 export function PacienteActionsClient({
   pacienteId,
   pacienteNome,
@@ -40,12 +52,14 @@ export function PacienteActionsClient({
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"archive" | "delete" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const isAtivo = parseAtivo(ativo);
+  const canShowDelete = canDelete && !isAtivo;
 
   if (!canArchive && !canDelete) return null;
 
   async function toggleArquivo() {
     if (busyAction) return;
-    const vaiArquivar = ativo;
+    const vaiArquivar = isAtivo;
     const ok = window.confirm(
       vaiArquivar
         ? `Arquivar o paciente ${pacienteNome}?`
@@ -64,8 +78,7 @@ export function PacienteActionsClient({
       });
       const json = await safeJson(resp);
       if (!resp.ok) throw new Error(readApiError(json) || "Erro ao atualizar status");
-
-      setMsg(vaiArquivar ? "Paciente arquivado com sucesso." : "Paciente desarquivado com sucesso.");
+      setMsg(null);
       router.refresh();
     } catch (error) {
       setMsg(normalizeApiError(error));
@@ -103,8 +116,8 @@ export function PacienteActionsClient({
   }
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-wrap items-center justify-start gap-2">
         {canArchive ? (
           <button
             type="button"
@@ -114,12 +127,12 @@ export function PacienteActionsClient({
           >
             {busyAction === "archive"
               ? "Processando..."
-              : ativo
+              : isAtivo
                 ? "Arquivar"
                 : "Desarquivar"}
           </button>
         ) : null}
-        {canDelete && !ativo ? (
+        {canShowDelete ? (
           <button
             type="button"
             onClick={() => void excluirPaciente()}
@@ -130,12 +143,7 @@ export function PacienteActionsClient({
           </button>
         ) : null}
       </div>
-      {canDelete && ativo ? (
-        <p className="mt-2 text-right text-xs text-gray-500">
-          Para excluir com seguranca, arquive o paciente primeiro.
-        </p>
-      ) : null}
-      {msg ? <p className="mt-2 text-right text-sm text-gray-700">{msg}</p> : null}
+      {msg ? <p className="text-xs text-red-600">{msg}</p> : null}
     </div>
   );
 }

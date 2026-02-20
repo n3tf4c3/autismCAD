@@ -196,13 +196,31 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                   Editar
                 </Link>
               </div>
-              <PacienteActionsClient
-                pacienteId={paciente.id}
-                pacienteNome={paciente.nome}
-                ativo={Boolean(paciente.ativo)}
-                canArchive={canArchive}
-                canDelete={canDelete}
-              />
+            </div>
+          </div>
+          <div className="mt-6 border-t border-gray-100 pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prontuario clinico</p>
+                <h3 className="text-lg font-bold text-[var(--marrom)]">Historico clinico e Relatorios</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Acesse anamnese, evolucoes, planos e relatorios do paciente.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/prontuario/${paciente.id}`}
+                  className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f]"
+                >
+                  Abrir Prontuario
+                </Link>
+                <Link
+                  href={`/relatorios/evolutivo?pacienteId=${paciente.id}`}
+                  className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                >
+                  Relatorio Evolutivo
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -310,27 +328,14 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
       </section>
 
       <section className="rounded-2xl bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prontuario clinico</p>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Historico clinico e Relatorios</h3>
-            <p className="mt-1 text-sm text-gray-600">Acesse anamnese, evolucoes, planos e relatorios do paciente.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/prontuario/${paciente.id}`}
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f]"
-            >
-              Abrir Prontuario
-            </Link>
-            <Link
-              href={`/relatorios/evolutivo?pacienteId=${paciente.id}`}
-              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--laranja)] hover:bg-amber-50"
-            >
-              Relatorio Evolutivo
-            </Link>
-          </div>
-        </div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes administrativas</p>
+        <PacienteActionsClient
+          pacienteId={paciente.id}
+          pacienteNome={paciente.nome}
+          ativo={paciente.ativo}
+          canArchive={canArchive}
+          canDelete={canDelete}
+        />
       </section>
     </div>
   );
