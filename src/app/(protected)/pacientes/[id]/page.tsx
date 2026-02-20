@@ -60,6 +60,17 @@ async function maybeSignedUrl(stored: string | null): Promise<string | null> {
   }
 }
 
+function resolveAtivoFlag(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0 || value == null) return false;
+  if (typeof value === "string") {
+    const parsed = value.trim().toLowerCase();
+    if (["1", "true", "t", "ativo"].includes(parsed)) return true;
+    if (["0", "false", "f", "inativo", "arquivado"].includes(parsed)) return false;
+  }
+  return Boolean(value);
+}
+
 export default async function PacienteDetalhePage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requirePermission("pacientes:view");
   const access = await loadUserAccess(Number(user.id));
@@ -139,6 +150,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
     : "-";
   const canArchive = hasPermissionKey(access.permissions, "pacientes:edit");
   const canDelete = hasPermissionKey(access.permissions, "pacientes:delete");
+  const pacienteAtivo = resolveAtivoFlag(paciente.ativo);
 
   return (
     <div className="space-y-6">
@@ -157,12 +169,12 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                     <span
                       className={
                         "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold " +
-                        (paciente.ativo
+                        (pacienteAtivo
                           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                           : "border-gray-200 bg-gray-50 text-gray-700")
                       }
                     >
-                      {paciente.ativo ? "Ativo" : "Inativo"}
+                      {pacienteAtivo ? "Ativo" : "Inativo"}
                     </span>
                   </div>
                 </div>
@@ -332,7 +344,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
         <PacienteActionsClient
           pacienteId={paciente.id}
           pacienteNome={paciente.nome}
-          ativo={paciente.ativo}
+          ativo={pacienteAtivo}
           canArchive={canArchive}
           canDelete={canDelete}
         />

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 type Props = {
   pacienteId: number;
   pacienteNome: string;
-  ativo: boolean | number | string | null;
+  ativo: boolean;
   canArchive: boolean;
   canDelete: boolean;
 };
@@ -30,18 +30,6 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao executar acao";
 }
 
-function parseAtivo(value: Props["ativo"]): boolean {
-  if (value === true || value === 1) return true;
-  if (value === false || value === 0) return false;
-  if (typeof value === "string") {
-    const parsed = value.trim().toLowerCase();
-    if (["1", "true", "ativo"].includes(parsed)) return true;
-    if (["0", "false", "inativo", "arquivado"].includes(parsed)) return false;
-  }
-  // Em caso de valor inesperado, assume ativo para nao expor "Excluir" indevidamente.
-  return true;
-}
-
 export function PacienteActionsClient({
   pacienteId,
   pacienteNome,
@@ -52,14 +40,12 @@ export function PacienteActionsClient({
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"archive" | "delete" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const isAtivo = parseAtivo(ativo);
-  const canShowDelete = canDelete && !isAtivo;
 
   if (!canArchive && !canDelete) return null;
 
   async function toggleArquivo() {
     if (busyAction) return;
-    const vaiArquivar = isAtivo;
+    const vaiArquivar = ativo;
     const ok = window.confirm(
       vaiArquivar
         ? `Arquivar o paciente ${pacienteNome}?`
@@ -127,12 +113,12 @@ export function PacienteActionsClient({
           >
             {busyAction === "archive"
               ? "Processando..."
-              : isAtivo
+              : ativo
                 ? "Arquivar"
                 : "Desarquivar"}
           </button>
         ) : null}
-        {canShowDelete ? (
+        {canDelete && !ativo ? (
           <button
             type="button"
             onClick={() => void excluirPaciente()}
