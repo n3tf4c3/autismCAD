@@ -8,6 +8,7 @@ import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas
 import { AppError } from "@/server/shared/errors";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import { TerapeutaActionsClient } from "@/app/(protected)/terapeutas/[id]/terapeuta-actions.client";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -79,6 +80,7 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
       bairro: terapeutas.bairro,
       cidade: terapeutas.cidade,
       cep: terapeutas.cep,
+      ativo: terapeutas.ativo,
     })
     .from(terapeutas)
     .where(eq(terapeutas.id, id))
@@ -118,6 +120,16 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
                   {row.especialidade}
                 </span>
               ) : null}
+              <span
+                className={
+                  "rounded-full border px-3 py-1 text-xs font-semibold " +
+                  (row.ativo
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-gray-200 bg-gray-50 text-gray-700")
+                }
+              >
+                {row.ativo ? "Ativo" : "Arquivado"}
+              </span>
             </div>
             <h1 className="text-2xl font-bold text-[var(--marrom)]">{row.nome}</h1>
           </div>
@@ -189,7 +201,17 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
           )}
         </div>
       </div>
+
+      <div className="border-t border-gray-100 px-6 py-5">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes administrativas</p>
+        <TerapeutaActionsClient
+          terapeutaId={row.id}
+          terapeutaNome={row.nome}
+          ativo={Boolean(row.ativo)}
+          canArchive={canEdit}
+          canDelete={hasPermissionKey(access.permissions, "terapeutas:delete")}
+        />
+      </div>
     </main>
   );
 }
-

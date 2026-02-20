@@ -22,6 +22,13 @@
       "when": 1771158233000,
       "tag": "0002_access_logs_status",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772006400000,
+      "tag": "0003_terapeutas_ativo",
+      "breakpoints": true
     }
   ]
 }

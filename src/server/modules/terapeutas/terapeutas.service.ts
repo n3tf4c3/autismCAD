@@ -76,6 +76,7 @@ export async function listarTerapeutas(filters: TerapeutasQueryInput) {
       cidade: terapeutas.cidade,
       cep: terapeutas.cep,
       especialidade: terapeutas.especialidade,
+      ativo: terapeutas.ativo,
     })
     .from(terapeutas)
     .where(where.length ? and(...where) : undefined)
@@ -151,12 +152,19 @@ export async function terapeutaAtendePaciente(pacienteId: number, terapeutaId: n
 
 export async function deleteTerapeuta(id: number) {
   const [row] = await db
-    .select({ id: terapeutas.id })
+    .select({ id: terapeutas.id, ativo: terapeutas.ativo })
     .from(terapeutas)
     .where(eq(terapeutas.id, id))
     .limit(1);
   if (!row) {
     throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  }
+  if (row.ativo) {
+    throw new AppError(
+      "Arquive o terapeuta antes de excluir",
+      409,
+      "THERAPIST_MUST_BE_ARCHIVED_FIRST"
+    );
   }
 
   const [hasEvolucao] = await db
@@ -181,4 +189,18 @@ export async function deleteTerapeuta(id: number) {
   });
 
   return { id };
+}
+
+export async function setTerapeutaAtivo(id: number, ativo: boolean) {
+  const [result] = await db
+    .update(terapeutas)
+    .set({ ativo, updatedAt: new Date() })
+    .where(eq(terapeutas.id, id))
+    .returning({ id: terapeutas.id, ativo: terapeutas.ativo });
+
+  if (!result) {
+    throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  }
+
+  return result;
 }
