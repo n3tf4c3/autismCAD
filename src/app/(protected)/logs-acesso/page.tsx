@@ -6,11 +6,14 @@ import {
 } from "@/server/modules/access-logs/access-logs.service";
 import { toAppError } from "@/server/shared/errors";
 
+const ACCESS_LOG_TIMEZONE = "America/Cuiaba";
+
 function formatDateTime(value: Date | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "medium",
+    timeZone: ACCESS_LOG_TIMEZONE,
   }).format(value);
 }
 
@@ -76,6 +79,7 @@ export default async function LogsAcessoPage() {
           <p className="mt-2 text-sm text-gray-600">
             Tentativas de login (sucesso e falha). Retencao automatica de {ACCESS_LOG_RETENTION_DAYS} dias.
           </p>
+          <p className="mt-1 text-xs text-gray-500">Horarios exibidos em Cuiaba/MT (GMT-4).</p>
         </div>
       </section>
 
@@ -87,7 +91,7 @@ export default async function LogsAcessoPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-                <th className="px-3 py-2">Data/Hora</th>
+                <th className="px-3 py-2">Data/Hora (Cuiaba GMT-4)</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Usuario</th>
                 <th className="px-3 py-2">Email</th>
