@@ -53,6 +53,12 @@ function parseYmdToLocalDate(value: string): Date | null {
   return dt;
 }
 
+function dowFromYmd(value: string): number | null {
+  const dt = parseYmdToLocalDate(value);
+  if (!dt) return null;
+  return dt.getDay();
+}
+
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Erro na requisicao";
@@ -71,6 +77,13 @@ export default function CalendarioPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [data, setData] = useState<string>(() => ymdLocal(new Date()));
+  const [reservaModo, setReservaModo] = useState<"dia" | "periodo">("dia");
+  const [periodoInicio, setPeriodoInicio] = useState<string>(() => ymdLocal(new Date()));
+  const [periodoFim, setPeriodoFim] = useState<string>(() => ymdLocal(new Date()));
+  const [diasSemana, setDiasSemana] = useState<Set<number>>(() => {
+    const today = new Date().getDay();
+    return new Set([today]);
+  });
   const [inicio, setInicio] = useState<string>("08:00");
   const [fim, setFim] = useState<string>("09:00");
   const [pacienteId, setPacienteId] = useState<string>("");
@@ -128,24 +141,43 @@ export default function CalendarioPage() {
   }
 
   async function reservar() {
-    if (!terapeutaId || !pacienteId || !data || !inicio || !fim) return;
+    if (!terapeutaId || !pacienteId || !inicio || !fim) return;
+    if (reservaModo === "dia" && !data) return;
+    if (reservaModo === "periodo" && (!periodoInicio || !periodoFim || !diasSemana.size)) return;
     setSaving(true);
     setError(null);
     try {
       const turno = Number(inicio.split(":")[0]) < 12 ? "Matutino" : "Vespertino";
-      const resp = await fetch("/api/atendimentos", {
+      const endpoint = reservaModo === "periodo" ? "/api/atendimentos/recorrente" : "/api/atendimentos";
+      const payload =
+        reservaModo === "periodo"
+          ? {
+              pacienteId,
+              terapeutaId,
+              horaInicio: inicio,
+              horaFim: fim,
+              turno,
+              periodoInicio,
+              periodoFim,
+              presenca: "Nao informado",
+              observacoes: observacoes || null,
+              motivo: null,
+              diasSemana: Array.from(diasSemana.values()).sort((a, b) => a - b),
+            }
+          : {
+              pacienteId,
+              terapeutaId,
+              data,
+              horaInicio: inicio,
+              horaFim: fim,
+              turno,
+              presenca: "Nao informado",
+              observacoes: observacoes || null,
+            };
+      const resp = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pacienteId,
-          terapeutaId,
-          data,
-          horaInicio: inicio,
-          horaFim: fim,
-          turno,
-          presenca: "Nao informado",
-          observacoes: observacoes || null,
-        }),
+        body: JSON.stringify(payload),
       });
       const dataJson = await resp.json();
       if (!resp.ok) throw new Error(dataJson?.error || "Erro ao reservar");
@@ -156,6 +188,15 @@ export default function CalendarioPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function toggleDiaSemana(dow: number) {
+    setDiasSemana((current) => {
+      const next = new Set(current);
+      if (next.has(dow)) next.delete(dow);
+      else next.add(dow);
+      return next;
+    });
   }
 
   useEffect(() => {
@@ -305,7 +346,13 @@ export default function CalendarioPage() {
                       <button
                         type="button"
                         className="text-xs text-[var(--laranja)] hover:underline"
-                        onClick={() => setData(dayStr)}
+                        onClick={() => {
+                          setData(dayStr);
+                          setPeriodoInicio(dayStr);
+                          setPeriodoFim(dayStr);
+                          const dow = dowFromYmd(dayStr);
+                          if (dow !== null) setDiasSemana(new Set([dow]));
+                        }}
                       >
                         + reservar
                       </button>
@@ -340,14 +387,74 @@ export default function CalendarioPage() {
           <h2 className="text-sm font-semibold text-[var(--marrom)]">Reservar horario</h2>
           <div className="mt-3 space-y-2 text-sm">
             <label className="block text-gray-700">
-              Data
-              <input
-                type="date"
+              Tipo de reserva
+              <select
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-              />
+                value={reservaModo}
+                onChange={(e) => setReservaModo(e.target.value === "periodo" ? "periodo" : "dia")}
+              >
+                <option value="dia">Data unica</option>
+                <option value="periodo">Por periodo</option>
+              </select>
             </label>
+            {reservaModo === "dia" ? (
+              <label className="block text-gray-700">
+                Data
+                <input
+                  type="date"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                />
+              </label>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-gray-700">
+                    Periodo - inicio
+                    <input
+                      type="date"
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                      value={periodoInicio}
+                      onChange={(e) => setPeriodoInicio(e.target.value)}
+                    />
+                  </label>
+                  <label className="block text-gray-700">
+                    Periodo - fim
+                    <input
+                      type="date"
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                      value={periodoFim}
+                      onChange={(e) => setPeriodoFim(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <div>
+                  <p className="text-gray-700">Dias da semana</p>
+                  <div className="mt-1 grid grid-cols-2 gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2">
+                    {[
+                      { v: 1, label: "Segunda" },
+                      { v: 2, label: "Terca" },
+                      { v: 3, label: "Quarta" },
+                      { v: 4, label: "Quinta" },
+                      { v: 5, label: "Sexta" },
+                      { v: 6, label: "Sabado" },
+                      { v: 0, label: "Domingo" },
+                    ].map((d) => (
+                      <label key={d.v} className="inline-flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          className="rounded text-[var(--laranja)]"
+                          checked={diasSemana.has(d.v)}
+                          onChange={() => toggleDiaSemana(d.v)}
+                        />
+                        <span>{d.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <label className="block text-gray-700">
                 Inicio
@@ -399,7 +506,7 @@ export default function CalendarioPage() {
               onClick={() => void reservar()}
               disabled={!terapeutaId || !pacienteId || saving}
             >
-              {saving ? "Salvando..." : "Reservar"}
+              {saving ? "Salvando..." : reservaModo === "periodo" ? "Reservar por periodo" : "Reservar"}
             </button>
           </div>
         </section>
