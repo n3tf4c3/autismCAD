@@ -63,6 +63,14 @@ export function SidebarClient(props: { userRole?: string | null }) {
       activeWhen: (p) => isActivePrefix("/", p),
     },
     {
+      key: "calendario",
+      label: "Agenda",
+      icon: "📅",
+      href: "/calendario",
+      kind: "link",
+      activeWhen: (p) => isActivePrefix("/calendario", p),
+    },
+    {
       key: "cadastros",
       label: "Cadastros",
       icon: "📁",
@@ -99,18 +107,10 @@ export function SidebarClient(props: { userRole?: string | null }) {
       kind: "link",
       activeWhen: (p) => isActivePrefix("/consultas", p),
     },
-    {
-      key: "calendario",
-      label: "Calendário",
-      icon: "📅",
-      href: "/calendario",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/calendario", p),
-    },
     { key: "sep1", label: "-", icon: "", kind: "separator" },
     {
       key: "relatorios",
-      label: "Relatórios",
+      label: "Resultados",
       icon: "📊",
       href: "/relatorios",
       kind: "link",
@@ -118,7 +118,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
     },
     {
       key: "configuracoes",
-      label: "Configurações",
+      label: "Controle",
       icon: "⚙",
       href: "/configuracoes",
       kind: "link",
