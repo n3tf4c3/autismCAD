@@ -26,7 +26,49 @@ function isActivePrefix(prefix: string, pathname: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-
+function SidebarBgArt(props?: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 320 900"
+      className={props?.className ?? "pointer-events-none absolute inset-0 h-full w-full opacity-[0.07]"}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <radialGradient id="sbGlow" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stopColor="white" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="68" cy="110" r="96" fill="url(#sbGlow)" />
+      <circle cx="255" cy="165" r="84" fill="url(#sbGlow)" />
+      <circle cx="220" cy="705" r="120" fill="url(#sbGlow)" />
+      <circle cx="85" cy="740" r="56" fill="none" stroke="white" strokeWidth="8" />
+      <circle cx="92" cy="746" r="18" fill="white" />
+      <circle cx="238" cy="348" r="34" fill="none" stroke="white" strokeWidth="6" />
+      <path
+        d="M18 288 C75 250, 118 334, 176 296 S262 260, 306 300"
+        fill="none"
+        stroke="white"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M32 448 C96 388, 130 500, 194 444 S256 396, 296 430"
+        fill="none"
+        stroke="white"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <g>
+        <circle cx="110" cy="530" r="6" fill="white" />
+        <circle cx="138" cy="520" r="4" fill="white" />
+        <circle cx="164" cy="538" r="5" fill="white" />
+        <circle cx="190" cy="526" r="4" fill="white" />
+      </g>
+    </svg>
+  );
+}
 export function SidebarClient(props: { userRole?: string | null }) {
   const pathname = usePathname();
   const shell = useShell();
@@ -168,22 +210,24 @@ export function SidebarClient(props: { userRole?: string | null }) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col bg-[var(--laranja)] text-white md:flex">
-        <div className="flex flex-col items-center gap-4 px-6 py-8">
+      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white md:flex">
+        <SidebarBgArt />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.14),transparent_42%)]" />
+        <div className="relative z-10 flex flex-col items-center gap-4 px-6 py-8">
           <Image
             src="/sunflower-svgrepo-com.svg"
             alt="Logo Girassol"
             width={96}
             height={96}
-            className="h-24 w-24 rounded-xl bg-white p-2 drop-shadow-lg"
+            className="h-24 w-24 rounded-xl bg-white p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
             priority
           />
           <h1 className="text-lg font-bold tracking-wide text-white">Clínica Girassóis</h1>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
+        <nav className="relative z-10 flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
 
-        <div className="p-4 text-xs text-white/90">
+        <div className="relative z-10 p-4 text-xs text-white/90">
           <p className="font-semibold">Suporte</p>
           <p className="text-sm font-bold text-white">suporte@girassois.com.br</p>
         </div>
@@ -203,18 +247,20 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[var(--laranja)] text-white shadow-xl transition-transform duration-200 ease-out",
+            "fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white shadow-xl transition-transform duration-200 ease-out",
             shell.sidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
-          <div className="flex items-start justify-between gap-3 px-6 py-6">
+          <SidebarBgArt />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.14),transparent_42%)]" />
+          <div className="relative z-10 flex items-start justify-between gap-3 px-6 py-6">
             <div className="flex items-center gap-3">
               <Image
                 src="/sunflower-svgrepo-com.svg"
                 alt="Logo Girassol"
                 width={48}
                 height={48}
-                className="h-12 w-12 rounded-xl bg-white p-2 drop-shadow-lg"
+                className="h-12 w-12 rounded-xl bg-white p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
                 priority
               />
               <p className="text-sm font-bold tracking-wide text-white">Clínica Girassóis</p>
@@ -229,9 +275,9 @@ export function SidebarClient(props: { userRole?: string | null }) {
             </button>
           </div>
 
-          <nav className="flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
+          <nav className="relative z-10 flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
 
-          <div className="p-4 text-xs text-white/90">
+          <div className="relative z-10 p-4 text-xs text-white/90">
             <p className="font-semibold">Suporte</p>
             <p className="text-sm font-bold text-white">suporte@girassois.com.br</p>
           </div>

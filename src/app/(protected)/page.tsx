@@ -87,6 +87,8 @@ export default async function DashboardPage() {
     realizado: a.realizado ? 1 : 0,
     presenca: a.presenca,
   }));
+  const ctaButtonClass =
+    "mt-auto inline-block w-full rounded-lg bg-gradient-to-r from-[var(--laranja)] to-[#ffcc66] py-2.5 text-center font-semibold text-white shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#7FB3FF]/30";
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -101,7 +103,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <Link
-          className="mt-auto inline-block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
+          className={ctaButtonClass}
           href="/pacientes"
         >
           Abrir cadastro
@@ -117,7 +119,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <Link
-          className="mt-auto inline-block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
+          className={ctaButtonClass}
           href="/pacientes"
         >
           Abrir consulta
@@ -133,7 +135,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <Link
-          className="mt-auto inline-block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
+          className={ctaButtonClass}
           href="/terapeutas"
         >
           Ver equipe
@@ -189,7 +191,7 @@ export default async function DashboardPage() {
 
         <Link
           href="/consultas"
-          className="mt-auto inline-block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
+          className={ctaButtonClass}
         >
           Agenda do dia
         </Link>
@@ -214,7 +216,7 @@ export default async function DashboardPage() {
         </div>
 
         <Link
-          className="mt-auto inline-block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
+          className={ctaButtonClass}
           href="/calendario"
         >
           Abrir Calendário completo
@@ -233,7 +235,7 @@ export default async function DashboardPage() {
         </div>
         <Link
           href="/relatorios"
-          className="mt-auto block w-full rounded-lg bg-[var(--laranja)] py-2.5 text-center font-semibold text-white hover:bg-[#e6961f]"
+          className={ctaButtonClass}
         >
           Ver Relatórios
         </Link>
