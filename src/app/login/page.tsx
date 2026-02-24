@@ -49,7 +49,7 @@ export default function LoginPage() {
               Faca login para acessar cadastros, agenda e prontuario clinico.
             </p>
           </div>
-          <p className="text-sm text-white/80">Suporte: contato@girassois.com.br</p>
+          <p className="text-base font-bold text-white">Suporte: suporte@girassois.com.br</p>
         </section>
 
         <section className="bg-white p-10">
