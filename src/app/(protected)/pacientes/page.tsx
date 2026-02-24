@@ -197,8 +197,7 @@ export default function PacientesPage() {
       if (!resp.ok) {
         throw new Error(getApiErrorMessage(json) || "Erro ao salvar atendimento");
       }
-      const created = (json as { criados?: number }).criados;
-      setConsultaMsg(`Atendimentos criados: ${Number(created ?? 0)}`);
+      fecharConsulta();
     } catch (err) {
       setConsultaMsg(normalizeApiError(err));
     } finally {
