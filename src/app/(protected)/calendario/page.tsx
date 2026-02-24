@@ -365,15 +365,13 @@ export default function CalendarioPage() {
         setTerapeutas(tList);
         setPacientes(pList);
 
-        // Keep behavior close to legacy: preselect last therapist (or therapistId in URL) when available.
+        // Prefer therapist from URL when provided; otherwise start unselected.
         const search = new URLSearchParams(window.location.search);
         const qsTerapeutaId = (search.get("terapeutaId") ?? "").trim();
         const qsData = (search.get("data") ?? "").trim();
-        const storedTerapeutaId = (localStorage.getItem("calendario.terapeutaId") ?? "").trim();
 
         const candidate =
           qsTerapeutaId ||
-          storedTerapeutaId ||
           (tList.length === 1 ? String(tList[0]?.id ?? "") : "");
 
         if (candidate && tList.some((t: Terapeuta) => String(t.id) === candidate)) {
@@ -396,11 +394,10 @@ export default function CalendarioPage() {
   }, []);
 
   useEffect(() => {
-    if (!terapeutaId) return;
     try {
-      localStorage.setItem("calendario.terapeutaId", terapeutaId);
       const url = new URL(window.location.href);
-      url.searchParams.set("terapeutaId", terapeutaId);
+      if (terapeutaId) url.searchParams.set("terapeutaId", terapeutaId);
+      else url.searchParams.delete("terapeutaId");
       window.history.replaceState({}, "", url.toString());
     } catch {
       // ignore
