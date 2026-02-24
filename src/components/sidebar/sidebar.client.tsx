@@ -74,7 +74,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
       kind: "link",
       activeWhen: (p) => isActivePrefix("/consultas", p),
     },
-    { key: "sep1", label: "-", icon: "", kind: "separator" },
+    
     {
       key: "relatorios",
       label: "Resultados",
@@ -83,6 +83,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
       kind: "link",
       activeWhen: (p) => isActivePrefix("/relatorios", p),
     },
+    { key: "sep1", label: "-", icon: "", kind: "separator" },
     {
       key: "configuracoes",
       label: "Controle",
@@ -184,7 +185,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
         <div className="p-4 text-xs text-white/90">
           <p className="font-semibold">Suporte</p>
-          <p>contato@girassois.com.br</p>
+          <p className="text-sm font-bold text-white">suporte@girassois.com.br</p>
         </div>
       </aside>
 
@@ -232,7 +233,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
           <div className="p-4 text-xs text-white/90">
             <p className="font-semibold">Suporte</p>
-            <p>contato@girassois.com.br</p>
+            <p className="text-sm font-bold text-white">suporte@girassois.com.br</p>
           </div>
         </aside>
       </div>
