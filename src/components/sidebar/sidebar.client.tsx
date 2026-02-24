@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useShell } from "@/components/shell/shell-provider.client";
 import { canonicalRoleName } from "@/server/auth/permissions";
@@ -27,28 +26,9 @@ function isActivePrefix(prefix: string, pathname: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-function Modal(props: {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  if (!props.open) return null;
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) props.onClose();
-      }}
-    >
-      {props.children}
-    </div>
-  );
-}
 
 export function SidebarClient(props: { userRole?: string | null }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [cadastrosOpen, setCadastrosOpen] = useState(false);
   const shell = useShell();
   const roleCanon = canonicalRoleName(props.userRole) ?? props.userRole ?? null;
   const isAdminGeral = roleCanon === "ADMIN_GERAL";
@@ -69,19 +49,6 @@ export function SidebarClient(props: { userRole?: string | null }) {
       href: "/calendario",
       kind: "link",
       activeWhen: (p) => isActivePrefix("/calendario", p),
-    },
-    {
-      key: "cadastros",
-      label: "Cadastros",
-      icon: "📁",
-      kind: "action",
-      onClick: () => {
-        setCadastrosOpen(true);
-        shell.closeSidebar();
-      },
-      // "Cadastros" opens a modal, so it should only look active while the modal is open.
-      // Otherwise it double-highlights together with "Pacientes"/"Terapeutas".
-      activeWhen: () => cadastrosOpen,
     },
     {
       key: "pacientes",
@@ -270,53 +237,6 @@ export function SidebarClient(props: { userRole?: string | null }) {
         </aside>
       </div>
 
-      <Modal open={cadastrosOpen} onClose={() => setCadastrosOpen(false)}>
-        <div className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">Cadastros</p>
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">
-                O que você quer abrir?
-              </h2>
-            </div>
-            <button
-              type="button"
-              className="text-2xl leading-none text-gray-500 hover:text-[var(--laranja)]"
-              onClick={() => setCadastrosOpen(false)}
-              aria-label="Fechar"
-            >
-              &times;
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left hover:border-[var(--laranja)] hover:bg-[#fff6e6]"
-              onClick={() => {
-                setCadastrosOpen(false);
-                shell.closeSidebar();
-                router.push("/pacientes/novo");
-              }}
-            >
-              <p className="text-sm font-semibold text-[var(--marrom)]">Paciente</p>
-              <p className="text-xs text-gray-600">Registrar ou editar dados do paciente.</p>
-            </button>
-            <button
-              type="button"
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left hover:border-[var(--laranja)] hover:bg-[#fff6e6]"
-              onClick={() => {
-                setCadastrosOpen(false);
-                shell.closeSidebar();
-                router.push("/terapeutas/novo");
-              }}
-            >
-              <p className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</p>
-              <p className="text-xs text-gray-600">Cadastrar profissional e especialidade.</p>
-            </button>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }
