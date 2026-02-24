@@ -81,16 +81,10 @@ export default function ConsultasPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [pacienteId, setPacienteId] = useState<string>("");
   const [terapeutaId, setTerapeutaId] = useState<string>("");
   const [dataIni, setDataIni] = useState<string>(ymdToday());
   const [dataFim, setDataFim] = useState<string>(ymdToday());
-
-  const [novoPacienteId, setNovoPacienteId] = useState<string>("");
-  const [novoTerapeutaId, setNovoTerapeutaId] = useState<string>("");
-  const [novoData, setNovoData] = useState<string>(ymdToday());
-  const [novoInicio, setNovoInicio] = useState<string>("08:00");
-  const [novoFim, setNovoFim] = useState<string>("09:00");
-  const [novoObs, setNovoObs] = useState<string>("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Atendimento | null>(null);
@@ -112,11 +106,12 @@ export default function ConsultasPage() {
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
+    if (pacienteId) params.set("pacienteId", pacienteId);
     if (terapeutaId) params.set("terapeutaId", terapeutaId);
     if (dataIni) params.set("dataIni", dataIni);
     if (dataFim) params.set("dataFim", dataFim);
     return params.toString();
-  }, [terapeutaId, dataIni, dataFim]);
+  }, [pacienteId, terapeutaId, dataIni, dataFim]);
 
   async function bootstrap() {
     try {
@@ -146,32 +141,6 @@ export default function ConsultasPage() {
       setItems([]);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function criarAtendimento() {
-    setError(null);
-    try {
-      const resp = await fetch("/api/atendimentos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pacienteId: novoPacienteId,
-          terapeutaId: novoTerapeutaId,
-          data: novoData,
-          horaInicio: novoInicio,
-          horaFim: novoFim,
-          turno: Number(novoInicio.split(":")[0]) < 12 ? "Matutino" : "Vespertino",
-          presenca: "Nao informado",
-          observacoes: novoObs || null,
-        }),
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao criar atendimento");
-      await loadAtendimentos();
-      setNovoObs("");
-    } catch (err) {
-      setError(normalizeApiError(err));
     }
   }
 
@@ -332,7 +301,22 @@ export default function ConsultasPage() {
           </button>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-5">
+          <label className="text-sm">
+            <span className="mb-1 block font-semibold text-[var(--marrom)]">Paciente</span>
+            <select
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+              value={pacienteId}
+              onChange={(e) => setPacienteId(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {pacientes.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="text-sm">
             <span className="mb-1 block font-semibold text-[var(--marrom)]">Terapeuta</span>
             <select
@@ -377,6 +361,7 @@ export default function ConsultasPage() {
             <button
               type="button"
               onClick={() => {
+                setPacienteId("");
                 setTerapeutaId("");
                 setDataIni(ymdToday());
                 setDataFim(ymdToday());
@@ -385,88 +370,6 @@ export default function ConsultasPage() {
               className="w-full rounded-lg border border-gray-200 px-3 py-2 font-semibold text-gray-700 hover:bg-gray-50"
             >
               Limpar
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[var(--marrom)]">Reservar horario</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-6">
-          <label className="text-sm md:col-span-2">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Paciente</span>
-            <select
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={novoPacienteId}
-              onChange={(e) => setNovoPacienteId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {pacientes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.id} - {p.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm md:col-span-2">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Terapeuta</span>
-            <select
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={novoTerapeutaId}
-              onChange={(e) => setNovoTerapeutaId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {terapeutas.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Data</span>
-            <input
-              type="date"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={novoData}
-              onChange={(e) => setNovoData(e.target.value)}
-            />
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Inicio</span>
-            <input
-              type="time"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={novoInicio}
-              onChange={(e) => setNovoInicio(e.target.value)}
-            />
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Fim</span>
-            <input
-              type="time"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={novoFim}
-              onChange={(e) => setNovoFim(e.target.value)}
-            />
-          </label>
-          <label className="text-sm md:col-span-4">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Observacoes</span>
-            <input
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={novoObs}
-              onChange={(e) => setNovoObs(e.target.value)}
-              placeholder="Opcional"
-            />
-          </label>
-          <div className="flex items-end md:col-span-2">
-            <button
-              type="button"
-              onClick={() => void criarAtendimento()}
-              className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-white hover:bg-[#e6961f]"
-              disabled={!novoPacienteId || !novoTerapeutaId}
-            >
-              Reservar
             </button>
           </div>
         </div>
