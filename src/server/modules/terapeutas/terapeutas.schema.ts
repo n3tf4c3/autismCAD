@@ -6,6 +6,7 @@ export const especialidadesPermitidas = new Set([
   "Fonoaudiologia",
   "Fisioterapia",
   "Psicopedagogia",
+  "Acompanhante Terapeutico (AT)",
 ]);
 
 const nullableTrimmed = z.string().trim().max(255).optional().nullable();

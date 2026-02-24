@@ -32,6 +32,7 @@ const ESPECIALIDADES = [
   "Fonoaudiologia",
   "Fisioterapia",
   "Psicopedagogia",
+  "Acompanhante Terapeutico (AT)",
   "Outro",
 ] as const;
 
