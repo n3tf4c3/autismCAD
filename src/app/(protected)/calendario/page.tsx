@@ -435,7 +435,7 @@ export default function CalendarioPage() {
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--marrom)]">Calendario</h1>
+            <h1 className="text-2xl font-bold text-[var(--marrom)]">Agenda</h1>
             <p className="text-sm text-gray-600">Agenda semanal do terapeuta</p>
           </div>
           <div className="flex items-center gap-2">
