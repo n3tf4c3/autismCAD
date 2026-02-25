@@ -69,9 +69,7 @@ export default function PacientesPage() {
   const [consultaPeriodoFim, setConsultaPeriodoFim] = useState<string>(ymdToday());
   const [consultaPresenca, setConsultaPresenca] = useState<string>("Nao informado");
   const [consultaMotivo, setConsultaMotivo] = useState<string>("");
-  const [consultaDias, setConsultaDias] = useState<Set<number>>(
-    () => new Set([1, 2, 3, 4, 5]) // seg..sex
-  );
+  const [consultaDias, setConsultaDias] = useState<Set<number>>(() => new Set());
   const [consultaBusy, setConsultaBusy] = useState(false);
   const [consultaMsg, setConsultaMsg] = useState<string | null>(null);
 
@@ -124,7 +122,7 @@ export default function PacientesPage() {
     const today = ymdToday();
     setConsultaPeriodoInicio(today);
     setConsultaPeriodoFim(today);
-    setConsultaDias(new Set([1, 2, 3, 4, 5]));
+    setConsultaDias(new Set());
   }
 
   function fecharConsulta() {
