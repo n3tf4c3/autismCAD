@@ -283,7 +283,6 @@ export function PacienteFormClient(props: {
       if (!payload.cpf || payload.cpf.length !== 11) throw new Error("CPF invalido.");
       if (!payload.nomeResponsavel) throw new Error("Informe o nome do responsavel.");
       if (!payload.telefone) throw new Error("Informe o telefone do responsavel.");
-      if (!payload.email) throw new Error("Informe o email do responsavel.");
       if (!payload.sexo) throw new Error("Selecione o sexo.");
       if (!payload.nascimento) throw new Error("Informe a data de nascimento.");
       if (!payload.dataInicio) throw new Error("Informe a data de inicio.");
