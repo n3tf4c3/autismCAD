@@ -6,8 +6,8 @@ import {
   salvarPaciente,
   softDeletePaciente,
 } from "@/server/modules/pacientes/pacientes.service";
-import { AppError, toAppError } from "@/server/shared/errors";
-import { jsonError } from "@/server/shared/http";
+import { AppError } from "@/server/shared/errors";
+import { withErrorHandling } from "@/server/shared/http";
 import { z } from "zod";
 
 type RouteContext = {
@@ -28,41 +28,26 @@ function parseAtivo(value: boolean | number | string): boolean {
   throw new AppError("Campo ativo invalido", 400, "INVALID_INPUT");
 }
 
-export async function PUT(request: Request, context: RouteContext) {
-  try {
-    await requirePermission("pacientes:edit");
-    const { id } = idParamSchema.parse(await context.params);
-    const payload = await parseJsonBody(request, savePacienteSchema);
-    const savedId = await salvarPaciente(payload, id);
-    return Response.json({ id: savedId });
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const PUT = withErrorHandling(async (request: Request, context: RouteContext) => {
+  await requirePermission("pacientes:edit");
+  const { id } = idParamSchema.parse(await context.params);
+  const payload = await parseJsonBody(request, savePacienteSchema);
+  const savedId = await salvarPaciente(payload, id);
+  return Response.json({ id: savedId });
+});
 
-export async function DELETE(_request: Request, context: RouteContext) {
-  try {
-    const { user } = await requirePermission("pacientes:delete");
-    const { id } = idParamSchema.parse(await context.params);
-    if (!id) {
-      throw new AppError("ID invalido", 400, "INVALID_ID");
-    }
-    const result = await softDeletePaciente(id, Number(user.id));
-    return Response.json({ id: result.id });
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const DELETE = withErrorHandling(async (_request: Request, context: RouteContext) => {
+  const { user } = await requirePermission("pacientes:delete");
+  const { id } = idParamSchema.parse(await context.params);
+  const result = await softDeletePaciente(id, Number(user.id));
+  return Response.json({ id: result.id });
+});
 
-export async function PATCH(request: Request, context: RouteContext) {
-  try {
-    await requirePermission("pacientes:edit");
-    const { id } = idParamSchema.parse(await context.params);
-    const payload = await parseJsonBody(request, patchPacienteSchema);
-    const ativo = parseAtivo(payload.ativo);
-    const result = await setPacienteAtivo(id, ativo);
-    return Response.json(result);
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const PATCH = withErrorHandling(async (request: Request, context: RouteContext) => {
+  await requirePermission("pacientes:edit");
+  const { id } = idParamSchema.parse(await context.params);
+  const payload = await parseJsonBody(request, patchPacienteSchema);
+  const ativo = parseAtivo(payload.ativo);
+  const result = await setPacienteAtivo(id, ativo);
+  return Response.json(result);
+});

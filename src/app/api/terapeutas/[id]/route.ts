@@ -10,8 +10,8 @@ import {
   listarTerapeutas,
   salvarTerapeuta,
 } from "@/server/modules/terapeutas/terapeutas.service";
-import { AppError, toAppError } from "@/server/shared/errors";
-import { jsonError } from "@/server/shared/http";
+import { AppError } from "@/server/shared/errors";
+import { withErrorHandling } from "@/server/shared/http";
 import { z } from "zod";
 
 type RouteContext = {
@@ -32,79 +32,63 @@ function parseAtivo(value: boolean | number | string): boolean {
   throw new AppError("Campo ativo invalido", 400, "INVALID_INPUT");
 }
 
-export async function GET(_request: Request, context: RouteContext) {
-  try {
-    await requirePermission("terapeutas:view");
-    const { id } = idParamSchema.parse(await context.params);
-    const rows = await listarTerapeutas({ id });
-    const row = rows?.[0] ?? null;
-    if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
-    return Response.json(row);
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const GET = withErrorHandling(async (_request: Request, context: RouteContext) => {
+  await requirePermission("terapeutas:view");
+  const { id } = idParamSchema.parse(await context.params);
+  const rows = await listarTerapeutas({ id });
+  const row = rows?.[0] ?? null;
+  if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  return Response.json(row);
+});
 
-export async function PUT(request: Request, context: RouteContext) {
-  try {
-    const user = await requireUser();
-    const access = await loadUserAccess(Number(user.id));
-    const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
-    const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
-    if (!canEditAny && !canEditSelf) {
+export const PUT = withErrorHandling(async (request: Request, context: RouteContext) => {
+  const user = await requireUser();
+  const access = await loadUserAccess(Number(user.id));
+  const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
+  const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
+  if (!canEditAny && !canEditSelf) {
+    throw new AppError("Acesso negado", 403, "FORBIDDEN");
+  }
+
+  const { id } = idParamSchema.parse(await context.params);
+  if (!canEditAny) {
+    const terapeuta = await obterTerapeutaPorUsuario(Number(user.id));
+    if (!terapeuta || terapeuta.id !== id) {
       throw new AppError("Acesso negado", 403, "FORBIDDEN");
     }
-
-    const { id } = idParamSchema.parse(await context.params);
-    if (!canEditAny) {
-      const terapeuta = await obterTerapeutaPorUsuario(Number(user.id));
-      if (!terapeuta || terapeuta.id !== id) {
-        throw new AppError("Acesso negado", 403, "FORBIDDEN");
-      }
-    }
-
-    const payload = await parseJsonBody(request, saveTerapeutaSchema);
-    const savedId = await salvarTerapeuta(payload, id);
-    return Response.json({ id: savedId });
-  } catch (error) {
-    return jsonError(toAppError(error));
   }
-}
 
-export async function DELETE(_request: Request, context: RouteContext) {
-  try {
-    await requirePermission("terapeutas:delete");
-    const { id } = idParamSchema.parse(await context.params);
-    const result = await deleteTerapeuta(id);
-    return Response.json(result);
-  } catch (error) {
-    return jsonError(toAppError(error));
+  const payload = await parseJsonBody(request, saveTerapeutaSchema);
+  const savedId = await salvarTerapeuta(payload, id);
+  return Response.json({ id: savedId });
+});
+
+export const DELETE = withErrorHandling(async (_request: Request, context: RouteContext) => {
+  await requirePermission("terapeutas:delete");
+  const { id } = idParamSchema.parse(await context.params);
+  const result = await deleteTerapeuta(id);
+  return Response.json(result);
+});
+
+export const PATCH = withErrorHandling(async (request: Request, context: RouteContext) => {
+  const user = await requireUser();
+  const access = await loadUserAccess(Number(user.id));
+  const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
+  const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
+  if (!canEditAny && !canEditSelf) {
+    throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
-}
 
-export async function PATCH(request: Request, context: RouteContext) {
-  try {
-    const user = await requireUser();
-    const access = await loadUserAccess(Number(user.id));
-    const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
-    const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
-    if (!canEditAny && !canEditSelf) {
+  const { id } = idParamSchema.parse(await context.params);
+  if (!canEditAny) {
+    const terapeuta = await obterTerapeutaPorUsuario(Number(user.id));
+    if (!terapeuta || terapeuta.id !== id) {
       throw new AppError("Acesso negado", 403, "FORBIDDEN");
     }
-
-    const { id } = idParamSchema.parse(await context.params);
-    if (!canEditAny) {
-      const terapeuta = await obterTerapeutaPorUsuario(Number(user.id));
-      if (!terapeuta || terapeuta.id !== id) {
-        throw new AppError("Acesso negado", 403, "FORBIDDEN");
-      }
-    }
-
-    const payload = await parseJsonBody(request, patchTerapeutaSchema);
-    const ativo = parseAtivo(payload.ativo);
-    const result = await setTerapeutaAtivo(id, ativo);
-    return Response.json(result);
-  } catch (error) {
-    return jsonError(toAppError(error));
   }
-}
+
+  const payload = await parseJsonBody(request, patchTerapeutaSchema);
+  const ativo = parseAtivo(payload.ativo);
+  const result = await setTerapeutaAtivo(id, ativo);
+  return Response.json(result);
+});

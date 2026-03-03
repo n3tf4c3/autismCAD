@@ -1,4 +1,5 @@
 import { requireUser } from "@/server/auth/auth";
+import { withErrorHandling } from "@/server/shared/http";
 
 export const runtime = "nodejs";
 
@@ -15,10 +16,14 @@ function asViaCepResponse(value: unknown): ViaCepResponse | null {
   return value as ViaCepResponse;
 }
 
-export async function GET(
+type RouteContext = {
+  params: Promise<{ cep: string }>;
+};
+
+export const GET = withErrorHandling(async (
   _request: Request,
-  context: { params: Promise<{ cep: string }> }
-) {
+  context: RouteContext
+) => {
   await requireUser(); // legado: apenas autenticado
 
   const { cep: raw } = await context.params;
@@ -44,5 +49,4 @@ export async function GET(
     console.error("Erro ao consultar CEP", error);
     return Response.json({ error: "Falha ao consultar CEP" }, { status: 502 });
   }
-}
-
+});

@@ -7,6 +7,7 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { withErrorHandlingNoContext } from "@/server/shared/http";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ function assertConfigured() {
   }
 }
 
-export async function GET() {
+export const GET = withErrorHandlingNoContext(async () => {
   // Restrito: esse endpoint grava e apaga um objeto "smoke/*" no bucket.
   await requireAdminGeral();
   assertConfigured();
@@ -69,5 +70,4 @@ export async function GET() {
 
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
   return Response.json({ ok: true, bucket, key });
-}
-
+});
