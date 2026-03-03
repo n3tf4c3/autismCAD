@@ -5,8 +5,8 @@ import {
   getRolePermissions,
   updateRolePermissions,
 } from "@/server/modules/users/users.service";
-import { AppError, toAppError } from "@/server/shared/errors";
-import { jsonError } from "@/server/shared/http";
+import { AppError } from "@/server/shared/errors";
+import { withErrorHandling } from "@/server/shared/http";
 
 type RouteContext = {
   params: Promise<{ role: string }>;
@@ -20,27 +20,19 @@ function normalizeRole(raw: string) {
   return role;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
-  try {
-    await requireAdminGeral();
-    const params = await context.params;
-    const roleName = normalizeRole(params.role);
-    const result = await getRolePermissions(roleName);
-    return Response.json(result);
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const GET = withErrorHandling(async (_request: Request, context: RouteContext) => {
+  await requireAdminGeral();
+  const params = await context.params;
+  const roleName = normalizeRole(params.role);
+  const result = await getRolePermissions(roleName);
+  return Response.json(result);
+});
 
-export async function POST(request: Request, context: RouteContext) {
-  try {
-    await requireAdminGeral();
-    const params = await context.params;
-    const roleName = normalizeRole(params.role);
-    const payload = await parseJsonBody(request, updateRolePermissionsSchema);
-    const result = await updateRolePermissions(roleName, payload);
-    return Response.json(result);
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const POST = withErrorHandling(async (request: Request, context: RouteContext) => {
+  await requireAdminGeral();
+  const params = await context.params;
+  const roleName = normalizeRole(params.role);
+  const payload = await parseJsonBody(request, updateRolePermissionsSchema);
+  const result = await updateRolePermissions(roleName, payload);
+  return Response.json(result);
+});

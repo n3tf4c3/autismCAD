@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { atendimentos, evolucoes, terapeutas } from "@/server/db/schema";
+import { runDbTransaction } from "@/server/db/transaction";
 import {
   especialidadesPermitidas,
   SaveTerapeutaInput,
@@ -180,13 +181,16 @@ export async function deleteTerapeuta(id: number) {
     );
   }
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(atendimentos)
-      .set({ terapeutaId: null, updatedAt: new Date() })
-      .where(eq(atendimentos.terapeutaId, id));
-    await tx.delete(terapeutas).where(eq(terapeutas.id, id));
-  });
+  await runDbTransaction(
+    async (tx) => {
+      await tx
+        .update(atendimentos)
+        .set({ terapeutaId: null, updatedAt: new Date() })
+        .where(eq(atendimentos.terapeutaId, id));
+      await tx.delete(terapeutas).where(eq(terapeutas.id, id));
+    },
+    { operation: "terapeutas.deleteTerapeuta" }
+  );
 
   return { id };
 }

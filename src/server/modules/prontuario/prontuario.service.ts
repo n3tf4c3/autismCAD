@@ -120,28 +120,31 @@ export async function salvarDocumento(
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     try {
-      const created = await runDbTransaction(async (tx) => {
-        const [row] = await tx
-          .select({ ver: max(prontuarioDocumentos.version).as("ver") })
-          .from(prontuarioDocumentos)
-          .where(and(eq(prontuarioDocumentos.pacienteId, pacienteId), eq(prontuarioDocumentos.tipo, tipo)));
+      const created = await runDbTransaction(
+        async (tx) => {
+          const [row] = await tx
+            .select({ ver: max(prontuarioDocumentos.version).as("ver") })
+            .from(prontuarioDocumentos)
+            .where(and(eq(prontuarioDocumentos.pacienteId, pacienteId), eq(prontuarioDocumentos.tipo, tipo)));
 
-        const nextVersion = Number(row?.ver ?? 0) + 1;
-        const [saved] = await tx
-          .insert(prontuarioDocumentos)
-          .values({
-            pacienteId,
-            tipo,
-            version: nextVersion,
-            status: statusVal,
-            titulo,
-            payload,
-            createdByUserId: userId,
-            createdByRole: userRole,
-          })
-          .returning({ id: prontuarioDocumentos.id, version: prontuarioDocumentos.version });
-        return saved;
-      });
+          const nextVersion = Number(row?.ver ?? 0) + 1;
+          const [saved] = await tx
+            .insert(prontuarioDocumentos)
+            .values({
+              pacienteId,
+              tipo,
+              version: nextVersion,
+              status: statusVal,
+              titulo,
+              payload,
+              createdByUserId: userId,
+              createdByRole: userRole,
+            })
+            .returning({ id: prontuarioDocumentos.id, version: prontuarioDocumentos.version });
+          return saved;
+        },
+        { operation: "prontuario.salvarDocumento" }
+      );
 
       return created;
     } catch (error) {

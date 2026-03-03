@@ -33,45 +33,48 @@ export async function POST(request: Request, context: RouteContext) {
 
     const input = await parseJsonBody(request, bodySchema);
 
-    const { previousKey } = await runDbTransaction(async (tx) => {
-      const [row] = await tx
-        .select({
-          id: pacientes.id,
-          foto: pacientes.foto,
-          laudo: pacientes.laudo,
-          documento: pacientes.documento,
-        })
-        .from(pacientes)
-        .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
-        .limit(1);
-      if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+    const { previousKey } = await runDbTransaction(
+      async (tx) => {
+        const [row] = await tx
+          .select({
+            id: pacientes.id,
+            foto: pacientes.foto,
+            laudo: pacientes.laudo,
+            documento: pacientes.documento,
+          })
+          .from(pacientes)
+          .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
+          .limit(1);
+        if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
 
-      const prev =
-        input.kind === "foto"
-          ? row.foto
-          : input.kind === "laudo"
-            ? row.laudo
-            : row.documento;
+        const prev =
+          input.kind === "foto"
+            ? row.foto
+            : input.kind === "laudo"
+              ? row.laudo
+              : row.documento;
 
-      if (input.kind === "foto") {
-        await tx
-          .update(pacientes)
-          .set({ foto: input.key, updatedAt: sql`now()` })
-          .where(eq(pacientes.id, pacienteId));
-      } else if (input.kind === "laudo") {
-        await tx
-          .update(pacientes)
-          .set({ laudo: input.key, updatedAt: sql`now()` })
-          .where(eq(pacientes.id, pacienteId));
-      } else {
-        await tx
-          .update(pacientes)
-          .set({ documento: input.key, updatedAt: sql`now()` })
-          .where(eq(pacientes.id, pacienteId));
-      }
+        if (input.kind === "foto") {
+          await tx
+            .update(pacientes)
+            .set({ foto: input.key, updatedAt: sql`now()` })
+            .where(eq(pacientes.id, pacienteId));
+        } else if (input.kind === "laudo") {
+          await tx
+            .update(pacientes)
+            .set({ laudo: input.key, updatedAt: sql`now()` })
+            .where(eq(pacientes.id, pacienteId));
+        } else {
+          await tx
+            .update(pacientes)
+            .set({ documento: input.key, updatedAt: sql`now()` })
+            .where(eq(pacientes.id, pacienteId));
+        }
 
-      return { previousKey: prev };
-    });
+        return { previousKey: prev };
+      },
+      { operation: "pacientes.arquivos.commit" }
+    );
 
     if (
       previousKey &&

@@ -1,4 +1,3 @@
-import { ZodError } from "zod";
 import { parseJsonBody } from "@/lib/zod/api";
 import { requirePermission } from "@/server/auth/auth";
 import {
@@ -9,41 +8,33 @@ import {
   listarAtendimentos,
   salvarAtendimento,
 } from "@/server/modules/atendimentos/atendimentos.service";
-import { toAppError } from "@/server/shared/errors";
-import { jsonError } from "@/server/shared/http";
+import { AppError } from "@/server/shared/errors";
+import { withErrorHandlingNoContext } from "@/server/shared/http";
 
 function parseQuery(url: string) {
   const search = new URL(url).searchParams;
-  return atendimentosQuerySchema.parse({
+  const parsed = atendimentosQuerySchema.safeParse({
     pacienteId: search.get("pacienteId") ?? undefined,
     terapeutaId: search.get("terapeutaId") ?? undefined,
     dataIni: search.get("dataIni") ?? undefined,
     dataFim: search.get("dataFim") ?? undefined,
   });
-}
-
-export async function GET(request: Request) {
-  try {
-    await requirePermission("consultas:view");
-    const query = parseQuery(request.url);
-    const rows = await listarAtendimentos(query);
-    return Response.json(rows);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return Response.json({ error: "Filtro invalido" }, { status: 400 });
-    }
-    return jsonError(toAppError(error));
+  if (!parsed.success) {
+    throw new AppError("Filtro invalido", 400, "VALIDATION_ERROR");
   }
+  return parsed.data;
 }
 
-export async function POST(request: Request) {
-  try {
-    await requirePermission("consultas:create");
-    const payload = await parseJsonBody(request, saveAtendimentoSchema);
-    const id = await salvarAtendimento(payload, null);
-    return Response.json({ id }, { status: 201 });
-  } catch (error) {
-    return jsonError(toAppError(error));
-  }
-}
+export const GET = withErrorHandlingNoContext(async (request: Request) => {
+  await requirePermission("consultas:view");
+  const query = parseQuery(request.url);
+  const rows = await listarAtendimentos(query);
+  return Response.json(rows);
+});
 
+export const POST = withErrorHandlingNoContext(async (request: Request) => {
+  await requirePermission("consultas:create");
+  const payload = await parseJsonBody(request, saveAtendimentoSchema);
+  const id = await salvarAtendimento(payload, null);
+  return Response.json({ id }, { status: 201 });
+});

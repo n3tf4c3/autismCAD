@@ -12,12 +12,12 @@ export function jsonError(error: AppError): Response {
   );
 }
 
-export function withErrorHandling(
-  handler: (request: Request, context: { params: Promise<Record<string, string>> }) => Promise<Response>
+export function withErrorHandling<TContext>(
+  handler: (request: Request, context: TContext) => Promise<Response>
 ) {
   return async (
     request: Request,
-    context: { params: Promise<Record<string, string>> }
+    context: TContext
   ): Promise<Response> => {
     try {
       return await handler(request, context);
@@ -31,4 +31,10 @@ export function withErrorHandling(
       return jsonError(toAppError(error));
     }
   };
+}
+
+export function withErrorHandlingNoContext(
+  handler: (request: Request) => Promise<Response>
+) {
+  return withErrorHandling(async (request: Request) => handler(request));
 }

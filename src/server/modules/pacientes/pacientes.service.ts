@@ -141,8 +141,9 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
     String(input.ativo ?? "1") === "0" || input.ativo === false ? false : true;
   const terapiaNomes = normalizeTerapias(input);
 
-  return runDbTransaction(async (tx) => {
-    let pacienteId = id ?? null;
+  return runDbTransaction(
+    async (tx) => {
+      let pacienteId = id ?? null;
 
     if (pacienteId) {
       await tx
@@ -222,8 +223,10 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
       }
     }
 
-    return pacienteId!;
-  });
+      return pacienteId!;
+    },
+    { operation: "pacientes.salvarPaciente" }
+  );
 }
 
 export async function softDeletePaciente(id: number, deletedByUserId?: number | null) {
