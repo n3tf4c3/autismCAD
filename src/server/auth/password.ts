@@ -16,6 +16,10 @@ function isLegacyHash(passwordHash: string): boolean {
   return LEGACY_SHA_REGEX.test(passwordHash);
 }
 
+export function isLegacyPasswordHash(passwordHash: string): boolean {
+  return isLegacyHash(passwordHash);
+}
+
 export async function verifyPassword(
   password: string,
   passwordHash: string

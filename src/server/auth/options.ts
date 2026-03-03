@@ -5,7 +5,11 @@ import { env } from "@/lib/env";
 import { db } from "@/db";
 import { users } from "@/server/db/schema";
 import { loginSchema } from "@/server/modules/auth/auth.schema";
-import { verifyPassword } from "@/server/auth/password";
+import {
+  hashPassword,
+  isLegacyPasswordHash,
+  verifyPassword,
+} from "@/server/auth/password";
 import { recordLoginAttemptAccess } from "@/server/modules/access-logs/access-logs.service";
 
 function normalizeAttemptEmail(credentials: Record<string, unknown> | undefined): string | null {
@@ -94,6 +98,22 @@ export const authOptions: NextAuthOptions = {
             headers: req?.headers,
           });
           return null;
+        }
+
+        if (isLegacyPasswordHash(user.senhaHash)) {
+          try {
+            const senhaHash = await hashPassword(parsed.data.password);
+            await db
+              .update(users)
+              .set({
+                senhaHash,
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, user.id));
+          } catch (error) {
+            // Login should not fail when legacy hash upgrade fails.
+            console.error("Falha ao migrar hash legado de senha", error);
+          }
         }
 
         await safeRecordLoginAttempt({

@@ -277,7 +277,7 @@ export async function criarRecorrentes(payload: RecorrenteInput) {
   return { criados: results.length, atendimentos: results };
 }
 
-export async function excluirDia(payload: ExcluirDiaInput) {
+export async function excluirDia(payload: ExcluirDiaInput, deletedByUserId?: number | null) {
   const inicio = parseDateOnlyUtc(payload.periodoInicio);
   const fim = parseDateOnlyUtc(payload.periodoFim);
   if (inicio > fim) {
@@ -304,7 +304,12 @@ export async function excluirDia(payload: ExcluirDiaInput) {
   if (payload.terapeutaId) where.push(eq(atendimentos.terapeutaId, payload.terapeutaId));
 
   const removed = await db
-    .delete(atendimentos)
+    .update(atendimentos)
+    .set({
+      deletedAt: sql`now()`,
+      deletedByUserId: deletedByUserId ?? null,
+      updatedAt: sql`now()`,
+    })
     .where(and(...where))
     .returning({ id: atendimentos.id });
 

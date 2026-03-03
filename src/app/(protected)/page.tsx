@@ -2,6 +2,10 @@ import Link from "next/link";
 import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
+import { requirePermission } from "@/server/auth/auth";
+import { loadUserAccess } from "@/server/auth/access";
+import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
+import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import { QuickCalendarClient } from "./quick-calendar.client";
 
 function ymdToday(): string {
@@ -26,9 +30,53 @@ function ymNow(): string {
 }
 
 export default async function DashboardPage() {
+  const { user } = await requirePermission("atendimentos:view");
+  const userId = Number(user.id);
+  const access = await loadUserAccess(userId);
+  const isAdmin = access.roles.some((role) =>
+    ADMIN_ROLES.has(canonicalRoleName(role) ?? role)
+  );
+  const isTerapeuta = access.roles.some(
+    (role) => (canonicalRoleName(role) ?? role) === "TERAPEUTA"
+  );
+
+  let terapeutaId: number | null = null;
+  if (!isAdmin && isTerapeuta) {
+    const terapeuta = await obterTerapeutaPorUsuario(userId);
+    if (!terapeuta) {
+      return (
+        <main className="rounded-2xl bg-white p-6 shadow-sm">
+          <p className="text-sm text-red-600">
+            Perfil sem vinculo de terapeuta. Contate o administrador.
+          </p>
+        </main>
+      );
+    }
+    terapeutaId = terapeuta.id;
+  }
+
   const today = ymdToday();
   const ym = ymNow();
   const { startIso, endIso } = monthRange(ym);
+  const todayWhere = terapeutaId
+    ? and(
+        eq(atendimentos.data, today),
+        isNull(atendimentos.deletedAt),
+        eq(atendimentos.terapeutaId, terapeutaId)
+      )
+    : and(eq(atendimentos.data, today), isNull(atendimentos.deletedAt));
+  const monthWhere = terapeutaId
+    ? and(
+        isNull(atendimentos.deletedAt),
+        gte(atendimentos.data, startIso),
+        lte(atendimentos.data, endIso),
+        eq(atendimentos.terapeutaId, terapeutaId)
+      )
+    : and(
+        isNull(atendimentos.deletedAt),
+        gte(atendimentos.data, startIso),
+        lte(atendimentos.data, endIso)
+      );
 
   const [pendentes, monthAtendimentos] = await Promise.all([
     db
@@ -45,7 +93,7 @@ export default async function DashboardPage() {
       .from(atendimentos)
       .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
       .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
-      .where(and(eq(atendimentos.data, today), isNull(atendimentos.deletedAt)))
+      .where(todayWhere)
       .orderBy(asc(atendimentos.horaInicio), asc(atendimentos.id))
       .limit(60),
     db
@@ -62,13 +110,7 @@ export default async function DashboardPage() {
       .from(atendimentos)
       .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
       .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
-      .where(
-        and(
-          isNull(atendimentos.deletedAt),
-          gte(atendimentos.data, startIso),
-          lte(atendimentos.data, endIso)
-        )
-      )
+      .where(monthWhere)
       .orderBy(asc(atendimentos.data), asc(atendimentos.horaInicio), asc(atendimentos.id)),
   ]);
 
@@ -104,7 +146,7 @@ export default async function DashboardPage() {
         </div>
         <Link
           className={ctaButtonClass}
-          href="/pacientes"
+          href="/pacientes/novo"
         >
           Abrir cadastro
         </Link>

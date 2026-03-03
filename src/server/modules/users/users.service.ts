@@ -48,32 +48,30 @@ export async function createUser(input: CreateUserInput) {
   }
 
   const senhaHash = await hashPassword(input.senha);
-  const [saved] = await db
-    .insert(users)
-    .values({
-      nome: input.nome.trim(),
-      email: input.email.trim(),
-      senhaHash,
-      role: roleName,
-      ativo: true,
-    })
-    .onConflictDoUpdate({
-      target: users.email,
-      set: {
+  try {
+    const [saved] = await db
+      .insert(users)
+      .values({
         nome: input.nome.trim(),
+        email: input.email.trim(),
         senhaHash,
         role: roleName,
         ativo: true,
-        updatedAt: new Date(),
-      },
-    })
-    .returning({
-      id: users.id,
-      email: users.email,
-      role: users.role,
-    });
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+      });
 
-  return saved;
+    return saved;
+  } catch (error) {
+    const err = error as { code?: string; message?: string };
+    if (err.code === "23505" || String(err.message ?? "").includes("unique")) {
+      throw new AppError("Email ja cadastrado", 409, "CONFLICT");
+    }
+    throw error;
+  }
 }
 
 export async function updateUser(id: number, input: UpdateUserInput) {
@@ -111,8 +109,20 @@ export async function deleteUser(id: number, requesterUserId: number) {
   if (id === requesterUserId) {
     throw new AppError("Nao e possivel excluir o proprio usuario", 400, "SELF_DELETE");
   }
-  await db.delete(users).where(eq(users.id, id));
-  return { ok: true, id };
+  const [updated] = await db
+    .update(users)
+    .set({
+      ativo: false,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, id))
+    .returning({ id: users.id });
+
+  if (!updated) {
+    throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+  }
+
+  return { ok: true, id: updated.id };
 }
 
 export async function listPermissions() {

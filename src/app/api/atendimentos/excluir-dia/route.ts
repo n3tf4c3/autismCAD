@@ -7,12 +7,11 @@ import { jsonError } from "@/server/shared/http";
 
 export async function POST(request: Request) {
   try {
-    await requirePermission("consultas:cancel");
+    const { user } = await requirePermission("consultas:cancel");
     const payload = await parseJsonBody(request, excluirDiaSchema);
-    const result = await excluirDia(payload);
+    const result = await excluirDia(payload, Number(user.id));
     return Response.json(result);
   } catch (error) {
     return jsonError(toAppError(error));
   }
 }
-
