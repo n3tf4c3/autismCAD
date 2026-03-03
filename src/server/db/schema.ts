@@ -150,6 +150,10 @@ export const terapeutas = pgTable(
     cep: varchar("cep", { length: 8 }),
     especialidade: varchar("especialidade", { length: 80 }).notNull(),
     ativo: boolean("ativo").notNull().default(true),
+    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
     usuarioId: bigint("usuario_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
@@ -157,9 +161,12 @@ export const terapeutas = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("uk_terapeutas_cpf").on(table.cpf),
+    uniqueIndex("uk_terapeutas_cpf_ativo")
+      .on(table.cpf)
+      .where(sql`${table.deletedAt} is null`),
     index("idx_terapeutas_usuario").on(table.usuarioId),
     index("idx_terapeutas_nome").on(table.nome),
+    index("idx_terapeutas_deleted_at").on(table.deletedAt),
   ]
 );
 

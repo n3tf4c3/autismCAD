@@ -29,6 +29,13 @@
       "when": 1772006400000,
       "tag": "0003_terapeutas_ativo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772552661233,
+      "tag": "0004_terapeutas_soft_delete",
+      "breakpoints": true
     }
   ]
 }

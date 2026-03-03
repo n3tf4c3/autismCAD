@@ -143,7 +143,7 @@ export async function salvarDocumento(
             .returning({ id: prontuarioDocumentos.id, version: prontuarioDocumentos.version });
           return saved;
         },
-        { operation: "prontuario.salvarDocumento" }
+        { operation: "prontuario.salvarDocumento", mode: "required" }
       );
 
       return created;

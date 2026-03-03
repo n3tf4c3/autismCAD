@@ -64,9 +64,9 @@ export const PUT = withErrorHandling(async (request: Request, context: RouteCont
 });
 
 export const DELETE = withErrorHandling(async (_request: Request, context: RouteContext) => {
-  await requirePermission("terapeutas:delete");
+  const { user } = await requirePermission("terapeutas:delete");
   const { id } = idParamSchema.parse(await context.params);
-  const result = await deleteTerapeuta(id);
+  const result = await deleteTerapeuta(id, Number(user.id));
   return Response.json(result);
 });
 

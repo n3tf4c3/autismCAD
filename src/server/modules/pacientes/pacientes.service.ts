@@ -225,7 +225,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
 
       return pacienteId!;
     },
-    { operation: "pacientes.salvarPaciente" }
+    { operation: "pacientes.salvarPaciente", mode: "required" }
   );
 }
 

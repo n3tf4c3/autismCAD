@@ -6,7 +6,7 @@ import { hasPermissionKey } from "@/server/auth/permissions";
 import { terapeutas } from "@/server/db/schema";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import { AppError } from "@/server/shared/errors";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { TerapeutaActionsClient } from "@/app/(protected)/terapeutas/[id]/terapeuta-actions.client";
 
@@ -83,7 +83,7 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
       ativo: terapeutas.ativo,
     })
     .from(terapeutas)
-    .where(eq(terapeutas.id, id))
+    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
     .limit(1);
 
   if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");

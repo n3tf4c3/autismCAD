@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { db } from "@/db";
 import { users } from "@/server/db/schema";
@@ -107,7 +107,7 @@ export const authOptions: NextAuthOptions = {
               .update(users)
               .set({
                 senhaHash,
-                updatedAt: new Date(),
+                updatedAt: sql`now()`,
               })
               .where(eq(users.id, user.id));
           } catch (error) {

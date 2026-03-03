@@ -7,6 +7,7 @@ import {
   inArray,
   isNotNull,
   ne,
+  sql,
 } from "drizzle-orm";
 import { db } from "@/db";
 import { hashPassword } from "@/server/auth/password";
@@ -21,6 +22,7 @@ import {
   UpdateRolePermissionsInput,
   UpdateUserInput,
 } from "@/server/modules/users/users.schema";
+import { runDbTransaction } from "@/server/db/transaction";
 import { AppError } from "@/server/shared/errors";
 
 export async function listUsers() {
@@ -85,15 +87,14 @@ export async function updateUser(id: number, input: UpdateUserInput) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
   }
 
-  const setData: Partial<typeof users.$inferInsert> = {
+  const senha = input.senha?.trim();
+  const setData = {
     nome: input.nome.trim(),
     email: input.email.trim(),
     role: roleName,
-    updatedAt: new Date(),
+    updatedAt: sql`now()`,
+    ...(senha ? { senhaHash: await hashPassword(senha) } : {}),
   };
-  if (input.senha?.trim()) {
-    setData.senhaHash = await hashPassword(input.senha.trim());
-  }
 
   await db.update(users).set(setData).where(eq(users.id, id));
 
@@ -113,7 +114,7 @@ export async function deleteUser(id: number, requesterUserId: number) {
     .update(users)
     .set({
       ativo: false,
-      updatedAt: new Date(),
+      updatedAt: sql`now()`,
     })
     .where(eq(users.id, id))
     .returning({ id: users.id });
@@ -189,12 +190,17 @@ export async function updateRolePermissions(
     permissionIds = valid.map((item) => item.id);
   }
 
-  await db.delete(rolePermissions).where(eq(rolePermissions.role, roleName));
-  if (permissionIds.length) {
-    await db
-      .insert(rolePermissions)
-      .values(permissionIds.map((permissionId) => ({ role: roleName, permissionId })));
-  }
+  await runDbTransaction(
+    async (tx) => {
+      await tx.delete(rolePermissions).where(eq(rolePermissions.role, roleName));
+      if (permissionIds.length) {
+        await tx
+          .insert(rolePermissions)
+          .values(permissionIds.map((permissionId) => ({ role: roleName, permissionId })));
+      }
+    },
+    { operation: "users.updateRolePermissions", mode: "required" }
+  );
 
   return {
     ok: true,

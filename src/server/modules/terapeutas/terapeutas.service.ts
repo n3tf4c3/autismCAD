@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, eq, ilike, isNull } from "drizzle-orm";
+import { and, asc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, evolucoes, terapeutas } from "@/server/db/schema";
+import { atendimentos, terapeutas } from "@/server/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   especialidadesPermitidas,
@@ -54,7 +54,7 @@ function composeEndereco(input: SaveTerapeutaInput): string | null {
 }
 
 export async function listarTerapeutas(filters: TerapeutasQueryInput) {
-  const where = [];
+  const where = [isNull(terapeutas.deletedAt)];
   if (filters.id) where.push(eq(terapeutas.id, filters.id));
   if (filters.nome) where.push(ilike(terapeutas.nome, `%${filters.nome}%`));
   if (filters.cpf) where.push(ilike(terapeutas.cpf, `%${filters.cpf.replace(/\D/g, "")}%`));
@@ -80,7 +80,7 @@ export async function listarTerapeutas(filters: TerapeutasQueryInput) {
       ativo: terapeutas.ativo,
     })
     .from(terapeutas)
-    .where(where.length ? and(...where) : undefined)
+    .where(and(...where))
     .orderBy(asc(terapeutas.nome));
 
   return rows.map((row) => ({
@@ -110,11 +110,14 @@ export async function salvarTerapeuta(input: SaveTerapeutaInput, id?: number | n
     cidade: normalizeOptional(input.cidade),
     cep: normalizeCep(input.cep),
     especialidade: normalizeEspecialidade(input.especialidade),
-    updatedAt: new Date(),
+    updatedAt: sql`now()`,
   };
 
   if (id) {
-    await db.update(terapeutas).set(payload).where(eq(terapeutas.id, id));
+    await db
+      .update(terapeutas)
+      .set(payload)
+      .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)));
     return id;
   }
 
@@ -130,7 +133,7 @@ export async function obterTerapeutaPorUsuario(userId: number) {
   const [row] = await db
     .select({ id: terapeutas.id, nome: terapeutas.nome })
     .from(terapeutas)
-    .where(eq(terapeutas.usuarioId, userId))
+    .where(and(eq(terapeutas.usuarioId, userId), isNull(terapeutas.deletedAt)))
     .limit(1);
   return row ?? null;
 }
@@ -151,11 +154,11 @@ export async function terapeutaAtendePaciente(pacienteId: number, terapeutaId: n
   return !!row;
 }
 
-export async function deleteTerapeuta(id: number) {
+export async function deleteTerapeuta(id: number, deletedByUserId?: number | null) {
   const [row] = await db
     .select({ id: terapeutas.id, ativo: terapeutas.ativo })
     .from(terapeutas)
-    .where(eq(terapeutas.id, id))
+    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
     .limit(1);
   if (!row) {
     throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
@@ -168,38 +171,34 @@ export async function deleteTerapeuta(id: number) {
     );
   }
 
-  const [hasEvolucao] = await db
-    .select({ id: evolucoes.id })
-    .from(evolucoes)
-    .where(eq(evolucoes.terapeutaId, id))
-    .limit(1);
-  if (hasEvolucao) {
-    throw new AppError(
-      "Nao e possivel excluir terapeuta com evolucoes vinculadas",
-      409,
-      "THERAPIST_HAS_EVOLUCOES"
-    );
-  }
-
-  await runDbTransaction(
+  const [deleted] = await runDbTransaction(
     async (tx) => {
-      await tx
-        .update(atendimentos)
-        .set({ terapeutaId: null, updatedAt: new Date() })
-        .where(eq(atendimentos.terapeutaId, id));
-      await tx.delete(terapeutas).where(eq(terapeutas.id, id));
+      return tx
+        .update(terapeutas)
+        .set({
+          ativo: false,
+          deletedAt: sql`now()`,
+          deletedByUserId: deletedByUserId ?? null,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
+        .returning({ id: terapeutas.id });
     },
-    { operation: "terapeutas.deleteTerapeuta" }
+    { operation: "terapeutas.deleteTerapeuta", mode: "required" }
   );
 
-  return { id };
+  if (!deleted) {
+    throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  }
+
+  return { id: deleted.id };
 }
 
 export async function setTerapeutaAtivo(id: number, ativo: boolean) {
   const [result] = await db
     .update(terapeutas)
-    .set({ ativo, updatedAt: new Date() })
-    .where(eq(terapeutas.id, id))
+    .set({ ativo, updatedAt: sql`now()` })
+    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
     .returning({ id: terapeutas.id, ativo: terapeutas.ativo });
 
   if (!result) {

@@ -72,7 +72,7 @@ export const POST = withErrorHandling(async (request: Request, context: RouteCon
 
       return { previousKey: prev };
     },
-    { operation: "pacientes.arquivos.commit" }
+    { operation: "pacientes.arquivos.commit", mode: "required" }
   );
 
   if (

@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { idParamSchema } from "@/lib/zod/api";
 import { terapeutas } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
@@ -42,7 +42,7 @@ export default async function EditarTerapeutaPage(props: PageProps) {
       especialidade: terapeutas.especialidade,
     })
     .from(terapeutas)
-    .where(eq(terapeutas.id, id))
+    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
     .limit(1);
 
   if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
@@ -67,4 +67,3 @@ export default async function EditarTerapeutaPage(props: PageProps) {
     />
   );
 }
-

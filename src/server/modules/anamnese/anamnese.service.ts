@@ -285,7 +285,7 @@ export async function salvarAnamneseCompleta(params: {
           created_at: savedVersion.created_at,
           paciente_id: pacienteId,
         };
-      }, { operation: "anamnese.salvarAnamneseCompleta" });
+      }, { operation: "anamnese.salvarAnamneseCompleta", mode: "required" });
     } catch (error) {
       // Unique violation -> retry.
       const message = (error as Error)?.message || "";
