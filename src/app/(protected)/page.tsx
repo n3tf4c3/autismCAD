@@ -6,11 +6,8 @@ import { requirePermission } from "@/server/auth/auth";
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
-
-function ymdToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function monthRange(ym: string) {
   const [y, m] = ym.split("-").map(Number);
@@ -22,12 +19,6 @@ function monthRange(ym: string) {
   return { startIso, endIso };
 }
 
-function ymNow(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-}
 
 export default async function DashboardPage() {
   const { user } = await requirePermission("atendimentos:view");
@@ -55,8 +46,8 @@ export default async function DashboardPage() {
     terapeutaId = terapeuta.id;
   }
 
-  const today = ymdToday();
-  const ym = ymNow();
+  const today = ymdNowInClinicTz();
+  const ym = ymNowInClinicTz();
   const { startIso, endIso } = monthRange(ym);
   const todayWhere = terapeutaId
     ? and(

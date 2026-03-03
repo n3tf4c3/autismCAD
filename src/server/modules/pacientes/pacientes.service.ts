@@ -17,25 +17,11 @@ import {
   SavePacienteInput,
 } from "@/server/modules/pacientes/pacientes.schema";
 import { AppError } from "@/server/shared/errors";
-
-function normalizeCpf(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 11);
-}
-
-function normalizeOptional(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = value.trim();
-  return parsed ? parsed : null;
-}
-
-function normalizeDate(value?: string | null): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
-}
+import {
+  normalizeCpf,
+  normalizeDateOnlyLoose,
+  normalizeOptionalText,
+} from "@/server/shared/normalize";
 
 function normalizeTerapias(input: SavePacienteInput): string[] {
   const fromTerapias = Array.isArray(input.terapias) ? input.terapias : [];
@@ -132,7 +118,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
     throw new AppError("Nome e CPF sao obrigatorios", 400, "INVALID_INPUT");
   }
 
-  const convenioParsed = normalizeOptional(input.convenio) ?? "Particular";
+  const convenioParsed = normalizeOptionalText(input.convenio) ?? "Particular";
   const convenio = conveniosPermitidos.has(convenioParsed)
     ? convenioParsed
     : "Particular";
@@ -151,19 +137,19 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
         .set({
           nome,
           cpf,
-          dataNascimento: normalizeDate(input.nascimento),
+          dataNascimento: normalizeDateOnlyLoose(input.nascimento),
           convenio,
-          email: normalizeOptional(input.email),
-          nomeResponsavel: normalizeOptional(input.nomeResponsavel),
-          telefone: normalizeOptional(input.telefone),
-          telefone2: normalizeOptional(input.telefone2),
-          nomeMae: normalizeOptional(input.nomeMae),
-          nomePai: normalizeOptional(input.nomePai),
-          sexo: normalizeOptional(input.sexo),
-          dataInicio: normalizeDate(input.dataInicio),
-          foto: normalizeOptional(input.fotoAtual),
-          laudo: normalizeOptional(input.laudoAtual),
-          documento: normalizeOptional(input.documentoAtual),
+          email: normalizeOptionalText(input.email),
+          nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
+          telefone: normalizeOptionalText(input.telefone),
+          telefone2: normalizeOptionalText(input.telefone2),
+          nomeMae: normalizeOptionalText(input.nomeMae),
+          nomePai: normalizeOptionalText(input.nomePai),
+          sexo: normalizeOptionalText(input.sexo),
+          dataInicio: normalizeDateOnlyLoose(input.dataInicio),
+          foto: normalizeOptionalText(input.fotoAtual),
+          laudo: normalizeOptionalText(input.laudoAtual),
+          documento: normalizeOptionalText(input.documentoAtual),
           ativo,
           deletedAt: null,
           deletedByUserId: null,
@@ -180,19 +166,19 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
         .values({
           nome,
           cpf,
-          dataNascimento: normalizeDate(input.nascimento),
+          dataNascimento: normalizeDateOnlyLoose(input.nascimento),
           convenio,
-          email: normalizeOptional(input.email),
-          nomeResponsavel: normalizeOptional(input.nomeResponsavel),
-          telefone: normalizeOptional(input.telefone),
-          telefone2: normalizeOptional(input.telefone2),
-          nomeMae: normalizeOptional(input.nomeMae),
-          nomePai: normalizeOptional(input.nomePai),
-          sexo: normalizeOptional(input.sexo),
-          dataInicio: normalizeDate(input.dataInicio),
-          foto: normalizeOptional(input.fotoAtual),
-          laudo: normalizeOptional(input.laudoAtual),
-          documento: normalizeOptional(input.documentoAtual),
+          email: normalizeOptionalText(input.email),
+          nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
+          telefone: normalizeOptionalText(input.telefone),
+          telefone2: normalizeOptionalText(input.telefone2),
+          nomeMae: normalizeOptionalText(input.nomeMae),
+          nomePai: normalizeOptionalText(input.nomePai),
+          sexo: normalizeOptionalText(input.sexo),
+          dataInicio: normalizeDateOnlyLoose(input.dataInicio),
+          foto: normalizeOptionalText(input.fotoAtual),
+          laudo: normalizeOptionalText(input.laudoAtual),
+          documento: normalizeOptionalText(input.documentoAtual),
           ativo,
         })
         .returning({ id: pacientes.id });

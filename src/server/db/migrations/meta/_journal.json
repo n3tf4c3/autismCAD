@@ -36,6 +36,13 @@
       "when": 1772552661233,
       "tag": "0004_terapeutas_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772553400716,
+      "tag": "0005_roles_foreign_keys",
+      "breakpoints": true
     }
   ]
 }

@@ -15,14 +15,21 @@ type TimelineItem = {
 
 type TipoFiltro = "" | "documento" | "evolucao";
 
+function ymdFromLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function ymdToday(): string {
-  return new Date().toISOString().slice(0, 10);
+  return ymdFromLocalDate(new Date());
 }
 
 function ymdMinusDays(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  return ymdFromLocalDate(d);
 }
 
 function fmtDate(value?: string | null): string {
@@ -38,7 +45,7 @@ function ymdFromUnknown(value?: string | null): string | null {
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
+  return ymdFromLocalDate(d);
 }
 
 function normalizeApiError(error: unknown): string {

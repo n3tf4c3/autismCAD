@@ -9,30 +9,16 @@ import {
   TerapeutasQueryInput,
 } from "@/server/modules/terapeutas/terapeutas.schema";
 import { AppError } from "@/server/shared/errors";
-
-function normalizeCpf(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 11);
-}
+import {
+  normalizeCpf,
+  normalizeDateOnlyLoose,
+  normalizeOptionalText,
+} from "@/server/shared/normalize";
 
 function normalizeCep(value?: string | null): string | null {
   if (!value) return null;
   const digits = value.replace(/\D/g, "").slice(0, 8);
   return digits || null;
-}
-
-function normalizeOptional(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = value.trim();
-  return parsed ? parsed : null;
-}
-
-function normalizeDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = value.trim();
-  if (!parsed) return null;
-  const date = new Date(parsed);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
 }
 
 function normalizeEspecialidade(value: string): string {
@@ -43,14 +29,14 @@ function normalizeEspecialidade(value: string): string {
 
 function composeEndereco(input: SaveTerapeutaInput): string | null {
   const joined = [
-    normalizeOptional(input.logradouro),
-    normalizeOptional(input.numero),
-    normalizeOptional(input.bairro),
-    normalizeOptional(input.cidade),
+    normalizeOptionalText(input.logradouro),
+    normalizeOptionalText(input.numero),
+    normalizeOptionalText(input.bairro),
+    normalizeOptionalText(input.cidade),
   ]
     .filter(Boolean)
     .join(", ");
-  return joined || normalizeOptional(input.endereco);
+  return joined || normalizeOptionalText(input.endereco);
 }
 
 export async function listarTerapeutas(filters: TerapeutasQueryInput) {
@@ -100,14 +86,14 @@ export async function salvarTerapeuta(input: SaveTerapeutaInput, id?: number | n
   const payload = {
     nome,
     cpf,
-    dataNascimento: normalizeDate(input.nascimento),
-    email: normalizeOptional(input.email),
-    telefone: normalizeOptional(input.telefone),
+    dataNascimento: normalizeDateOnlyLoose(input.nascimento),
+    email: normalizeOptionalText(input.email),
+    telefone: normalizeOptionalText(input.telefone),
     endereco: composeEndereco(input),
-    logradouro: normalizeOptional(input.logradouro),
-    numero: normalizeOptional(input.numero),
-    bairro: normalizeOptional(input.bairro),
-    cidade: normalizeOptional(input.cidade),
+    logradouro: normalizeOptionalText(input.logradouro),
+    numero: normalizeOptionalText(input.numero),
+    bairro: normalizeOptionalText(input.bairro),
+    cidade: normalizeOptionalText(input.cidade),
     cep: normalizeCep(input.cep),
     especialidade: normalizeEspecialidade(input.especialidade),
     updatedAt: sql`now()`,

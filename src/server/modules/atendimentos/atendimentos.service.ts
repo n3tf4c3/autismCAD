@@ -19,6 +19,7 @@ import {
   turnosPermitidos,
 } from "@/server/modules/atendimentos/atendimentos.schema";
 import { AppError } from "@/server/shared/errors";
+import { normalizeDateOnlyStrict } from "@/server/shared/normalize";
 
 function normalizeTurno(value?: string | null) {
   return value && turnosPermitidos.has(value) ? value : "Matutino";
@@ -36,16 +37,16 @@ function normalizeTime(value: string): string {
   throw new AppError("Horario invalido", 400, "INVALID_TIME");
 }
 
-function normalizeDate(value: string): string {
-  const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+function normalizeDateRequired(value: string): string {
+  const normalized = normalizeDateOnlyStrict(value);
+  if (!normalized) {
     throw new AppError("Data invalida", 400, "INVALID_DATE");
   }
-  return trimmed;
+  return normalized;
 }
 
 function parseDateOnlyUtc(value: string): Date {
-  const trimmed = normalizeDate(value);
+  const trimmed = normalizeDateRequired(value);
   const dt = new Date(`${trimmed}T00:00:00.000Z`);
   if (Number.isNaN(dt.getTime())) {
     throw new AppError("Data invalida", 400, "INVALID_DATE");
@@ -135,7 +136,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
 }
 
 export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number | null) {
-  const data = normalizeDate(input.data);
+  const data = normalizeDateRequired(input.data);
   const horaInicio = normalizeTime(input.horaInicio);
   const horaFim = normalizeTime(input.horaFim);
   const turno = normalizeTurno(input.turno);
@@ -177,8 +178,8 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
         horaInicio,
         horaFim,
         turno,
-        periodoInicio: input.periodoInicio ? normalizeDate(input.periodoInicio) : null,
-        periodoFim: input.periodoFim ? normalizeDate(input.periodoFim) : null,
+        periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
+        periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
         presenca,
         realizado,
         motivo: input.motivo?.trim() || null,
@@ -198,8 +199,8 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
       horaInicio,
       horaFim,
       turno,
-      periodoInicio: input.periodoInicio ? normalizeDate(input.periodoInicio) : null,
-      periodoFim: input.periodoFim ? normalizeDate(input.periodoFim) : null,
+      periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
+      periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
       presenca,
       realizado,
       motivo: input.motivo?.trim() || null,

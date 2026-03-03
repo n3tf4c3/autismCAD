@@ -12,6 +12,8 @@ import {
 } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
+import { isUniqueViolation } from "@/server/shared/pg-errors";
+import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import {
   AtualizarEvolucaoInput,
   CriarEvolucaoInput,
@@ -21,19 +23,12 @@ import {
 } from "@/server/modules/prontuario/prontuario.schema";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 
-function isUniqueViolation(error: unknown): boolean {
-  const anyErr = error as { code?: string; message?: string };
-  if (anyErr?.code === "23505") return true; // Postgres unique violation
-  const msg = anyErr?.message ?? "";
-  return msg.includes("duplicate key value violates unique constraint");
-}
-
 function toIsoDate(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) {
+  const normalized = normalizeDateOnlyLoose(value);
+  if (!normalized) {
     throw new AppError("Data invalida", 400, "INVALID_INPUT");
   }
-  return d.toISOString().slice(0, 10);
+  return normalized;
 }
 
 async function obterTerapeutaIdDoAtendimento(pacienteId: number, atendimentoId: number): Promise<number | null> {

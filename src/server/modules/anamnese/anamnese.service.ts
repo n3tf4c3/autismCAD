@@ -4,15 +4,9 @@ import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
 import { anamnese, anamneseVersions, pacientes } from "@/server/db/schema";
 import { AppError } from "@/server/shared/errors";
+import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 type AnyRecord = Record<string, unknown>;
-
-function isUniqueViolation(error: unknown): boolean {
-  const anyErr = error as { code?: string; message?: string };
-  if (anyErr?.code === "23505") return true; // Postgres unique violation
-  const msg = anyErr?.message ?? "";
-  return msg.includes("duplicate key value violates unique constraint");
-}
 
 const ANAMNESE_FIELDS = [
   "entrevistaPor",

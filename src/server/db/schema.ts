@@ -22,7 +22,10 @@ export const users = pgTable(
     nome: varchar("nome", { length: 120 }).notNull(),
     email: varchar("email", { length: 160 }).notNull(),
     senhaHash: varchar("senha_hash", { length: 255 }).notNull(),
-    role: varchar("role", { length: 32 }).notNull().default("terapeuta"),
+    role: varchar("role", { length: 32 })
+      .notNull()
+      .default("terapeuta")
+      .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
@@ -70,7 +73,9 @@ export const permissions = pgTable(
 export const rolePermissions = pgTable(
   "role_permissions",
   {
-    role: varchar("role", { length: 32 }).notNull(),
+    role: varchar("role", { length: 32 })
+      .notNull()
+      .references(() => roles.slug, { onDelete: "cascade", onUpdate: "cascade" }),
     permissionId: bigint("permission_id", { mode: "number" })
       .notNull()
       .references(() => permissions.id, { onDelete: "cascade" }),

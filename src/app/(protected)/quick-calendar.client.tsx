@@ -120,7 +120,7 @@ export function QuickCalendarClient(props: {
   }, [ym]);
 
   const byDate = useMemo(() => buildByDate(items), [items]);
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayIso = useMemo(() => ymdLocal(new Date()), []);
 
   const monthInfo = useMemo(() => {
     const [y, m] = ym.split("-").map(Number);

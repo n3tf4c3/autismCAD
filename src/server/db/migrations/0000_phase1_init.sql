@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   nome VARCHAR(120) NOT NULL,
   email VARCHAR(160) NOT NULL,
   senha_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(32) NOT NULL DEFAULT 'terapeuta',
+  role VARCHAR(32) NOT NULL DEFAULT 'terapeuta'
+    REFERENCES roles(slug) ON UPDATE CASCADE ON DELETE RESTRICT,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -27,7 +28,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_permissions_resource_action
   ON permissions(resource, action);
 
 CREATE TABLE IF NOT EXISTS role_permissions (
-  role VARCHAR(32) NOT NULL,
+  role VARCHAR(32) NOT NULL REFERENCES roles(slug) ON UPDATE CASCADE ON DELETE CASCADE,
   permission_id BIGINT NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
   CONSTRAINT pk_role_permissions PRIMARY KEY (role, permission_id)
 );

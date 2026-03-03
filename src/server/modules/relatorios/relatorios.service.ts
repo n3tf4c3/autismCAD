@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { anamneseVersions, atendimentos, evolucoes, pacientes, terapeutas } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
+import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
+import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import type {
@@ -12,26 +14,6 @@ import type {
   ClinicoQueryInput,
   EvolutivoQueryInput,
 } from "@/server/modules/relatorios/relatorios.schema";
-
-function ymdToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function ymdMinusDays(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
-}
-
-function normalizeDate(value?: string | null): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  const d = new Date(trimmed);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
-}
 
 function calcularDuracaoMinutos(horaInicio?: string | null, horaFim?: string | null): number {
   if (!horaInicio || !horaFim) return 0;
@@ -83,8 +65,8 @@ export async function consolidateEvolutivoReport(params: {
   const pacienteId = Number(params.query.pacienteId);
   if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
 
-  const from = normalizeDate(params.query.from) ?? ymdMinusDays(29);
-  const to = normalizeDate(params.query.to) ?? ymdToday();
+  const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
+  const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
 
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
@@ -350,8 +332,8 @@ export async function consolidateAssiduidadeReport(params: {
   const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
   const userId = Number(params.user.id);
 
-  const from = normalizeDate(params.query.from) ?? ymdMinusDays(29);
-  const to = normalizeDate(params.query.to) ?? ymdToday();
+  const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
+  const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
   const terapeutaFiltro = await resolveTerapeutaFiltro({
@@ -469,8 +451,8 @@ export async function consolidateClinicoReport(params: {
   // Enforce patient access (admins ok; terapeutas must be linked)
   await assertPacienteAccess(params.user, pacienteId);
 
-  const from = normalizeDate(params.query.from) ?? ymdMinusDays(29);
-  const to = normalizeDate(params.query.to) ?? ymdToday();
+  const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
+  const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
   const terapeutaFiltro = await resolveTerapeutaFiltro({
