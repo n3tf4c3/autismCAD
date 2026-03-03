@@ -21,15 +21,35 @@ export async function runDbTransaction<T>(
   fn: (tx: typeof db) => Promise<T>,
   options?: DbTransactionOptions
 ): Promise<T> {
-  const mode = options?.mode ?? "allow-fallback";
+  const mode = options?.mode ?? "required";
   const operation = options?.operation ?? "db.transaction";
+  const requiresAtomicity = mode === "required" || env.REQUIRE_DB_TRANSACTIONS === 1;
+
+  if (env.DATABASE_DRIVER === "neon-http") {
+    if (requiresAtomicity) {
+      throw new AppError(
+        `Transacao obrigatoria indisponivel para ${operation}. Configure DATABASE_DRIVER=neon-serverless.`,
+        503,
+        "TRANSACTION_UNSUPPORTED"
+      );
+    }
+
+    if (!warnedFallbackOperations.has(operation)) {
+      warnedFallbackOperations.add(operation);
+      console.warn(
+        `[db] Fallback sem transacao para ${operation}. Configure DATABASE_DRIVER=neon-serverless e REQUIRE_DB_TRANSACTIONS=1 para atomicidade obrigatoria.`
+      );
+    }
+
+    return await fn(db);
+  }
 
   try {
     return await (db as unknown as { transaction: (cb: (tx: typeof db) => Promise<T>) => Promise<T> })
       .transaction(fn);
   } catch (error) {
     if (isNeonHttpNoTransaction(error)) {
-      if (mode === "required" || env.REQUIRE_DB_TRANSACTIONS === 1) {
+      if (requiresAtomicity) {
         throw new AppError(
           `Transacao obrigatoria indisponivel para ${operation}. Configure DATABASE_DRIVER=neon-serverless.`,
           503,

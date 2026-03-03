@@ -3,8 +3,8 @@ import { z } from "zod";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  DATABASE_DRIVER: z.enum(["neon-http", "neon-serverless"]).default("neon-http"),
-  REQUIRE_DB_TRANSACTIONS: z.coerce.number().int().min(0).max(1).default(0),
+  DATABASE_DRIVER: z.enum(["neon-http", "neon-serverless"]).default("neon-serverless"),
+  REQUIRE_DB_TRANSACTIONS: z.coerce.number().int().min(0).max(1).optional(),
   APP_TIMEZONE: z.string().min(1).default("America/Sao_Paulo"),
   NEXTAUTH_URL: z.string().url().optional(),
   AUTH_SECRET: z.string().min(32).default("dev_only_change_me_32_chars_minimum"),
@@ -30,4 +30,10 @@ if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);
 }
 
-export const env = parsed.data;
+const requireDbTransactions =
+  parsed.data.REQUIRE_DB_TRANSACTIONS ?? (parsed.data.NODE_ENV === "production" ? 1 : 0);
+
+export const env = {
+  ...parsed.data,
+  REQUIRE_DB_TRANSACTIONS: requireDbTransactions,
+};

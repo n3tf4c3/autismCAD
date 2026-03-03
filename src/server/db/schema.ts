@@ -27,8 +27,8 @@ export const users = pgTable(
       .default("terapeuta")
       .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("uk_users_email").on(table.email)]
 );
@@ -45,7 +45,7 @@ export const accessLogs = pgTable(
     userAgent: varchar("user_agent", { length: 512 }),
     browser: varchar("browser", { length: 120 }),
     status: varchar("status", { length: 16 }).notNull().default("SUCESSO"),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_access_logs_created_at").on(table.createdAt),
@@ -107,10 +107,10 @@ export const pacientes = pgTable(
     laudo: varchar("laudo", { length: 255 }),
     documento: varchar("documento", { length: 255 }),
     ativo: boolean("ativo").notNull().default(true),
-    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("uk_pacientes_cpf_ativo")
@@ -155,15 +155,15 @@ export const terapeutas = pgTable(
     cep: varchar("cep", { length: 8 }),
     especialidade: varchar("especialidade", { length: 80 }).notNull(),
     ativo: boolean("ativo").notNull().default(true),
-    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
     usuarioId: bigint("usuario_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("uk_terapeutas_cpf_ativo")
@@ -204,12 +204,12 @@ export const atendimentos = pgTable(
     resumoRepasse: text("resumo_repasse"),
     motivo: text("motivo"),
     observacoes: text("observacoes"),
-    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }),
-    createdAt: timestamp("created_at", { withTimezone: false })
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: false })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
@@ -229,8 +229,8 @@ export const anamnese = pgTable(
       .notNull()
       .references(() => pacientes.id, { onDelete: "cascade" }),
     payload: jsonb("payload").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("uk_anamnese_paciente").on(table.pacienteId)]
 );
@@ -245,7 +245,7 @@ export const anamneseVersions = pgTable(
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
     payload: jsonb("payload").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("uk_anamnese_versions_paciente_version").on(table.pacienteId, table.version),
@@ -269,8 +269,8 @@ export const prontuarioDocumentos = pgTable(
       onDelete: "set null",
     }),
     createdByRole: varchar("created_by_role", { length: 32 }),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
@@ -303,9 +303,9 @@ export const evolucoes = pgTable(
     }),
     data: date("data").notNull(),
     payload: jsonb("payload").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: false }).notNull().defaultNow(),
-    deletedAt: timestamp("deleted_at", { withTimezone: false }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),

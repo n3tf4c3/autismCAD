@@ -20,6 +20,7 @@ npm ci
 
 2. Configurar ambiente:
 - Copie `./.env.example` para `./.env.local` e ajuste os valores.
+- Para atomicidade real de transacoes, use `DATABASE_DRIVER=neon-serverless` e mantenha `REQUIRE_DB_TRANSACTIONS=1`.
 
 3. Rodar migrations:
 ```bash
@@ -48,4 +49,3 @@ npm run dev
 ## Healthchecks
 - `GET /api/health`
 - `GET /api/health/r2` (exige R2 configurado)
-

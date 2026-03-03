@@ -50,6 +50,13 @@
       "when": 1772554800000,
       "tag": "0006_terapeutas_schema_compat",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772556600000,
+      "tag": "0007_timestamptz",
+      "breakpoints": true
     }
   ]
 }
