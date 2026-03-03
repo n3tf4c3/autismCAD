@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+  --border: #e5e7eb;
   --laranja: #f7a928;
   --amarelo: #fdb827;
   --marrom: #6b4423;
@@ -20,8 +24,44 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffffff;
-    --foreground: #171717;
+    color-scheme: dark;
+    --background: #0f1218;
+    --foreground: #f3f4f6;
+    --surface: #171c24;
+    --surface-muted: #1c2330;
+    --border: #313848;
+    --laranja: #ffb94d;
+    --amarelo: #ffd27a;
+    --marrom: #e2b58a;
+    --verde: #7fcd91;
+    --cinza: #1f2937;
+    --texto: #e5e7eb;
+  }
+
+  .bg-white {
+    background-color: var(--surface) !important;
+  }
+
+  .bg-gray-50 {
+    background-color: var(--surface-muted) !important;
+  }
+
+  .border-gray-100,
+  .border-gray-200,
+  .border-gray-300 {
+    border-color: var(--border) !important;
+  }
+
+  .text-gray-600 {
+    color: #b8c1cf !important;
+  }
+
+  .text-gray-700 {
+    color: #d5d9e1 !important;
+  }
+
+  .hover\:bg-gray-50:hover {
+    background-color: #202836 !important;
   }
 }
 

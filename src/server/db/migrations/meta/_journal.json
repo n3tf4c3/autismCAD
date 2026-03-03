@@ -43,6 +43,13 @@
       "when": 1772553400716,
       "tag": "0005_roles_foreign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772554800000,
+      "tag": "0006_terapeutas_schema_compat",
+      "breakpoints": true
     }
   ]
 }

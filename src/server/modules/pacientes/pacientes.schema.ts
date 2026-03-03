@@ -34,9 +34,6 @@ export const savePacienteSchema = z.object({
   documentoAtual: z.string().trim().max(255).optional().nullable(),
   ativo: z.union([z.string(), z.number(), z.boolean()]).optional().nullable(),
   terapias: z.array(z.string().trim().min(1).max(40)).optional().default([]),
-  terapia: z
-    .union([z.string().trim().min(1).max(40), z.array(z.string().trim().min(1).max(40))])
-    .optional(),
 });
 
 export type PacientesQueryInput = z.infer<typeof pacientesQuerySchema>;

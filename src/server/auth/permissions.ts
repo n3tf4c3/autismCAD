@@ -28,12 +28,6 @@ export function canonicalRoleName(role?: string | null): string | null {
   return ROLE_CANONICALS[role.trim()] ?? null;
 }
 
-export function accessHasRole(roles: string[], role: string): boolean {
-  const target = canonicalRoleName(role);
-  if (!target) return false;
-  return roles.some((value) => canonicalRoleName(value) === target);
-}
-
 export function hasPermissionKey(
   permissions: Set<string>,
   permissionKey: string

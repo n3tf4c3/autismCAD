@@ -25,18 +25,7 @@ import {
 
 function normalizeTerapias(input: SavePacienteInput): string[] {
   const fromTerapias = Array.isArray(input.terapias) ? input.terapias : [];
-  const fromTerapia = Array.isArray(input.terapia)
-    ? input.terapia
-    : input.terapia
-      ? [input.terapia]
-      : [];
-  return Array.from(
-    new Set(
-      [...fromTerapias, ...fromTerapia]
-        .map((item) => item.trim())
-        .filter(Boolean)
-    )
-  );
+  return Array.from(new Set(fromTerapias.map((item) => item.trim()).filter(Boolean)));
 }
 
 export async function listarPacientes(filters: PacientesQueryInput) {
@@ -131,83 +120,83 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
     async (tx) => {
       let pacienteId = id ?? null;
 
-    if (pacienteId) {
-      await tx
-        .update(pacientes)
-        .set({
-          nome,
-          cpf,
-          dataNascimento: normalizeDateOnlyLoose(input.nascimento),
-          convenio,
-          email: normalizeOptionalText(input.email),
-          nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
-          telefone: normalizeOptionalText(input.telefone),
-          telefone2: normalizeOptionalText(input.telefone2),
-          nomeMae: normalizeOptionalText(input.nomeMae),
-          nomePai: normalizeOptionalText(input.nomePai),
-          sexo: normalizeOptionalText(input.sexo),
-          dataInicio: normalizeDateOnlyLoose(input.dataInicio),
-          foto: normalizeOptionalText(input.fotoAtual),
-          laudo: normalizeOptionalText(input.laudoAtual),
-          documento: normalizeOptionalText(input.documentoAtual),
-          ativo,
-          deletedAt: null,
-          deletedByUserId: null,
-          updatedAt: sql`now()`,
-        })
-        .where(eq(pacientes.id, pacienteId));
-
-      await tx
-        .delete(pacienteTerapia)
-        .where(eq(pacienteTerapia.pacienteId, pacienteId));
-    } else {
-      const [saved] = await tx
-        .insert(pacientes)
-        .values({
-          nome,
-          cpf,
-          dataNascimento: normalizeDateOnlyLoose(input.nascimento),
-          convenio,
-          email: normalizeOptionalText(input.email),
-          nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
-          telefone: normalizeOptionalText(input.telefone),
-          telefone2: normalizeOptionalText(input.telefone2),
-          nomeMae: normalizeOptionalText(input.nomeMae),
-          nomePai: normalizeOptionalText(input.nomePai),
-          sexo: normalizeOptionalText(input.sexo),
-          dataInicio: normalizeDateOnlyLoose(input.dataInicio),
-          foto: normalizeOptionalText(input.fotoAtual),
-          laudo: normalizeOptionalText(input.laudoAtual),
-          documento: normalizeOptionalText(input.documentoAtual),
-          ativo,
-        })
-        .returning({ id: pacientes.id });
-      pacienteId = saved.id;
-    }
-
-    if (terapiaNomes.length) {
-      await tx
-        .insert(terapias)
-        .values(terapiaNomes.map((nomeTerapia) => ({ nome: nomeTerapia })))
-        .onConflictDoNothing();
-
-      const terapiaRows = await tx
-        .select({ id: terapias.id })
-        .from(terapias)
-        .where(inArray(terapias.nome, terapiaNomes));
-
-      if (terapiaRows.length) {
+      if (pacienteId) {
         await tx
-          .insert(pacienteTerapia)
-          .values(
-            terapiaRows.map((item) => ({
-              pacienteId: pacienteId!,
-              terapiaId: item.id,
-            }))
-          )
-          .onConflictDoNothing();
+          .update(pacientes)
+          .set({
+            nome,
+            cpf,
+            dataNascimento: normalizeDateOnlyLoose(input.nascimento),
+            convenio,
+            email: normalizeOptionalText(input.email),
+            nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
+            telefone: normalizeOptionalText(input.telefone),
+            telefone2: normalizeOptionalText(input.telefone2),
+            nomeMae: normalizeOptionalText(input.nomeMae),
+            nomePai: normalizeOptionalText(input.nomePai),
+            sexo: normalizeOptionalText(input.sexo),
+            dataInicio: normalizeDateOnlyLoose(input.dataInicio),
+            foto: normalizeOptionalText(input.fotoAtual),
+            laudo: normalizeOptionalText(input.laudoAtual),
+            documento: normalizeOptionalText(input.documentoAtual),
+            ativo,
+            deletedAt: null,
+            deletedByUserId: null,
+            updatedAt: sql`now()`,
+          })
+          .where(eq(pacientes.id, pacienteId));
+
+        await tx
+          .delete(pacienteTerapia)
+          .where(eq(pacienteTerapia.pacienteId, pacienteId));
+      } else {
+        const [saved] = await tx
+          .insert(pacientes)
+          .values({
+            nome,
+            cpf,
+            dataNascimento: normalizeDateOnlyLoose(input.nascimento),
+            convenio,
+            email: normalizeOptionalText(input.email),
+            nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
+            telefone: normalizeOptionalText(input.telefone),
+            telefone2: normalizeOptionalText(input.telefone2),
+            nomeMae: normalizeOptionalText(input.nomeMae),
+            nomePai: normalizeOptionalText(input.nomePai),
+            sexo: normalizeOptionalText(input.sexo),
+            dataInicio: normalizeDateOnlyLoose(input.dataInicio),
+            foto: normalizeOptionalText(input.fotoAtual),
+            laudo: normalizeOptionalText(input.laudoAtual),
+            documento: normalizeOptionalText(input.documentoAtual),
+            ativo,
+          })
+          .returning({ id: pacientes.id });
+        pacienteId = saved.id;
       }
-    }
+
+      if (terapiaNomes.length) {
+        await tx
+          .insert(terapias)
+          .values(terapiaNomes.map((nomeTerapia) => ({ nome: nomeTerapia })))
+          .onConflictDoNothing();
+
+        const terapiaRows = await tx
+          .select({ id: terapias.id })
+          .from(terapias)
+          .where(inArray(terapias.nome, terapiaNomes));
+
+        if (terapiaRows.length) {
+          await tx
+            .insert(pacienteTerapia)
+            .values(
+              terapiaRows.map((item) => ({
+                pacienteId: pacienteId!,
+                terapiaId: item.id,
+              }))
+            )
+            .onConflictDoNothing();
+        }
+      }
 
       return pacienteId!;
     },

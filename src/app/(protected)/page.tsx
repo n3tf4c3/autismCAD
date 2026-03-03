@@ -1,24 +1,11 @@
 import Link from "next/link";
-import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
-import { db } from "@/db";
-import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
+import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
-
-function monthRange(ym: string) {
-  const [y, m] = ym.split("-").map(Number);
-  const year = y || new Date().getFullYear();
-  const month1 = m || new Date().getMonth() + 1; // 1..12
-  const startIso = `${year}-${String(month1).padStart(2, "0")}-01`;
-  const lastDay = new Date(year, month1, 0).getDate();
-  const endIso = `${year}-${String(month1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  return { startIso, endIso };
-}
-
 
 export default async function DashboardPage() {
   const { user } = await requirePermission("atendimentos:view");
@@ -48,62 +35,11 @@ export default async function DashboardPage() {
 
   const today = ymdNowInClinicTz();
   const ym = ymNowInClinicTz();
-  const { startIso, endIso } = monthRange(ym);
-  const todayWhere = terapeutaId
-    ? and(
-        eq(atendimentos.data, today),
-        isNull(atendimentos.deletedAt),
-        eq(atendimentos.terapeutaId, terapeutaId)
-      )
-    : and(eq(atendimentos.data, today), isNull(atendimentos.deletedAt));
-  const monthWhere = terapeutaId
-    ? and(
-        isNull(atendimentos.deletedAt),
-        gte(atendimentos.data, startIso),
-        lte(atendimentos.data, endIso),
-        eq(atendimentos.terapeutaId, terapeutaId)
-      )
-    : and(
-        isNull(atendimentos.deletedAt),
-        gte(atendimentos.data, startIso),
-        lte(atendimentos.data, endIso)
-      );
-
-  const [pendentes, monthAtendimentos] = await Promise.all([
-    db
-      .select({
-        id: atendimentos.id,
-        data: atendimentos.data,
-        hora_inicio: atendimentos.horaInicio,
-        hora_fim: atendimentos.horaFim,
-        pacienteNome: pacientes.nome,
-        terapeutaNome: terapeutas.nome,
-        realizado: atendimentos.realizado,
-        presenca: atendimentos.presenca,
-      })
-      .from(atendimentos)
-      .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
-      .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
-      .where(todayWhere)
-      .orderBy(asc(atendimentos.horaInicio), asc(atendimentos.id))
-      .limit(60),
-    db
-      .select({
-        id: atendimentos.id,
-        data: atendimentos.data,
-        hora_inicio: atendimentos.horaInicio,
-        hora_fim: atendimentos.horaFim,
-        pacienteNome: pacientes.nome,
-        terapeutaNome: terapeutas.nome,
-        realizado: atendimentos.realizado,
-        presenca: atendimentos.presenca,
-      })
-      .from(atendimentos)
-      .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
-      .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
-      .where(monthWhere)
-      .orderBy(asc(atendimentos.data), asc(atendimentos.horaInicio), asc(atendimentos.id)),
-  ]);
+  const { pendentes, monthAtendimentos } = await loadDashboardAgenda({
+    terapeutaId,
+    today,
+    ym,
+  });
 
   const pendentesAll = pendentes.filter((a) => {
     const cancelado = String(a.presenca ?? "").toLowerCase() === "ausente";
