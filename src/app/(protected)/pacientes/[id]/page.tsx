@@ -154,8 +154,8 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
-        <div className="bg-gradient-to-r from-[#fff3dc] via-[#f2f8ff] to-[#e9fbf6] px-6 py-6">
+      <section className="paciente-hero-card overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="paciente-hero-surface bg-gradient-to-r from-[#fff3dc] via-[#f2f8ff] to-[#e9fbf6] px-6 py-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-sm text-gray-500">Paciente</p>

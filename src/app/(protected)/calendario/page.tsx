@@ -579,7 +579,7 @@ export default function CalendarioPage() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-[#f4e0bc] bg-[#fff8ec] p-4 shadow-sm">
+        <section className="calendar-reserva-card rounded-xl border border-[#f4e0bc] bg-[#fff8ec] p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-[var(--marrom)]">Reservar horario</h2>
           <div className="mt-3 space-y-2 text-sm">
             <label className="block text-gray-700">

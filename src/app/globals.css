@@ -63,6 +63,74 @@
   .hover\:bg-gray-50:hover {
     background-color: #202836 !important;
   }
+
+  .calendar-reserva-card {
+    background-color: #1a2230 !important;
+    border-color: #384255 !important;
+  }
+
+  .calendar-reserva-card input:not([type="checkbox"]),
+  .calendar-reserva-card select,
+  .calendar-reserva-card textarea {
+    background-color: #0f1726 !important;
+    color: #e8edf6 !important;
+    border-color: #46506a !important;
+  }
+
+  .calendar-reserva-card .bg-white {
+    background-color: #0f1726 !important;
+  }
+
+  .calendar-reserva-card input::placeholder,
+  .calendar-reserva-card textarea::placeholder {
+    color: #9eabc2 !important;
+    opacity: 1;
+  }
+
+  .calendar-reserva-card option {
+    background-color: #0f1726;
+    color: #e8edf6;
+  }
+
+  .calendar-reserva-card .text-amber-700 {
+    color: #f1c677 !important;
+  }
+
+  .calendar-reserva-card input[type="date"]::-webkit-calendar-picker-indicator,
+  .calendar-reserva-card input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.9);
+    opacity: 0.9;
+  }
+
+  .paciente-hero-card {
+    background-color: #182131 !important;
+    border: 1px solid #374255;
+  }
+
+  .paciente-hero-card .paciente-hero-surface {
+    background-image: linear-gradient(to right, #1d2636, #1b2939, #192e33) !important;
+  }
+
+  .paciente-hero-card .text-gray-500 {
+    color: #99a7bd !important;
+  }
+
+  .paciente-hero-card .text-gray-600 {
+    color: #b6c2d4 !important;
+  }
+
+  .paciente-hero-card .border-gray-100,
+  .paciente-hero-card .border-gray-200 {
+    border-color: #3f4a61 !important;
+  }
+
+  .paciente-hero-card .bg-white {
+    background-color: #0f1726 !important;
+  }
+
+  .paciente-hero-card .text-gray-700 {
+    color: #dce3f0 !important;
+  }
 }
 
 body {
