@@ -9,6 +9,7 @@ function roleLabel(role?: string | null): string {
   if (key === "ADMIN" || key === "ADMIN_GERAL") return "Administrador";
   if (key === "TERAPEUTA") return "Terapeuta";
   if (key === "RECEPCAO") return "Recepção";
+  if (key === "RESPONSAVEL") return "Responsavel";
   return role ? String(role) : "Usuário";
 }
 
@@ -75,3 +76,4 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
     </header>
   );
 }
+

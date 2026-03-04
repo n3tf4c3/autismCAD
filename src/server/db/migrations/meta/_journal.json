@@ -57,6 +57,13 @@
       "when": 1772556600000,
       "tag": "0007_timestamptz",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772800000000,
+      "tag": "0008_responsavel_vinculo_paciente",
+      "breakpoints": true
     }
   ]
 }

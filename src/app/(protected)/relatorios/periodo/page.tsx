@@ -1,12 +1,24 @@
 import Link from "next/link";
+import { getAuthSession } from "@/server/auth/session";
+import { canonicalRoleName } from "@/server/auth/permissions";
+import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { RelatorioPeriodoClient } from "@/app/(protected)/relatorios/periodo/periodo.client";
 
 export default async function RelatorioPeriodoPage(props: {
   searchParams: Promise<{ pacienteId?: string }>;
 }) {
+  const session = await getAuthSession();
+  const roleCanon = canonicalRoleName(session?.user?.role ?? null) ?? session?.user?.role ?? null;
+  const isResponsavel = roleCanon === "RESPONSAVEL";
+
   const { pacienteId } = await props.searchParams;
   const parsed = pacienteId ? Number(pacienteId) : null;
-  const initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
+  let initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
+
+  if (isResponsavel && session?.user?.id) {
+    const vinculo = await getPacienteVinculadoByUserId(Number(session.user.id));
+    initialPacienteId = vinculo?.id ?? null;
+  }
 
   return (
     <div className="space-y-4">
@@ -22,7 +34,7 @@ export default async function RelatorioPeriodoPage(props: {
         </div>
       </section>
 
-      <RelatorioPeriodoClient initialPacienteId={initialPacienteId} />
+      <RelatorioPeriodoClient initialPacienteId={initialPacienteId} canChoosePaciente={!isResponsavel} />
     </div>
   );
 }

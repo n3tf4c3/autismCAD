@@ -7,6 +7,7 @@ import {
   obterTerapeutaPorUsuario,
   terapeutaAtendePaciente,
 } from "@/server/modules/terapeutas/terapeutas.service";
+import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
 export type SessionUserLike = {
   id: number | string;
@@ -31,20 +32,34 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
   if (isAdmin) return { userId, access, terapeutaId: null as number | null };
 
   const isTerapeuta = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "TERAPEUTA");
-  if (!isTerapeuta) {
+  if (isTerapeuta) {
+    const terapeuta = await obterTerapeutaPorUsuario(userId);
+    if (!terapeuta) {
+      throw new AppError("Terapeuta sem vinculo", 403, "FORBIDDEN");
+    }
+
+    const vinculado = await terapeutaAtendePaciente(pacienteId, terapeuta.id);
+    if (!vinculado) {
+      throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
+    }
+
+    return { userId, access, terapeutaId: terapeuta.id };
+  }
+
+  const isResponsavel = access.roles.some(
+    (role) => (canonicalRoleName(role) ?? role) === "RESPONSAVEL"
+  );
+  if (!isResponsavel) {
     throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
-  const terapeuta = await obterTerapeutaPorUsuario(userId);
-  if (!terapeuta) {
-    throw new AppError("Terapeuta sem vinculo", 403, "FORBIDDEN");
+  const pacienteVinculado = await getPacienteVinculadoByUserId(userId);
+  if (!pacienteVinculado) {
+    throw new AppError("Responsavel sem paciente vinculado", 403, "FORBIDDEN");
   }
-
-  const vinculado = await terapeutaAtendePaciente(pacienteId, terapeuta.id);
-  if (!vinculado) {
+  if (Number(pacienteVinculado.id) !== Number(pacienteId)) {
     throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
   }
 
-  return { userId, access, terapeutaId: terapeuta.id };
+  return { userId, access, terapeutaId: null as number | null };
 }
-

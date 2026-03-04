@@ -69,94 +69,110 @@ function SidebarBgArt(props?: { className?: string }) {
     </svg>
   );
 }
+
 export function SidebarClient(props: { userRole?: string | null }) {
   const pathname = usePathname();
   const shell = useShell();
   const roleCanon = canonicalRoleName(props.userRole) ?? props.userRole ?? null;
   const isAdminGeral = roleCanon === "ADMIN_GERAL";
+  const isResponsavel = roleCanon === "RESPONSAVEL";
 
-  const items: NavItem[] = [
-    {
-      key: "dashboard",
-      label: "Dashboard",
-      icon: "🏠",
-      href: "/",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/", p),
+  const logoutItem: NavItem = {
+    key: "logout",
+    label: "Sair",
+    icon: "🚪",
+    kind: "action",
+    onClick: () => {
+      shell.closeSidebar();
+      void signOut({ callbackUrl: "/login" });
     },
-    {
-      key: "calendario",
-      label: "Agenda",
-      icon: "📅",
-      href: "/calendario",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/calendario", p),
-    },
-    {
-      key: "pacientes",
-      label: "Pacientes",
-      icon: "👥",
-      href: "/pacientes",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/pacientes", p),
-    },
-    {
-      key: "terapeutas",
-      label: "Terapeutas",
-      icon: "🧑‍⚕️",
-      href: "/terapeutas",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/terapeutas", p),
-    },
-    {
-      key: "consultas",
-      label: "Consultas",
-      icon: "🔎",
-      href: "/consultas",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/consultas", p),
-    },
-    
-    {
-      key: "relatorios",
-      label: "Resultados",
-      icon: "📊",
-      href: "/relatorios",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/relatorios", p),
-    },
-    { key: "sep1", label: "-", icon: "", kind: "separator" },
-    {
-      key: "configuracoes",
-      label: "Controle",
-      icon: "⚙",
-      href: "/configuracoes",
-      kind: "link",
-      activeWhen: (p) => isActivePrefix("/configuracoes", p),
-    },
-    ...(isAdminGeral
-      ? [
-          {
-            key: "logs-acesso",
-            label: "Log de acessos",
-            icon: "LG",
-            href: "/logs-acesso",
-            kind: "link",
-            activeWhen: (p: string) => isActivePrefix("/logs-acesso", p),
-          } satisfies NavItem,
-        ]
-      : []),
-    {
-      key: "logout",
-      label: "Sair",
-      icon: "🚪",
-      kind: "action",
-      onClick: () => {
-        shell.closeSidebar();
-        void signOut({ callbackUrl: "/login" });
-      },
-    },
-  ];
+  };
+
+  const items: NavItem[] = isResponsavel
+    ? [
+        {
+          key: "relatorios",
+          label: "Acompanhamento",
+          icon: "📊",
+          href: "/relatorios",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/relatorios", p),
+        },
+        { key: "sep1", label: "-", icon: "", kind: "separator" },
+        logoutItem,
+      ]
+    : [
+        {
+          key: "dashboard",
+          label: "Dashboard",
+          icon: "🏠",
+          href: "/",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/", p),
+        },
+        {
+          key: "calendario",
+          label: "Agenda",
+          icon: "📅",
+          href: "/calendario",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/calendario", p),
+        },
+        {
+          key: "pacientes",
+          label: "Pacientes",
+          icon: "👥",
+          href: "/pacientes",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/pacientes", p),
+        },
+        {
+          key: "terapeutas",
+          label: "Terapeutas",
+          icon: "🧑‍⚕️",
+          href: "/terapeutas",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/terapeutas", p),
+        },
+        {
+          key: "consultas",
+          label: "Consultas",
+          icon: "🔎",
+          href: "/consultas",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/consultas", p),
+        },
+        {
+          key: "relatorios",
+          label: "Resultados",
+          icon: "📊",
+          href: "/relatorios",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/relatorios", p),
+        },
+        { key: "sep1", label: "-", icon: "", kind: "separator" },
+        {
+          key: "configuracoes",
+          label: "Controle",
+          icon: "⚙",
+          href: "/configuracoes",
+          kind: "link",
+          activeWhen: (p) => isActivePrefix("/configuracoes", p),
+        },
+        ...(isAdminGeral
+          ? [
+              {
+                key: "logs-acesso",
+                label: "Log de acessos",
+                icon: "LG",
+                href: "/logs-acesso",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/logs-acesso", p),
+              } satisfies NavItem,
+            ]
+          : []),
+        logoutItem,
+      ];
 
   function renderItem(item: NavItem) {
     if (item.kind === "separator") {
@@ -165,7 +181,6 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
     const active = item.activeWhen ? item.activeWhen(pathname) : false;
     const base =
-      // `w-full` keeps hover/active backgrounds consistent across <Link> and <button> items.
       "sidebar-link flex w-full items-center gap-3 rounded-md px-3 py-2 text-base font-semibold transition";
     const cls = joinClass(
       base,
@@ -209,7 +224,6 @@ export function SidebarClient(props: { userRole?: string | null }) {
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white md:flex">
         <SidebarBgArt />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.14),transparent_42%)]" />
@@ -233,7 +247,6 @@ export function SidebarClient(props: { userRole?: string | null }) {
         </div>
       </aside>
 
-      {/* Mobile drawer */}
       <div className="md:hidden">
         <div
           className={[
@@ -283,7 +296,6 @@ export function SidebarClient(props: { userRole?: string | null }) {
           </div>
         </aside>
       </div>
-
     </>
   );
 }

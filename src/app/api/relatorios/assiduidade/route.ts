@@ -20,7 +20,7 @@ function parseQuery(url: string) {
 }
 
 export const GET = withErrorHandlingNoContext(async (request: Request) => {
-  const { user } = await requirePermission("relatorios_clinicos:view");
+  const { user } = await requirePermission("relatorios_admin:view");
   const query = parseQuery(request.url);
   const data = await consolidateAssiduidadeReport({ query, user });
   return Response.json(data);

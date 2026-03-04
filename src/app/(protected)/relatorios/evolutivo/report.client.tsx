@@ -67,6 +67,8 @@ function normalizeApiError(error: unknown): string {
 export function EvolutivoReportClient(props: {
   initialPacienteId?: number | null;
   canChooseTerapeuta: boolean;
+  canChoosePaciente: boolean;
+  canExportPdf: boolean;
 }) {
   const [pacienteId, setPacienteId] = useState<string>(props.initialPacienteId ? String(props.initialPacienteId) : "");
   const [from, setFrom] = useState<string>(ymdMinusDays(29));
@@ -170,8 +172,9 @@ export function EvolutivoReportClient(props: {
               value={pacienteId}
               onChange={(e) => setPacienteId(e.target.value)}
               inputMode="numeric"
+              disabled={!props.canChoosePaciente}
               className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              placeholder="Ex: 12"
+              placeholder={props.canChoosePaciente ? "Ex: 12" : "Paciente vinculado"}
             />
           </label>
           <label className="flex flex-col gap-2">
@@ -213,16 +216,18 @@ export function EvolutivoReportClient(props: {
           )}
         </div>
 
-        <div className="mt-4 flex gap-3">
-          <button
-            type="button"
-            onClick={() => void exportPdf()}
-            className="rounded-lg border border-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:opacity-60"
-            disabled={loading || !pacienteId}
-          >
-            Exportar PDF
-          </button>
-        </div>
+        {props.canExportPdf ? (
+          <div className="mt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() => void exportPdf()}
+              className="rounded-lg border border-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:opacity-60"
+              disabled={loading || !pacienteId}
+            >
+              Exportar PDF
+            </button>
+          </div>
+        ) : null}
 
         {msg ? <p className="mt-3 text-sm text-red-600">{msg}</p> : null}
         {loading ? <p className="mt-3 text-sm text-gray-600">Gerando...</p> : null}

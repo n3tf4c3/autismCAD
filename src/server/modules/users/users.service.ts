@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   inArray,
+  isNull,
   isNotNull,
   ne,
   sql,
@@ -12,9 +13,11 @@ import {
 import { db } from "@/db";
 import { hashPassword } from "@/server/auth/password";
 import {
+  pacientes,
   permissions,
   rolePermissions,
   roles,
+  userPacienteVinculos,
   users,
 } from "@/server/db/schema";
 import {
@@ -23,7 +26,26 @@ import {
   UpdateUserInput,
 } from "@/server/modules/users/users.schema";
 import { runDbTransaction } from "@/server/db/transaction";
+import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
+
+function isResponsavelRole(roleName: string): boolean {
+  return (canonicalRoleName(roleName) ?? roleName) === "RESPONSAVEL";
+}
+
+async function assertPacienteVinculoValido(pacienteId: number) {
+  if (!Number.isFinite(pacienteId) || pacienteId <= 0) {
+    throw new AppError("Paciente vinculado invalido", 400, "INVALID_INPUT");
+  }
+  const [row] = await db
+    .select({ id: pacientes.id })
+    .from(pacientes)
+    .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
+    .limit(1);
+  if (!row) {
+    throw new AppError("Paciente vinculado nao encontrado", 404, "NOT_FOUND");
+  }
+}
 
 export async function listUsers() {
   return db
@@ -33,8 +55,15 @@ export async function listUsers() {
       email: users.email,
       role: users.role,
       created_at: users.createdAt,
+      pacienteIdVinculado: userPacienteVinculos.pacienteId,
+      pacienteNomeVinculado: pacientes.nome,
     })
     .from(users)
+    .leftJoin(userPacienteVinculos, eq(userPacienteVinculos.userId, users.id))
+    .leftJoin(
+      pacientes,
+      and(eq(pacientes.id, userPacienteVinculos.pacienteId), isNull(pacientes.deletedAt))
+    )
     .orderBy(desc(users.createdAt), asc(users.nome));
 }
 
@@ -49,22 +78,66 @@ export async function createUser(input: CreateUserInput) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
   }
 
+  const pacienteIdVinculado =
+    input.pacienteIdVinculado == null ? null : Number(input.pacienteIdVinculado);
+  if (isResponsavelRole(roleName)) {
+    if (!pacienteIdVinculado) {
+      throw new AppError(
+        "Perfil responsavel exige paciente vinculado",
+        400,
+        "INVALID_INPUT"
+      );
+    }
+    await assertPacienteVinculoValido(pacienteIdVinculado);
+  }
+
   const senhaHash = await hashPassword(input.senha);
   try {
-    const [saved] = await db
-      .insert(users)
-      .values({
-        nome: input.nome.trim(),
-        email: input.email.trim(),
-        senhaHash,
-        role: roleName,
-        ativo: true,
-      })
-      .returning({
-        id: users.id,
-        email: users.email,
-        role: users.role,
-      });
+    let saved:
+      | {
+          id: number;
+          email: string;
+          role: string;
+        }
+      | undefined;
+    await runDbTransaction(
+      async (tx) => {
+        [saved] = await tx
+          .insert(users)
+          .values({
+            nome: input.nome.trim(),
+            email: input.email.trim(),
+            senhaHash,
+            role: roleName,
+            ativo: true,
+          })
+          .returning({
+            id: users.id,
+            email: users.email,
+            role: users.role,
+          });
+        if (!saved) return;
+        if (isResponsavelRole(roleName) && pacienteIdVinculado) {
+          await tx
+            .insert(userPacienteVinculos)
+            .values({
+              userId: saved.id,
+              pacienteId: pacienteIdVinculado,
+            })
+            .onConflictDoUpdate({
+              target: userPacienteVinculos.userId,
+              set: {
+                pacienteId: pacienteIdVinculado,
+                updatedAt: sql`now()`,
+              },
+            });
+        }
+      },
+      { operation: "users.createUser", mode: "required" }
+    );
+    if (!saved) {
+      throw new AppError("Falha ao criar usuario", 500, "INTERNAL_ERROR");
+    }
 
     return saved;
   } catch (error) {
@@ -87,6 +160,19 @@ export async function updateUser(id: number, input: UpdateUserInput) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
   }
 
+  const pacienteIdVinculado =
+    input.pacienteIdVinculado == null ? null : Number(input.pacienteIdVinculado);
+  if (isResponsavelRole(roleName)) {
+    if (!pacienteIdVinculado) {
+      throw new AppError(
+        "Perfil responsavel exige paciente vinculado",
+        400,
+        "INVALID_INPUT"
+      );
+    }
+    await assertPacienteVinculoValido(pacienteIdVinculado);
+  }
+
   const senha = input.senha?.trim();
   const setData = {
     nome: input.nome.trim(),
@@ -96,13 +182,43 @@ export async function updateUser(id: number, input: UpdateUserInput) {
     ...(senha ? { senhaHash: await hashPassword(senha) } : {}),
   };
 
-  await db.update(users).set(setData).where(eq(users.id, id));
+  await runDbTransaction(
+    async (tx) => {
+      const [updated] = await tx
+        .update(users)
+        .set(setData)
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+      if (!updated) {
+        throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+      }
+      if (isResponsavelRole(roleName) && pacienteIdVinculado) {
+        await tx
+          .insert(userPacienteVinculos)
+          .values({
+            userId: id,
+            pacienteId: pacienteIdVinculado,
+          })
+          .onConflictDoUpdate({
+            target: userPacienteVinculos.userId,
+            set: {
+              pacienteId: pacienteIdVinculado,
+              updatedAt: sql`now()`,
+            },
+          });
+      } else {
+        await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
+      }
+    },
+    { operation: "users.updateUser", mode: "required" }
+  );
 
   return {
     ok: true,
     id,
     email: input.email.trim(),
     role: roleName,
+    pacienteIdVinculado: isResponsavelRole(roleName) ? pacienteIdVinculado : null,
   };
 }
 
@@ -110,20 +226,36 @@ export async function deleteUser(id: number, requesterUserId: number) {
   if (id === requesterUserId) {
     throw new AppError("Nao e possivel excluir o proprio usuario", 400, "SELF_DELETE");
   }
-  const [updated] = await db
-    .update(users)
-    .set({
-      ativo: false,
-      updatedAt: sql`now()`,
-    })
-    .where(eq(users.id, id))
-    .returning({ id: users.id });
+  try {
+    let deletedId: number | null = null;
+    await runDbTransaction(
+      async (tx) => {
+        // Defensive cleanup for environments where the FK cascade might be absent.
+        await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
 
-  if (!updated) {
-    throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+        const [deleted] = await tx
+          .delete(users)
+          .where(eq(users.id, id))
+          .returning({ id: users.id });
+        if (!deleted) {
+          throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+        }
+        deletedId = deleted.id;
+      },
+      { operation: "users.deleteUser", mode: "required" }
+    );
+    return { ok: true, id: Number(deletedId) };
+  } catch (error) {
+    const err = error as { code?: string };
+    if (err?.code === "23503") {
+      throw new AppError(
+        "Usuario possui vinculacoes e nao pode ser excluido",
+        409,
+        "CONFLICT"
+      );
+    }
+    throw error;
   }
-
-  return { ok: true, id: updated.id };
 }
 
 export async function listPermissions() {

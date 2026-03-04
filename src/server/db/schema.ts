@@ -138,6 +138,21 @@ export const pacienteTerapia = pgTable(
   (table) => [primaryKey({ columns: [table.pacienteId, table.terapiaId], name: "pk_paciente_terapia" })]
 );
 
+export const userPacienteVinculos = pgTable(
+  "user_paciente_vinculos",
+  {
+    userId: bigint("user_id", { mode: "number" })
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    pacienteId: bigint("paciente_id", { mode: "number" })
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_user_paciente_vinculos_paciente").on(table.pacienteId)]
+);
+
 export const terapeutas = pgTable(
   "terapeutas",
   {

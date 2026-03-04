@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type RoleRow = { nome: string };
 type PermissionRow = { id: number; resource: string; action: string };
@@ -14,7 +14,14 @@ type UserRow = {
   nome: string | null;
   email: string;
   role: string | null;
+  pacienteIdVinculado?: number | null;
+  pacienteNomeVinculado?: string | null;
   created_at?: string | null;
+};
+
+type PacienteOption = {
+  id: number;
+  nome: string | null;
 };
 
 type Tone = "neutral" | "success" | "error";
@@ -29,7 +36,7 @@ const ACTION_LABEL: Record<(typeof ACTIONS)[number], string> = {
   finalize: "Finalizar",
 };
 
-const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "terapeuta"] as const;
+const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "terapeuta", "responsavel"] as const;
 type AllowedRole = (typeof ALLOWED_ROLES)[number];
 
 function classForTone(tone: Tone): string {
@@ -113,6 +120,10 @@ export function ConfiguracoesPermissoesClient() {
   const [savingPerms, setSavingPerms] = useState(false);
 
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [pacientes, setPacientes] = useState<PacienteOption[]>([]);
+  const [pacientesLoaded, setPacientesLoaded] = useState(false);
+  const [pacientesLoading, setPacientesLoading] = useState(false);
+  const [pacientesError, setPacientesError] = useState("");
   const [userListMsg, setUserListMsg] = useState<string>("");
   const [userListTone, setUserListTone] = useState<Tone>("neutral");
 
@@ -120,14 +131,17 @@ export function ConfiguracoesPermissoesClient() {
   const [createEmail, setCreateEmail] = useState("");
   const [createSenha, setCreateSenha] = useState("");
   const [createRole, setCreateRole] = useState<AllowedRole | "">("");
+  const [createPacienteId, setCreatePacienteId] = useState("");
   const [createMsg, setCreateMsg] = useState<string>("");
   const [createTone, setCreateTone] = useState<Tone>("neutral");
   const [creatingUser, setCreatingUser] = useState(false);
 
   const [editRoleByUserId, setEditRoleByUserId] = useState<Record<number, string>>({});
+  const [editPacienteIdByUserId, setEditPacienteIdByUserId] = useState<Record<number, string>>({});
   const [editPassByUserId, setEditPassByUserId] = useState<Record<number, string>>({});
   const [savingUserId, setSavingUserId] = useState<number | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+  const pacientesLoadRequestedRef = useRef(false);
 
   const grouped = useMemo(() => groupPermissions(permissions), [permissions]);
   const resources = useMemo(() => Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b)), [grouped]);
@@ -143,6 +157,24 @@ export function ConfiguracoesPermissoesClient() {
       setUsers([]);
       setUserListMsg(normalizeApiError(err));
       setUserListTone("error");
+    }
+  }
+
+  async function ensurePacientesLoaded() {
+    if (pacientesLoaded || pacientesLoading || pacientesLoadRequestedRef.current) return;
+    pacientesLoadRequestedRef.current = true;
+    setPacientesLoading(true);
+    setPacientesError("");
+    try {
+      const data = await apiGet<PacienteOption[]>("/api/pacientes");
+      setPacientes(Array.isArray(data) ? data : []);
+      setPacientesLoaded(true);
+    } catch (err) {
+      setPacientes([]);
+      setPacientesError(normalizeApiError(err));
+    } finally {
+      setPacientesLoading(false);
+      pacientesLoadRequestedRef.current = false;
     }
   }
 
@@ -200,11 +232,14 @@ export function ConfiguracoesPermissoesClient() {
 
   useEffect(() => {
     // Pre-fill edit role selects with current roles (so the table is usable immediately).
-    const next: Record<number, string> = {};
+    const nextRole: Record<number, string> = {};
+    const nextPaciente: Record<number, string> = {};
     users.forEach((u) => {
-      next[u.id] = String(u.role || "");
+      nextRole[u.id] = String(u.role || "");
+      nextPaciente[u.id] = u.pacienteIdVinculado ? String(u.pacienteIdVinculado) : "";
     });
-    setEditRoleByUserId(next);
+    setEditRoleByUserId(nextRole);
+    setEditPacienteIdByUserId(nextPaciente);
     setEditPassByUserId({});
   }, [users]);
 
@@ -250,7 +285,14 @@ export function ConfiguracoesPermissoesClient() {
       return;
     }
     if (!isAllowedRole(role)) {
-      setCreateMsg("Papel invalido. Use admin, recepcao ou terapeuta.");
+      setCreateMsg("Papel invalido. Use admin, recepcao, terapeuta ou responsavel.");
+      setCreateTone("error");
+      return;
+    }
+    const pacienteIdRaw = createPacienteId.trim();
+    const pacienteIdVinculado = pacienteIdRaw ? Number(pacienteIdRaw) : null;
+    if (role === "responsavel" && !pacienteIdVinculado) {
+      setCreateMsg("Para responsavel, selecione o paciente vinculado.");
       setCreateTone("error");
       return;
     }
@@ -259,13 +301,14 @@ export function ConfiguracoesPermissoesClient() {
     setCreateMsg("Criando usuario...");
     setCreateTone("neutral");
     try {
-      await apiPost("/api/users", { nome, email, senha, role });
+      await apiPost("/api/users", { nome, email, senha, role, pacienteIdVinculado });
       setCreateMsg("Usuario criado/atualizado com sucesso.");
       setCreateTone("success");
       setCreateNome("");
       setCreateEmail("");
       setCreateSenha("");
       setCreateRole("");
+      setCreatePacienteId("");
       await refreshUsers();
     } catch (err) {
       setCreateMsg(normalizeApiError(err));
@@ -281,6 +324,8 @@ export function ConfiguracoesPermissoesClient() {
     const nome = String(user.nome || "").trim();
     const email = String(user.email || "").trim();
     const role = String(editRoleByUserId[userId] || "").trim();
+    const pacienteIdRaw = String(editPacienteIdByUserId[userId] || "").trim();
+    const pacienteIdVinculado = pacienteIdRaw ? Number(pacienteIdRaw) : null;
     const senha = String(editPassByUserId[userId] || "");
     if (!nome || !email || !role) {
       setUserListMsg("Nome, email e papel sao obrigatorios.");
@@ -292,12 +337,23 @@ export function ConfiguracoesPermissoesClient() {
       setUserListTone("error");
       return;
     }
+    if (role === "responsavel" && !pacienteIdVinculado) {
+      setUserListMsg("Usuario responsavel precisa de paciente vinculado.");
+      setUserListTone("error");
+      return;
+    }
 
     setSavingUserId(userId);
     setUserListMsg("Salvando usuario...");
     setUserListTone("neutral");
     try {
-      await apiPut(`/api/users/${userId}`, { nome, email, role, senha: senha.trim() ? senha : undefined });
+      await apiPut(`/api/users/${userId}`, {
+        nome,
+        email,
+        role,
+        senha: senha.trim() ? senha : undefined,
+        pacienteIdVinculado,
+      });
       setUserListMsg("Usuario atualizado.");
       setUserListTone("success");
       await refreshUsers();
@@ -340,6 +396,12 @@ export function ConfiguracoesPermissoesClient() {
     return unique.length ? unique : fallback;
   }, [roles]);
 
+  const pacientesById = useMemo(() => {
+    const map = new Map<string, PacienteOption>();
+    pacientes.forEach((p) => map.set(String(p.id), p));
+    return map;
+  }, [pacientes]);
+
   return (
     <main className="space-y-6">
       <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -348,12 +410,12 @@ export function ConfiguracoesPermissoesClient() {
             <p className="text-sm text-gray-500">Gestao de acesso</p>
             <h2 className="text-xl font-semibold text-[var(--marrom)]">Cadastrar novo usuario</h2>
             <p className="text-sm text-slate-600">
-              Crie usuarios com papel admin, recepcao ou terapeuta.
+              Crie usuarios com papel admin, recepcao, terapeuta ou responsavel.
             </p>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1">
             <span className="font-semibold text-[var(--marrom)]">Nome completo</span>
             <input
@@ -403,6 +465,37 @@ export function ConfiguracoesPermissoesClient() {
             </select>
           </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold text-[var(--marrom)]">Paciente vinculado</span>
+            <select
+              value={createPacienteId}
+              onChange={(e) => setCreatePacienteId(e.target.value)}
+              onFocus={() => void ensurePacientesLoaded()}
+              disabled={createRole !== "responsavel"}
+              className="rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--laranja)]/40 disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <option value="">
+                {createRole !== "responsavel"
+                  ? "Somente responsavel"
+                  : pacientesLoading
+                    ? "Carregando pacientes..."
+                    : !pacientesLoaded
+                      ? "Clique para carregar pacientes"
+                      : pacientes.length
+                        ? "Selecione..."
+                        : "Nenhum paciente disponivel"}
+              </option>
+              {pacientes.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {(p.nome || "Sem nome").trim()} (#{p.id})
+                </option>
+              ))}
+            </select>
+            {createRole === "responsavel" && pacientesError ? (
+              <span className="text-xs text-red-600">{pacientesError}</span>
+            ) : null}
+          </label>
+
           <div className="flex items-center justify-between gap-3 lg:col-span-4">
             <p className={["text-sm", classForTone(createTone)].join(" ")}>{createMsg}</p>
             <button
@@ -428,12 +521,13 @@ export function ConfiguracoesPermissoesClient() {
         </div>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-[900px] w-full text-sm">
+          <table className="min-w-[1040px] w-full text-sm">
             <thead>
               <tr className="border-b text-left text-slate-600">
                 <th className="px-2 py-2">Nome</th>
                 <th className="px-2 py-2">E-mail</th>
                 <th className="px-2 py-2">Papel</th>
+                <th className="px-2 py-2">Paciente vinculado</th>
                 <th className="px-2 py-2">Nova senha (opcional)</th>
                 <th className="px-2 py-2 text-center">Acoes</th>
               </tr>
@@ -461,6 +555,51 @@ export function ConfiguracoesPermissoesClient() {
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        {(() => {
+                          const selectedPacienteId = editPacienteIdByUserId[u.id] ?? "";
+                          const isResponsavel = String(editRoleByUserId[u.id] || "") === "responsavel";
+                          const selectedMissing =
+                            selectedPacienteId && !pacientesById.has(selectedPacienteId);
+                          return (
+                            <select
+                              value={selectedPacienteId}
+                              onChange={(e) =>
+                                setEditPacienteIdByUserId((prev) => ({
+                                  ...prev,
+                                  [u.id]: e.target.value,
+                                }))
+                              }
+                              onFocus={() => void ensurePacientesLoaded()}
+                              disabled={!isResponsavel}
+                              className="w-full rounded-lg border border-gray-200 px-2 py-1 disabled:bg-gray-100 disabled:text-gray-400"
+                            >
+                              <option value="">
+                                {!isResponsavel
+                                  ? "Nao se aplica"
+                                  : pacientesLoading
+                                    ? "Carregando pacientes..."
+                                    : !pacientesLoaded
+                                      ? "Clique para carregar pacientes"
+                                      : pacientes.length
+                                        ? "Selecione..."
+                                        : "Nenhum paciente disponivel"}
+                              </option>
+                              {selectedMissing ? (
+                                <option value={selectedPacienteId}>
+                                  {(u.pacienteNomeVinculado || "Paciente indisponivel").trim()} (#
+                                  {selectedPacienteId})
+                                </option>
+                              ) : null}
+                              {pacientes.map((p) => (
+                                <option key={p.id} value={String(p.id)}>
+                                  {(p.nome || "Sem nome").trim()} (#{p.id})
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
                       </td>
                       <td className="px-2 py-2">
                         <input
@@ -499,7 +638,7 @@ export function ConfiguracoesPermissoesClient() {
                 })
               ) : (
                 <tr>
-                  <td className="px-2 py-3 text-slate-600" colSpan={5}>
+                  <td className="px-2 py-3 text-slate-600" colSpan={6}>
                     Nenhum usuario encontrado.
                   </td>
                 </tr>
@@ -600,4 +739,3 @@ export function ConfiguracoesPermissoesClient() {
     </main>
   );
 }
-

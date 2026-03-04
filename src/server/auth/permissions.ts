@@ -19,6 +19,8 @@ const ROLE_CANONICALS: Record<string, string> = {
   terapeuta: "TERAPEUTA",
   RECEPCAO: "RECEPCAO",
   recepcao: "RECEPCAO",
+  RESPONSAVEL: "RESPONSAVEL",
+  responsavel: "RESPONSAVEL",
 };
 
 export const ADMIN_ROLES = new Set(["ADMIN", "ADMIN_GERAL"]);

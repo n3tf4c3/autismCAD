@@ -64,7 +64,10 @@ function readApiError(json: unknown): string | null {
   return typeof record.error === "string" ? record.error : null;
 }
 
-export function RelatorioPeriodoClient(props: { initialPacienteId?: number | null }) {
+export function RelatorioPeriodoClient(props: {
+  initialPacienteId?: number | null;
+  canChoosePaciente: boolean;
+}) {
   const [pacienteId, setPacienteId] = useState(() =>
     props.initialPacienteId ? String(props.initialPacienteId) : ""
   );
@@ -122,8 +125,9 @@ export function RelatorioPeriodoClient(props: { initialPacienteId?: number | nul
               value={pacienteId}
               onChange={(e) => setPacienteId(e.target.value)}
               inputMode="numeric"
+              disabled={!props.canChoosePaciente}
               className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              placeholder="ex: 1"
+              placeholder={props.canChoosePaciente ? "ex: 1" : "Paciente vinculado"}
             />
           </label>
           <label className="flex flex-col gap-1">

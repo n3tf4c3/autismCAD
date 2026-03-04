@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { requirePermission } from "@/server/auth/auth";
-import { loadUserAccess } from "@/server/auth/access";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/server/auth/auth";
+import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
@@ -8,9 +9,14 @@ import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
 
 export default async function DashboardPage() {
-  const { user } = await requirePermission("atendimentos:view");
+  const user = await requireUser();
   const userId = Number(user.id);
   const access = await loadUserAccess(userId);
+  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  if (roleCanon === "RESPONSAVEL") {
+    redirect("/relatorios");
+  }
+  assertHasPermission(access, ["atendimentos:view"]);
   const isAdmin = access.roles.some((role) =>
     ADMIN_ROLES.has(canonicalRoleName(role) ?? role)
   );

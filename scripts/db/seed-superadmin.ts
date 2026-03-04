@@ -88,6 +88,7 @@ async function main() {
       { slug: "admin", nome: "Administrador" },
       { slug: "terapeuta", nome: "Terapeuta" },
       { slug: "recepcao", nome: "Recepcao" },
+      { slug: "responsavel", nome: "Responsavel" },
     ])
     .onConflictDoNothing();
 
@@ -150,6 +151,10 @@ async function main() {
       "relatorios_clinicos:export",
       "terapeutas:view",
       "terapeutas:edit_self",
+    ],
+    responsavel: [
+      "prontuario:view",
+      "relatorios_clinicos:view",
     ],
   };
 

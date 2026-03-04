@@ -2,8 +2,61 @@ import Link from "next/link";
 import { asc, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
+import { requirePermission } from "@/server/auth/auth";
+import { canonicalRoleName } from "@/server/auth/permissions";
+import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
 export default async function RelatoriosIndexPage() {
+  const { user } = await requirePermission(["relatorios_clinicos:view", "relatorios_admin:view"]);
+  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const isResponsavel = roleCanon === "RESPONSAVEL";
+
+  if (isResponsavel) {
+    const pacienteVinculado = await getPacienteVinculadoByUserId(Number(user.id));
+    return (
+      <main className="space-y-4">
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+          <h1 className="text-2xl font-bold text-[var(--marrom)]">Acompanhamento</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Acesse os relatorios clinicos do paciente vinculado.
+          </p>
+          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
+            <span className="font-semibold text-[var(--marrom)]">Paciente vinculado: </span>
+            <span className="text-gray-700">
+              {pacienteVinculado ? `${pacienteVinculado.nome} (#${pacienteVinculado.id})` : "nao definido"}
+            </span>
+          </div>
+          {!pacienteVinculado ? (
+            <p className="mt-3 text-sm text-red-600">
+              Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorios disponiveis</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Visualizacao para acompanhamento da evolucao clinica.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href={`/relatorios/evolutivo${pacienteVinculado ? `?pacienteId=${pacienteVinculado.id}` : ""}`}
+              className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+            >
+              Relatorio Evolutivo
+            </Link>
+            <Link
+              href={`/relatorios/periodo${pacienteVinculado ? `?pacienteId=${pacienteVinculado.id}` : ""}`}
+              className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+            >
+              Relatorio por periodo
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const rows = await db
     .select({ id: pacientes.id, nome: pacientes.nome })
     .from(pacientes)
