@@ -1,6 +1,7 @@
 import "server-only";
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { env } from "@/lib/env";
 
 export type ClinicoReport = {
   paciente: { id: number; nome: string; cpf: string; convenio: string };
@@ -70,7 +71,7 @@ export async function buildClinicoPdf(report: ClinicoReport): Promise<Uint8Array
 
   line("Clinica Girassois", { bold: true, size: 18 });
   line("RELATORIO CLINICO", { bold: true, size: 14 });
-  line(`Emitido em ${new Date().toLocaleString("pt-BR")}`, { size: 10 });
+  line(`Emitido em ${new Date().toLocaleString("pt-BR", { timeZone: env.APP_TIMEZONE })}`, { size: 10 });
   y -= 8;
 
   line(`Paciente: ${report.paciente.nome} (ID ${report.paciente.id})`, { bold: true });
@@ -111,4 +112,3 @@ export async function buildClinicoPdf(report: ClinicoReport): Promise<Uint8Array
 
   return pdf.save();
 }
-

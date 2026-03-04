@@ -14,6 +14,7 @@ import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
+import { ymdNowInClinicTz } from "@/server/shared/clock";
 import {
   AtualizarEvolucaoInput,
   CriarEvolucaoInput,
@@ -179,7 +180,7 @@ export async function criarEvolucao(
   input: CriarEvolucaoInput,
   user?: { id: number | string; role?: string | null } | null
 ) {
-  const dataVal = toIsoDate(input.data ?? new Date().toISOString().slice(0, 10));
+  const dataVal = toIsoDate(input.data ?? ymdNowInClinicTz());
   const payload = input.payload ?? {};
 
   const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
@@ -256,7 +257,7 @@ export async function atualizarEvolucao(
     null;
   if (!current) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
-  const dataVal = toIsoDate(input.data ?? current.data ?? new Date().toISOString().slice(0, 10));
+  const dataVal = toIsoDate(input.data ?? current.data ?? ymdNowInClinicTz());
   const payload = (input.payload ?? (current as { payload?: unknown }).payload ?? {}) as Record<
     string,
     unknown

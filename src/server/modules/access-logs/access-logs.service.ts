@@ -203,8 +203,7 @@ export async function recordLoginAttemptAccess(params: {
   headers?: Record<string, unknown>;
 }) {
   await runWithAccessLogsStorage(async () => {
-    const now = new Date();
-    const cutoff = retentionCutoff(now);
+    const cutoff = retentionCutoff();
     const meta = extractLoginRequestMeta(params.headers);
     const status = normalizeAccessLogStatus(params.status);
 
@@ -217,7 +216,7 @@ export async function recordLoginAttemptAccess(params: {
       userAgent: meta.userAgent,
       browser: meta.browser,
       status,
-      createdAt: now,
+      createdAt: sql`now()`,
     });
   });
 }

@@ -6,7 +6,7 @@ import { anamneseVersions, atendimentos, evolucoes, pacientes, terapeutas } from
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
-import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
+import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import type {
@@ -351,7 +351,7 @@ export async function consolidateAssiduidadeReport(params: {
   if (params.query.presenca) where.push(eq(atendimentos.presenca, params.query.presenca));
   const nomeFiltro = params.query.pacienteNome?.trim() || null;
   if (nomeFiltro) {
-    where.push(ilike(pacientes.nome, `%${nomeFiltro}%`));
+    where.push(ilike(pacientes.nome, `%${escapeLikePattern(nomeFiltro)}%`));
   }
 
   const baseFrom = db

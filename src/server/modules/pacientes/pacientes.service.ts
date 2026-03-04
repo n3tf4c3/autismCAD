@@ -18,6 +18,7 @@ import {
 } from "@/server/modules/pacientes/pacientes.schema";
 import { AppError } from "@/server/shared/errors";
 import {
+  escapeLikePattern,
   normalizeCpf,
   normalizeDateOnlyLoose,
   normalizeOptionalText,
@@ -31,8 +32,14 @@ function normalizeTerapias(input: SavePacienteInput): string[] {
 export async function listarPacientes(filters: PacientesQueryInput) {
   const where = [isNull(pacientes.deletedAt)];
   if (filters.id) where.push(eq(pacientes.id, filters.id));
-  if (filters.nome) where.push(ilike(pacientes.nome, `%${filters.nome}%`));
-  if (filters.cpf) where.push(ilike(pacientes.cpf, `%${filters.cpf.replace(/\D/g, "")}%`));
+  if (filters.nome) {
+    const nomeFiltro = escapeLikePattern(filters.nome.trim());
+    if (nomeFiltro) where.push(ilike(pacientes.nome, `%${nomeFiltro}%`));
+  }
+  if (filters.cpf) {
+    const cpfFiltro = escapeLikePattern(filters.cpf.replace(/\D/g, ""));
+    if (cpfFiltro) where.push(ilike(pacientes.cpf, `%${cpfFiltro}%`));
+  }
 
   const rows = await db
     .select({

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { env } from "@/lib/env";
 
 export type EvolutivoReport = {
   paciente: { id: number; nome: string; cpf: string; convenio: string };
@@ -78,7 +79,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
 
   drawLine("Clinica Girassois", { bold: true, size: 18, color: rgb(0.42, 0.27, 0.14) });
   drawLine("RELATORIO EVOLUTIVO", { bold: true, size: 14 });
-  drawLine(`Emitido em ${new Date().toLocaleString("pt-BR")}`, { size: 10 });
+  drawLine(`Emitido em ${new Date().toLocaleString("pt-BR", { timeZone: env.APP_TIMEZONE })}`, { size: 10 });
   y -= 6;
 
   const p = report.paciente;

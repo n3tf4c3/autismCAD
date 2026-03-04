@@ -10,6 +10,7 @@ import {
 } from "@/server/modules/terapeutas/terapeutas.schema";
 import { AppError } from "@/server/shared/errors";
 import {
+  escapeLikePattern,
   normalizeCpf,
   normalizeDateOnlyLoose,
   normalizeOptionalText,
@@ -42,10 +43,19 @@ function composeEndereco(input: SaveTerapeutaInput): string | null {
 export async function listarTerapeutas(filters: TerapeutasQueryInput) {
   const where = [isNull(terapeutas.deletedAt)];
   if (filters.id) where.push(eq(terapeutas.id, filters.id));
-  if (filters.nome) where.push(ilike(terapeutas.nome, `%${filters.nome}%`));
-  if (filters.cpf) where.push(ilike(terapeutas.cpf, `%${filters.cpf.replace(/\D/g, "")}%`));
+  if (filters.nome) {
+    const nomeFiltro = escapeLikePattern(filters.nome.trim());
+    if (nomeFiltro) where.push(ilike(terapeutas.nome, `%${nomeFiltro}%`));
+  }
+  if (filters.cpf) {
+    const cpfFiltro = escapeLikePattern(filters.cpf.replace(/\D/g, ""));
+    if (cpfFiltro) where.push(ilike(terapeutas.cpf, `%${cpfFiltro}%`));
+  }
   if (filters.especialidade) {
-    where.push(ilike(terapeutas.especialidade, `%${filters.especialidade}%`));
+    const especialidadeFiltro = escapeLikePattern(filters.especialidade.trim());
+    if (especialidadeFiltro) {
+      where.push(ilike(terapeutas.especialidade, `%${especialidadeFiltro}%`));
+    }
   }
 
   const rows = await db

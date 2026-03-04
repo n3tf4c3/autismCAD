@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
+import { ymNowInClinicTz } from "@/server/shared/clock";
 
 type LoadDashboardAgendaInput = {
   terapeutaId: number | null;
@@ -10,11 +11,12 @@ type LoadDashboardAgendaInput = {
 };
 
 function monthRange(ym: string) {
-  const [y, m] = ym.split("-").map(Number);
-  const year = y || new Date().getFullYear();
-  const month1 = m || new Date().getMonth() + 1;
+  const normalizedYm = /^\d{4}-\d{2}$/.test(ym) ? ym : ymNowInClinicTz();
+  const [yearRaw, monthRaw] = normalizedYm.split("-");
+  const year = Number(yearRaw);
+  const month1 = Number(monthRaw);
   const startIso = `${year}-${String(month1).padStart(2, "0")}-01`;
-  const lastDay = new Date(year, month1, 0).getDate();
+  const lastDay = new Date(Date.UTC(year, month1, 0)).getUTCDate();
   const endIso = `${year}-${String(month1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
   return { startIso, endIso };
 }
