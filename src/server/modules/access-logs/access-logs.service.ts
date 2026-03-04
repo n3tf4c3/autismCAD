@@ -149,7 +149,7 @@ async function ensureAccessLogsStorage() {
       user_agent VARCHAR(512),
       browser VARCHAR(120),
       status VARCHAR(16) NOT NULL DEFAULT 'SUCESSO',
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
   await db.execute(sql`
@@ -160,6 +160,23 @@ async function ensureAccessLogsStorage() {
     UPDATE access_logs
     SET status = 'SUCESSO'
     WHERE status IS NULL
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'access_logs'
+          AND column_name = 'created_at'
+          AND data_type = 'timestamp without time zone'
+      ) THEN
+        ALTER TABLE access_logs
+          ALTER COLUMN created_at TYPE TIMESTAMPTZ
+          USING created_at AT TIME ZONE 'UTC';
+      END IF;
+    END $$;
   `);
   await db.execute(sql`
     CREATE INDEX IF NOT EXISTS idx_access_logs_created_at
