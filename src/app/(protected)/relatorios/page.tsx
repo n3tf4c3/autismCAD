@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
-import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
+import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
 export default async function RelatoriosIndexPage() {
   const { user } = await requirePermission(["relatorios_clinicos:view", "relatorios_admin:view"]);
@@ -12,41 +12,47 @@ export default async function RelatoriosIndexPage() {
   const isResponsavel = roleCanon === "RESPONSAVEL";
 
   if (isResponsavel) {
-    const pacienteVinculado = await getPacienteVinculadoByUserId(Number(user.id));
+    const pacientesVinculados = await getPacientesVinculadosByUserId(Number(user.id));
     return (
       <main className="space-y-4">
         <section className="rounded-xl bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-[var(--marrom)]">Acompanhamento</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Acesse os relatorios clinicos do paciente vinculado.
+            Acesse os relatorios clinicos dos pacientes vinculados ao seu perfil.
           </p>
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
-            <span className="font-semibold text-[var(--marrom)]">Paciente vinculado: </span>
-            <span className="text-gray-700">
-              {pacienteVinculado ? `${pacienteVinculado.nome} (#${pacienteVinculado.id})` : "nao definido"}
-            </span>
-          </div>
-          {!pacienteVinculado ? (
+          {!pacientesVinculados.length ? (
             <p className="mt-3 text-sm text-red-600">
               Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
             </p>
           ) : null}
         </section>
 
-        <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutiva diaria</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Selecione o dia para visualizar frequencia e feedback do profissional.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/relatorios/devolutiva-dia"
-              className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
-            >
-              Abrir devolutiva do dia
-            </Link>
-          </div>
-        </section>
+        {pacientesVinculados.length ? (
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutiva diaria</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Escolha o paciente para visualizar frequencia e feedback do profissional.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {pacientesVinculados.map((paciente) => (
+                <li
+                  key={paciente.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                >
+                  <p className="text-sm text-gray-700">
+                    <span className="font-semibold text-[var(--marrom)]">{paciente.nome}</span> #{paciente.id}
+                  </p>
+                  <Link
+                    href={`/relatorios/devolutiva-dia?pacienteId=${paciente.id}`}
+                    className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                  >
+                    Abrir devolutiva
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </main>
     );
   }

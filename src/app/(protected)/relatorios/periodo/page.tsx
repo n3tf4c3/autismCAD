@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
 import { canonicalRoleName } from "@/server/auth/permissions";
-import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { RelatorioPeriodoClient } from "@/app/(protected)/relatorios/periodo/periodo.client";
 
 export default async function RelatorioPeriodoPage(props: {
@@ -18,12 +17,7 @@ export default async function RelatorioPeriodoPage(props: {
 
   const { pacienteId } = await props.searchParams;
   const parsed = pacienteId ? Number(pacienteId) : null;
-  let initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
-
-  if (isResponsavel && session?.user?.id) {
-    const vinculo = await getPacienteVinculadoByUserId(Number(session.user.id));
-    initialPacienteId = vinculo?.id ?? null;
-  }
+  const initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
 
   return (
     <div className="space-y-4">

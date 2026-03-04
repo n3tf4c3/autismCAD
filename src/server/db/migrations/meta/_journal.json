@@ -78,6 +78,13 @@
       "when": 1772893600000,
       "tag": "0010_access_logs_created_at_timestamptz",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772897200000,
+      "tag": "0011_user_paciente_vinculos_pk_composta",
+      "breakpoints": true
     }
   ]
 }

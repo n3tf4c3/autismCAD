@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
 import { loadUserAccess } from "@/server/auth/access";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
-import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/report.client";
 
 export default async function RelatorioEvolutivoPage(props: {
@@ -19,12 +18,7 @@ export default async function RelatorioEvolutivoPage(props: {
 
   const { pacienteId } = await props.searchParams;
   const parsed = pacienteId ? Number(pacienteId) : null;
-  let initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
-
-  if (isResponsavel && session?.user?.id) {
-    const vinculo = await getPacienteVinculadoByUserId(Number(session.user.id));
-    initialPacienteId = vinculo?.id ?? null;
-  }
+  const initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
 
   let canExportPdf = false;
   if (session?.user?.id) {

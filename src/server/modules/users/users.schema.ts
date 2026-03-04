@@ -6,6 +6,7 @@ export const createUserSchema = z.object({
   senha: z.string().min(8).max(72),
   role: z.string().trim().min(1).max(32),
   pacienteIdVinculado: z.coerce.number().int().positive().optional().nullable(),
+  pacienteIdsVinculados: z.array(z.coerce.number().int().positive()).optional(),
 });
 
 export const updateUserSchema = z.object({
@@ -14,6 +15,7 @@ export const updateUserSchema = z.object({
   role: z.string().trim().min(1).max(32),
   senha: z.string().min(8).max(72).optional(),
   pacienteIdVinculado: z.coerce.number().int().positive().optional().nullable(),
+  pacienteIdsVinculados: z.array(z.coerce.number().int().positive()).optional(),
 });
 
 export const updateRolePermissionsSchema = z.object({

@@ -7,7 +7,7 @@ import {
   obterTerapeutaPorUsuario,
   terapeutaAtendePaciente,
 } from "@/server/modules/terapeutas/terapeutas.service";
-import { getPacienteVinculadoByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
+import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
 export type SessionUserLike = {
   id: number | string;
@@ -53,11 +53,12 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
     throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
-  const pacienteVinculado = await getPacienteVinculadoByUserId(userId);
-  if (!pacienteVinculado) {
+  const pacientesVinculados = await getPacientesVinculadosByUserId(userId);
+  if (!pacientesVinculados.length) {
     throw new AppError("Responsavel sem paciente vinculado", 403, "FORBIDDEN");
   }
-  if (Number(pacienteVinculado.id) !== Number(pacienteId)) {
+  const hasAccess = pacientesVinculados.some((paciente) => Number(paciente.id) === Number(pacienteId));
+  if (!hasAccess) {
     throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
   }
 
