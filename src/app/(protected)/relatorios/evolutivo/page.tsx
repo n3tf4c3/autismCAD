@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
 import { loadUserAccess } from "@/server/auth/access";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
@@ -11,6 +12,10 @@ export default async function RelatorioEvolutivoPage(props: {
   const session = await getAuthSession();
   const roleCanon = canonicalRoleName(session?.user?.role ?? null) ?? session?.user?.role ?? null;
   const isResponsavel = roleCanon === "RESPONSAVEL";
+
+  if (isResponsavel) {
+    redirect("/relatorios/devolutiva-dia");
+  }
 
   const { pacienteId } = await props.searchParams;
   const parsed = pacienteId ? Number(pacienteId) : null;
@@ -53,4 +58,3 @@ export default async function RelatorioEvolutivoPage(props: {
     </div>
   );
 }
-

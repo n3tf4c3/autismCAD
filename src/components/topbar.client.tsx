@@ -8,9 +8,9 @@ function roleLabel(role?: string | null): string {
   const key = String(role || "").trim().toUpperCase();
   if (key === "ADMIN" || key === "ADMIN_GERAL") return "Administrador";
   if (key === "TERAPEUTA") return "Terapeuta";
-  if (key === "RECEPCAO") return "Recepção";
+  if (key === "RECEPCAO") return "Recepcao";
   if (key === "RESPONSAVEL") return "Responsavel";
-  return role ? String(role) : "Usuário";
+  return role ? String(role) : "Usuario";
 }
 
 function pageMeta(pathname: string): { kicker: string; title: string } {
@@ -27,17 +27,30 @@ function pageMeta(pathname: string): { kicker: string; title: string } {
     return { kicker: "Cadastro", title: "Editar terapeuta" };
   }
   if (pathname.startsWith("/terapeutas/")) return { kicker: "Cadastro", title: "Terapeuta" };
-  if (pathname.startsWith("/consultas")) return { kicker: "Agenda", title: "Consultas / Sessões" };
-  if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendário" };
-  if (pathname.startsWith("/prontuario")) return { kicker: "Clínico", title: "Prontuário" };
-  if (pathname.startsWith("/anamnese")) return { kicker: "Clínico", title: "Anamnese" };
-  if (pathname.startsWith("/relatorios/evolutivo")) return { kicker: "Relatório evolutivo", title: "Paciente" };
-  if (pathname.startsWith("/relatorios/periodo")) return { kicker: "Relatório por período", title: "Consolidado" };
-  if (pathname.startsWith("/relatorios/assiduidade")) return { kicker: "Relatórios", title: "Assiduidade e presença" };
-  if (pathname.startsWith("/relatorios/clinico")) return { kicker: "Relatórios", title: "Relatório Clínico" };
-  if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatórios" };
-  if (pathname.startsWith("/configuracoes")) return { kicker: "Administração", title: "Permissões por papel" };
-  return { kicker: "Sistema", title: "Clínica Girassóis" };
+  if (pathname.startsWith("/consultas")) return { kicker: "Agenda", title: "Consultas / Sessoes" };
+  if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendario" };
+  if (pathname.startsWith("/prontuario")) return { kicker: "Clinico", title: "Prontuario" };
+  if (pathname.startsWith("/anamnese")) return { kicker: "Clinico", title: "Anamnese" };
+  if (pathname.startsWith("/relatorios/devolutiva-dia")) {
+    return { kicker: "Acompanhamento", title: "Devolutiva diaria" };
+  }
+  if (pathname.startsWith("/relatorios/evolutivo")) {
+    return { kicker: "Relatorio evolutivo", title: "Paciente" };
+  }
+  if (pathname.startsWith("/relatorios/periodo")) {
+    return { kicker: "Relatorio por periodo", title: "Consolidado" };
+  }
+  if (pathname.startsWith("/relatorios/assiduidade")) {
+    return { kicker: "Relatorios", title: "Assiduidade e presenca" };
+  }
+  if (pathname.startsWith("/relatorios/clinico")) {
+    return { kicker: "Relatorios", title: "Relatorio clinico" };
+  }
+  if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatorios" };
+  if (pathname.startsWith("/configuracoes")) {
+    return { kicker: "Administracao", title: "Permissoes por papel" };
+  }
+  return { kicker: "Sistema", title: "Clinica Girassois" };
 }
 
 export function TopbarClient(props: { userName: string; userRole?: string | null; initials: string }) {
@@ -55,7 +68,7 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
           onClick={shell.toggleSidebar}
           aria-label="Abrir menu"
         >
-          ☰
+          Menu
         </button>
         <div>
           <p className="text-sm text-gray-500">{meta.kicker}</p>
@@ -65,7 +78,7 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
       <div className="flex items-center gap-3">
         <div className="text-right">
           <p className="text-sm text-gray-500">
-            Olá, <span className="font-medium">{props.userName}</span>
+            Ola, <span className="font-medium">{props.userName}</span>
           </p>
           <p className="text-sm font-semibold text-[var(--texto)]">{role}</p>
         </div>
@@ -76,4 +89,3 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
     </header>
   );
 }
-

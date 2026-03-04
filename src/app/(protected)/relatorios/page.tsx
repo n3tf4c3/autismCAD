@@ -34,22 +34,16 @@ export default async function RelatoriosIndexPage() {
         </section>
 
         <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorios disponiveis</h2>
+          <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutiva diaria</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Visualizacao para acompanhamento da evolucao clinica.
+            Selecione o dia para visualizar frequencia e feedback do profissional.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              href={`/relatorios/evolutivo${pacienteVinculado ? `?pacienteId=${pacienteVinculado.id}` : ""}`}
+              href="/relatorios/devolutiva-dia"
               className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
             >
-              Relatorio Evolutivo
-            </Link>
-            <Link
-              href={`/relatorios/periodo${pacienteVinculado ? `?pacienteId=${pacienteVinculado.id}` : ""}`}
-              className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
-            >
-              Relatorio por periodo
+              Abrir devolutiva do dia
             </Link>
           </div>
         </section>
