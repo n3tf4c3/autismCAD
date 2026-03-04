@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { permissions, rolePermissions, users } from "@/server/db/schema";
 import {
@@ -40,7 +40,7 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
       role: users.role,
     })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(and(eq(users.id, userId), eq(users.ativo, true), isNull(users.deletedAt)))
     .limit(1);
 
   if (!user) {

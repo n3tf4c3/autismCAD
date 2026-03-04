@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { db } from "@/db";
 import { users } from "@/server/db/schema";
@@ -74,7 +74,13 @@ export const authOptions: NextAuthOptions = {
             ativo: users.ativo,
           })
           .from(users)
-          .where(eq(users.email, parsed.data.email))
+          .where(
+            and(
+              eq(users.email, parsed.data.email),
+              eq(users.ativo, true),
+              isNull(users.deletedAt)
+            )
+          )
           .limit(1);
 
         if (!user || !user.ativo) {

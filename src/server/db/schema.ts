@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   date,
@@ -27,10 +28,20 @@ export const users = pgTable(
       .default("terapeuta")
       .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(
+      (): AnyPgColumn => users.id,
+      {
+        onDelete: "set null",
+      }
+    ),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("uk_users_email").on(table.email)]
+  (table) => [
+    uniqueIndex("uk_users_email").on(table.email),
+    index("idx_users_deleted_at").on(table.deletedAt),
+  ]
 );
 
 export const accessLogs = pgTable(

@@ -1,4 +1,7 @@
 import "server-only";
+import { and, eq, isNull } from "drizzle-orm";
+import { db } from "@/db";
+import { users } from "@/server/db/schema";
 import { AppError } from "@/server/shared/errors";
 import { getAuthSession } from "@/server/auth/session";
 import { canonicalRoleName } from "@/server/auth/permissions";
@@ -8,6 +11,24 @@ export async function requireUser() {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AppError("Nao autenticado", 401, "UNAUTHORIZED");
+  }
+  const userId = Number(session.user.id);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    throw new AppError("Sessao invalida", 401, "UNAUTHORIZED");
+  }
+  const [activeUser] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.ativo, true),
+        isNull(users.deletedAt)
+      )
+    )
+    .limit(1);
+  if (!activeUser) {
+    throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
   return session.user;
 }

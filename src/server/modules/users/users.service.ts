@@ -64,6 +64,7 @@ export async function listUsers() {
       pacientes,
       and(eq(pacientes.id, userPacienteVinculos.pacienteId), isNull(pacientes.deletedAt))
     )
+    .where(and(eq(users.ativo, true), isNull(users.deletedAt)))
     .orderBy(desc(users.createdAt), asc(users.nome));
 }
 
@@ -187,7 +188,7 @@ export async function updateUser(id: number, input: UpdateUserInput) {
       const [updated] = await tx
         .update(users)
         .set(setData)
-        .where(eq(users.id, id))
+        .where(and(eq(users.id, id), isNull(users.deletedAt)))
         .returning({ id: users.id });
       if (!updated) {
         throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
@@ -226,36 +227,20 @@ export async function deleteUser(id: number, requesterUserId: number) {
   if (id === requesterUserId) {
     throw new AppError("Nao e possivel excluir o proprio usuario", 400, "SELF_DELETE");
   }
-  try {
-    let deletedId: number | null = null;
-    await runDbTransaction(
-      async (tx) => {
-        // Defensive cleanup for environments where the FK cascade might be absent.
-        await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
-
-        const [deleted] = await tx
-          .delete(users)
-          .where(eq(users.id, id))
-          .returning({ id: users.id });
-        if (!deleted) {
-          throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
-        }
-        deletedId = deleted.id;
-      },
-      { operation: "users.deleteUser", mode: "required" }
-    );
-    return { ok: true, id: Number(deletedId) };
-  } catch (error) {
-    const err = error as { code?: string };
-    if (err?.code === "23503") {
-      throw new AppError(
-        "Usuario possui vinculacoes e nao pode ser excluido",
-        409,
-        "CONFLICT"
-      );
-    }
-    throw error;
+  const [deleted] = await db
+    .update(users)
+    .set({
+      ativo: false,
+      deletedAt: sql`now()`,
+      deletedByUserId: requesterUserId,
+      updatedAt: sql`now()`,
+    })
+    .where(and(eq(users.id, id), isNull(users.deletedAt)))
+    .returning({ id: users.id });
+  if (!deleted) {
+    throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
   }
+  return { ok: true, id: deleted.id };
 }
 
 export async function listPermissions() {
@@ -277,7 +262,14 @@ export async function listRoles() {
   const userRoles = await db
     .select({ nome: users.role })
     .from(users)
-    .where(and(isNotNull(users.role), ne(users.role, "")));
+    .where(
+      and(
+        isNotNull(users.role),
+        ne(users.role, ""),
+        eq(users.ativo, true),
+        isNull(users.deletedAt)
+      )
+    );
 
   const roleNames = new Set<string>();
   baseRoles.forEach((item) => roleNames.add(item.nome));

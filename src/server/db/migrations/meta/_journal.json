@@ -64,6 +64,13 @@
       "when": 1772800000000,
       "tag": "0008_responsavel_vinculo_paciente",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772890000000,
+      "tag": "0009_users_soft_delete",
+      "breakpoints": true
     }
   ]
 }
