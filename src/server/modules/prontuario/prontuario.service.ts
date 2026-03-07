@@ -158,6 +158,8 @@ export async function listarEvolucoesPorPaciente(pacienteId: number) {
       paciente_id: evolucoes.pacienteId,
       terapeuta_id: evolucoes.terapeutaId,
       atendimento_id: evolucoes.atendimentoId,
+      atendimento_hora_inicio: atendimentos.horaInicio,
+      atendimento_hora_fim: atendimentos.horaFim,
       data: evolucoes.data,
       payload: evolucoes.payload,
       created_at: evolucoes.createdAt,
@@ -165,6 +167,7 @@ export async function listarEvolucoesPorPaciente(pacienteId: number) {
     })
     .from(evolucoes)
     .leftJoin(terapeutas, eq(terapeutas.id, evolucoes.terapeutaId))
+    .leftJoin(atendimentos, eq(atendimentos.id, evolucoes.atendimentoId))
     .where(and(eq(evolucoes.pacienteId, pacienteId), isNull(evolucoes.deletedAt)))
     .orderBy(desc(evolucoes.data), desc(evolucoes.createdAt));
 
@@ -214,7 +217,7 @@ export async function criarEvolucao(
     return { id: saved.id, data: String(saved.data).slice(0, 10) };
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new AppError("Ja existe evolucao para este dia/terapeuta", 409, "CONFLICT");
+      throw new AppError("Ja existe evolucao para este atendimento", 409, "CONFLICT");
     }
     throw error;
   }
@@ -298,7 +301,7 @@ export async function atualizarEvolucao(
     return { id, data: dataVal };
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new AppError("Ja existe evolucao para este dia/terapeuta", 409, "CONFLICT");
+      throw new AppError("Ja existe evolucao para este atendimento", 409, "CONFLICT");
     }
     throw error;
   }
@@ -351,6 +354,9 @@ export async function obterTimelineProntuario(pacienteId: number) {
   const mappedEvols = evols.map((e) => {
     const payload = (e.payload ?? {}) as Record<string, unknown>;
     const isComportamento = !!payload.comportamentos;
+    const horaInicio = e.atendimento_hora_inicio ? String(e.atendimento_hora_inicio).slice(0, 5) : "";
+    const horaFim = e.atendimento_hora_fim ? String(e.atendimento_hora_fim).slice(0, 5) : "";
+    const horario = horaInicio && horaFim ? `${horaInicio} - ${horaFim}` : horaInicio || horaFim || null;
     return {
       kind: "evolucao" as const,
       id: e.id,
@@ -362,6 +368,7 @@ export async function obterTimelineProntuario(pacienteId: number) {
       version: null as number | null,
       data: e.data || e.created_at,
       profissional: e.terapeuta_nome || "Terapeuta",
+      horario,
     };
   });
 

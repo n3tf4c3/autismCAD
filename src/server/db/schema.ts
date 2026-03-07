@@ -343,9 +343,9 @@ export const evolucoes = pgTable(
     }),
   },
   (table) => [
-    uniqueIndex("uk_evolucoes_paciente_terapeuta_data_ativo")
-      .on(table.pacienteId, table.terapeutaId, table.data)
-      .where(sql`${table.deletedAt} is null`),
+    uniqueIndex("uk_evolucoes_atendimento_ativo")
+      .on(table.atendimentoId)
+      .where(sql`${table.deletedAt} is null and ${table.atendimentoId} is not null`),
     index("idx_evolucoes_paciente").on(table.pacienteId),
     index("idx_evolucoes_terapeuta").on(table.terapeutaId),
     index("idx_evolucoes_data").on(table.data),
