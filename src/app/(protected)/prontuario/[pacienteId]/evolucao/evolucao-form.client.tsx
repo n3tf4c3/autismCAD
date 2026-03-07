@@ -20,6 +20,7 @@ type AjudaChoice = "" | "verbal" | "gestual" | "verbal_gestual" | "fisica_parcia
 type MetaRow = {
   id: string;
   ensino: string;
+  habilidade: string;
   recurso: string;
   opcao: string;
   desempenho: DesempenhoChoice;
@@ -134,6 +135,7 @@ function normalizeMetaFromAny(item: unknown, stableId?: string): MetaRow {
   return {
     id: stableId ?? uid(),
     ensino: pickString(obj.ensino),
+    habilidade: pickString(obj.habilidade ?? obj.skill),
     recurso: pickString(obj.recurso),
     opcao: pickString(obj.opcao ?? obj.meta),
     desempenho: toChoice(obj.desempenho ?? obj.performance, ["", "ajuda", "nao_fez", "independente"]),
@@ -268,6 +270,7 @@ export function EvolucaoFormClient(props: {
     const itensDesempenho = metaRows
       .map((r) => {
         const ensino = r.ensino.trim();
+        const habilidade = r.habilidade.trim();
         const recurso = r.recurso.trim();
         const opcao = r.opcao.trim();
         const reforcador = r.reforcador.trim();
@@ -278,6 +281,7 @@ export function EvolucaoFormClient(props: {
         const tipoAjuda = (r.tipoAjuda || "").trim() || null;
         const temDados =
           ensino ||
+          habilidade ||
           recurso ||
           opcao ||
           reforcador ||
@@ -289,6 +293,7 @@ export function EvolucaoFormClient(props: {
         if (!temDados) return null;
         return {
           ensino: ensino || null,
+          habilidade: habilidade || null,
           recurso: recurso || null,
           opcao: opcao || null,
           desempenho,
@@ -303,7 +308,7 @@ export function EvolucaoFormClient(props: {
 
     const metas = itensDesempenho.length
       ? itensDesempenho
-          .map((i) => pickString(i.opcao || i.recurso).trim())
+          .map((i) => pickString(i.opcao || i.habilidade || i.recurso).trim())
           .filter(Boolean)
       : [];
 
@@ -674,8 +679,8 @@ export function EvolucaoFormClient(props: {
             <div className="space-y-1">
               <p className="text-sm font-semibold text-[var(--marrom)]">Metas / desempenho da sessao</p>
               <p className="text-xs text-gray-500">
-                Registre recurso usado, opcao apresentada, desempenho (Ajuda / Nao fez / Independente), tipo de ajuda e
-                reforcador.
+                Registre habilidade, recurso usado, opcao apresentada, desempenho (Ajuda / Nao fez / Independente), tipo
+                de ajuda e reforcador.
               </p>
               <p className="text-xs text-gray-500">
                 <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> Verbal, Gestual, Verbal e Gestual,
@@ -709,6 +714,15 @@ export function EvolucaoFormClient(props: {
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
+                  <p className="text-xs font-semibold text-gray-600">Habilidade</p>
+                  <input
+                    value={row.habilidade}
+                    onChange={(e) => updateMetaRow(row.id, { habilidade: e.target.value })}
+                    className="rounded-lg border px-3 py-2 text-sm"
+                    placeholder="Ex: Nomeacao, Pareamento..."
+                  />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-2">
                   <p className="text-xs font-semibold text-gray-600">Recursos</p>
                   <input
                     value={row.recurso}
@@ -717,7 +731,7 @@ export function EvolucaoFormClient(props: {
                     placeholder="Ex: cards animais"
                   />
                 </div>
-                <div className="flex flex-col gap-1 md:col-span-3">
+                <div className="flex flex-col gap-1 md:col-span-2">
                   <p className="text-xs font-semibold text-gray-600">Opcoes</p>
                   <input
                     value={row.opcao}
@@ -726,7 +740,7 @@ export function EvolucaoFormClient(props: {
                     placeholder="Ex: Gato, Cachorro..."
                   />
                 </div>
-                <div className="flex flex-col gap-1 md:col-span-3">
+                <div className="flex flex-col gap-1 md:col-span-2">
                   <p className="text-xs font-semibold text-gray-600">Desempenho</p>
                   <select
                     value={row.desempenho}
