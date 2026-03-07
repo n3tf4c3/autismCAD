@@ -12,6 +12,7 @@ const envSchema = z.object({
     .string()
     .url()
     .default("postgresql://postgres:postgres@localhost:5432/autismcad"),
+  DATABASE_URL_UNPOOLED: z.string().url().optional(),
   BCRYPT_COST: z.coerce.number().int().min(8).max(15).default(12),
 
   R2_ACCOUNT_ID: z.string().optional(),

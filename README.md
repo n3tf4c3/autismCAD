@@ -21,6 +21,7 @@ npm ci
 2. Configurar ambiente:
 - Copie `./.env.example` para `./.env.local` e ajuste os valores.
 - Para atomicidade real de transacoes, use `DATABASE_DRIVER=neon-serverless` e mantenha `REQUIRE_DB_TRANSACTIONS=1`.
+- Quando usar Neon com `neon-serverless`, prefira configurar `DATABASE_URL_UNPOOLED` (endpoint sem `-pooler`).
 
 3. Rodar migrations:
 ```bash
