@@ -29,9 +29,9 @@ export default async function RelatoriosIndexPage() {
 
         {pacientesVinculados.length ? (
           <section className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutiva diaria</h2>
+            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutivas (diaria e mensal)</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Escolha o paciente para visualizar frequencia e feedback do profissional.
+              Escolha o paciente para acompanhar desempenho e feedback do profissional.
             </p>
             <ul className="mt-4 space-y-2">
               {pacientesVinculados.map((paciente) => (
@@ -42,12 +42,20 @@ export default async function RelatoriosIndexPage() {
                   <p className="text-sm text-gray-700">
                     <span className="font-semibold text-[var(--marrom)]">{paciente.nome}</span> #{paciente.id}
                   </p>
-                  <Link
-                    href={`/relatorios/devolutiva-dia?pacienteId=${paciente.id}`}
-                    className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-                  >
-                    Abrir devolutiva
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/relatorios/devolutiva-dia?pacienteId=${paciente.id}`}
+                      className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                    >
+                      Devolutiva diaria
+                    </Link>
+                    <Link
+                      href={`/relatorios/devolutiva-mensal?pacienteId=${paciente.id}`}
+                      className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                    >
+                      Relatorio mensal
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
