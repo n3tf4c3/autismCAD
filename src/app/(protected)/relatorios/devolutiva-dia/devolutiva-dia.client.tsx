@@ -67,12 +67,70 @@ function readApiError(json: unknown): string | null {
 }
 
 type DesempenhoKey = "ajuda" | "nao_fez" | "independente";
+type ComportamentoLado = "negativo" | "positivo";
+type ComportamentoResultado = "negativo" | "positivo" | "parcial";
 
 function normalizeDesempenho(value: unknown): DesempenhoKey | null {
   if (typeof value !== "string") return null;
   const v = value.toLowerCase().trim().replace(/\s+/g, "_");
   if (v === "ajuda" || v === "nao_fez" || v === "independente") return v;
   return null;
+}
+
+function normalizeComportamentoResultado(value: unknown): ComportamentoResultado | null {
+  if (typeof value !== "string") return null;
+  const v = value.toLowerCase().trim().replace(/\s+/g, "_");
+  if (v === "negativo" || v === "positivo" || v === "parcial") return v;
+  return null;
+}
+
+function normalizeComportamentoKey(value: string): string {
+  return value.toLowerCase().trim().replace(/\s+/g, "_");
+}
+
+function asPositiveInt(value: unknown, fallback = 1): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.trunc(n);
+}
+
+const COMPORTAMENTO_LABELS: Record<string, string> = {
+  autoagressao: "Autoagressao",
+  heteroagressao: "Hetero agressao",
+  estereotipia_vocal: "Estereotipia Vocal",
+  estereotipia_motora: "Estereotipia Motora",
+  ecolalia_imediata: "Ecolalia Imediata",
+  ecolalia_tardia: "Ecolalia Tardia",
+  fugas_esquivas: "Fugas/Esquivas",
+  agitacao_motora: "Agitacao Motora",
+  demanda_atencao: "Demanda de Atencao",
+  crise_ausencia: "Crise de ausencia",
+  isolamento: "Isolamento",
+  comportamento_desafiador: "Comportamento Desafiador",
+  baixo_interesse: "Baixo Interesse",
+  desregulacao_emocional: "Desregulacao emocional (crise)",
+  calmo: "Calmo",
+  animado: "Animado (alegre, sorridente)",
+  alto_interesse: "Alto interesse",
+  foco_atencao: "Foco/Atencao",
+  compartilhamento: "Compartilhamento",
+  empatia: "Empatia",
+  autonomia: "Autonomia",
+};
+
+function behaviorLabelFromValue(value: string): string {
+  const key = normalizeComportamentoKey(value);
+  if (COMPORTAMENTO_LABELS[key]) return COMPORTAMENTO_LABELS[key];
+  const clean = value.trim().replace(/_/g, " ");
+  if (!clean) return "-";
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+function pickStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean);
 }
 
 export function DevolutivaDiaClient(props: {
@@ -153,6 +211,100 @@ export function DevolutivaDiaClient(props: {
     };
   }, [report]);
 
+  const comportamentoResumo = useMemo(() => {
+    const resultado: Record<ComportamentoResultado, number> = {
+      negativo: 0,
+      positivo: 0,
+      parcial: 0,
+    };
+    const mapNeg = new Map<string, { label: string; value: number }>();
+    const mapPos = new Map<string, { label: string; value: number }>();
+
+    const addItem = (lado: ComportamentoLado, rawValue: string, qty: number) => {
+      const key = normalizeComportamentoKey(rawValue);
+      if (!key) return;
+      const target = lado === "negativo" ? mapNeg : mapPos;
+      const current = target.get(key);
+      if (current) {
+        current.value += qty;
+        return;
+      }
+      target.set(key, {
+        label: behaviorLabelFromValue(rawValue),
+        value: qty,
+      });
+    };
+
+    (report?.evolucoes || []).forEach((e) => {
+      const payload = e?.payload;
+      if (!payload || typeof payload !== "object") return;
+      const compRaw = payload.comportamentos ?? payload.comportamento;
+      if (!compRaw || typeof compRaw !== "object") return;
+      const comp = compRaw as Record<string, unknown>;
+
+      const r = normalizeComportamentoResultado(comp.resultado);
+      if (r) resultado[r] += 1;
+
+      const quantidades =
+        comp.quantidades && typeof comp.quantidades === "object"
+          ? (comp.quantidades as Record<string, unknown>)
+          : null;
+      const qtyNeg =
+        quantidades?.negativo && typeof quantidades.negativo === "object"
+          ? (quantidades.negativo as Record<string, unknown>)
+          : null;
+      const qtyPos =
+        quantidades?.positivo && typeof quantidades.positivo === "object"
+          ? (quantidades.positivo as Record<string, unknown>)
+          : null;
+
+      const negativos = pickStringList(comp.negativos);
+      const positivos = pickStringList(comp.positivos);
+
+      negativos.forEach((item) => {
+        const key = normalizeComportamentoKey(item);
+        const qty = asPositiveInt((qtyNeg?.[item] ?? qtyNeg?.[key]) as unknown, 1);
+        addItem("negativo", item, qty);
+      });
+      positivos.forEach((item) => {
+        const key = normalizeComportamentoKey(item);
+        const qty = asPositiveInt((qtyPos?.[item] ?? qtyPos?.[key]) as unknown, 1);
+        addItem("positivo", item, qty);
+      });
+    });
+
+    const totalNegativo = Array.from(mapNeg.values()).reduce((acc, item) => acc + item.value, 0);
+    const totalPositivo = Array.from(mapPos.values()).reduce((acc, item) => acc + item.value, 0);
+    const total = totalNegativo + totalPositivo;
+    const percent = (value: number, totalRef: number) =>
+      totalRef ? Math.round((value / totalRef) * 100) : 0;
+
+    const toRows = (
+      map: Map<string, { label: string; value: number }>,
+      totalRef: number
+    ): Array<{ key: string; label: string; value: number; pct: number }> =>
+      Array.from(map.entries())
+        .map(([key, item]) => ({
+          key,
+          label: item.label,
+          value: item.value,
+          pct: percent(item.value, totalRef),
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8);
+
+    return {
+      total,
+      totalNegativo,
+      totalPositivo,
+      pctNegativo: percent(totalNegativo, total),
+      pctPositivo: percent(totalPositivo, total),
+      resultado,
+      rowsNegativo: toRows(mapNeg, totalNegativo),
+      rowsPositivo: toRows(mapPos, totalPositivo),
+    };
+  }, [report]);
+
   const textoResumoParaPais = useMemo(() => {
     if (!report) return "";
     const linhas = [`Resumo do dia (${fmtDate(report.periodo.from)})`, resumoDia];
@@ -161,6 +313,15 @@ export function DevolutivaDiaClient(props: {
       desempenhoResumo.rows.forEach((row) => {
         linhas.push(`- ${row.label}: ${row.value} (${row.pct}%)`);
       });
+    }
+    if (comportamentoResumo.total) {
+      linhas.push(
+        `Comportamentos observados: ${comportamentoResumo.total} registro(s) no total (${comportamentoResumo.totalPositivo} positivos e ${comportamentoResumo.totalNegativo} negativos).`
+      );
+      const topNeg = comportamentoResumo.rowsNegativo[0];
+      const topPos = comportamentoResumo.rowsPositivo[0];
+      if (topPos) linhas.push(`- Destaque positivo: ${topPos.label} (${topPos.value})`);
+      if (topNeg) linhas.push(`- Alerta comportamental: ${topNeg.label} (${topNeg.value})`);
     }
     const devolutivasProfissionais = (report.destaques?.ultimasObservacoes || [])
       .map((o) => ({
@@ -176,7 +337,7 @@ export function DevolutivaDiaClient(props: {
       });
     }
     return linhas.join("\n");
-  }, [desempenhoResumo, report, resumoDia]);
+  }, [comportamentoResumo, desempenhoResumo, report, resumoDia]);
 
   async function copiarResumo() {
     if (!textoResumoParaPais) return;
@@ -304,6 +465,107 @@ export function DevolutivaDiaClient(props: {
             ) : (
               <p className="mt-3 text-sm text-gray-600">
                 Nao ha dados de desempenho estruturado nas evolucoes deste dia.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-xl bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-[var(--marrom)]">Grafico de comportamento</h2>
+              <p className="text-sm text-gray-600">{fmtDate(report.periodo.from)}</p>
+            </div>
+            <p className="mt-1 text-sm text-gray-600">
+              Distribuicao dos comportamentos registrados nas evolucoes do dia.
+            </p>
+            {comportamentoResumo.total ? (
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Negativos</p>
+                    <p className="text-lg font-semibold text-rose-700">
+                      {comportamentoResumo.totalNegativo} ({comportamentoResumo.pctNegativo}%)
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Positivos</p>
+                    <p className="text-lg font-semibold text-green-700">
+                      {comportamentoResumo.totalPositivo} ({comportamentoResumo.pctPositivo}%)
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                      Resultado geral
+                    </p>
+                    <p className="text-sm font-semibold text-amber-800">
+                      Negativo: {comportamentoResumo.resultado.negativo} | Positivo:{" "}
+                      {comportamentoResumo.resultado.positivo} | Parcial:{" "}
+                      {comportamentoResumo.resultado.parcial}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex h-3 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-full bg-rose-500"
+                    style={{
+                      width: `${comportamentoResumo.pctNegativo}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-green-500"
+                    style={{
+                      width: `${comportamentoResumo.pctPositivo}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[var(--marrom)]">Top comportamentos negativos</p>
+                    {comportamentoResumo.rowsNegativo.length ? (
+                      comportamentoResumo.rowsNegativo.map((row) => (
+                        <div key={row.key}>
+                          <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
+                            <span>{row.label}</span>
+                            <span className="font-semibold">
+                              {row.value} ({row.pct}%)
+                            </span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                            <div className="h-full rounded-full bg-rose-500" style={{ width: `${row.pct}%` }} />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-600">Sem itens negativos registrados.</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[var(--marrom)]">Top comportamentos positivos</p>
+                    {comportamentoResumo.rowsPositivo.length ? (
+                      comportamentoResumo.rowsPositivo.map((row) => (
+                        <div key={row.key}>
+                          <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
+                            <span>{row.label}</span>
+                            <span className="font-semibold">
+                              {row.value} ({row.pct}%)
+                            </span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                            <div className="h-full rounded-full bg-green-500" style={{ width: `${row.pct}%` }} />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-600">Sem itens positivos registrados.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-gray-600">
+                Nao ha registros de comportamentos estruturados nas evolucoes deste dia.
               </p>
             )}
           </section>
