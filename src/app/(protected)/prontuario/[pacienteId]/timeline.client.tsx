@@ -25,6 +25,7 @@ export type TimelineItem =
       version: number | null;
       data: string;
       profissional: string | null;
+      horario?: string | null;
     };
 
 export function TimelineClient(props: { pacienteId: number; initialItems: TimelineItem[] }) {
@@ -98,6 +99,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
         {items.map((item) => {
           const isDoc = item.kind === "documento";
           const isComportamento = !isDoc && item.tipo === "COMPORTAMENTO";
+          const horario = item.kind === "evolucao" ? item.horario : null;
           const tipoLabel = isDoc
             ? "Documento clinico"
             : isComportamento
@@ -124,7 +126,10 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-gray-500">{formatDateBr(item.data)}</span>
+                  <div className="text-right leading-tight">
+                    <span className="block text-gray-500">{formatDateBr(item.data)}</span>
+                    {horario ? <span className="block text-xs text-gray-500">Horario: {horario}</span> : null}
+                  </div>
                 </div>
 
                 <h3 className="font-semibold text-[var(--marrom)]">{item.titulo || "Registro"}</h3>
