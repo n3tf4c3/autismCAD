@@ -19,6 +19,12 @@ export default async function RelatorioEvolutivoPage(props: {
   const { pacienteId } = await props.searchParams;
   const parsed = pacienteId ? Number(pacienteId) : null;
   const initialPacienteId = parsed && Number.isFinite(parsed) ? parsed : null;
+  const devolutivaDiaHref = initialPacienteId
+    ? `/relatorios/devolutiva-dia?pacienteId=${initialPacienteId}`
+    : "/relatorios/devolutiva-dia";
+  const devolutivaMensalHref = initialPacienteId
+    ? `/relatorios/devolutiva-mensal?pacienteId=${initialPacienteId}`
+    : "/relatorios/devolutiva-mensal";
 
   let canExportPdf = false;
   if (session?.user?.id) {
@@ -37,9 +43,23 @@ export default async function RelatorioEvolutivoPage(props: {
             <p className="text-sm text-gray-500">Relatorio evolutivo</p>
             <h2 className="text-xl font-semibold text-[var(--marrom)]">Relatorio Evolutivo</h2>
           </div>
-          <Link href="/relatorios" className="text-sm font-semibold text-[var(--laranja)]">
-            &larr; Voltar
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={devolutivaDiaHref}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+            >
+              Devolutiva diaria
+            </Link>
+            <Link
+              href={devolutivaMensalHref}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+            >
+              Devolutiva mensal
+            </Link>
+            <Link href="/relatorios" className="text-sm font-semibold text-[var(--laranja)]">
+              &larr; Voltar
+            </Link>
+          </div>
         </div>
       </section>
 

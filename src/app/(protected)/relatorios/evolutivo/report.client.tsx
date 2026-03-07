@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type Terapeuta = { id: number; nome: string };
@@ -228,6 +229,29 @@ export function EvolutivoReportClient(props: {
             </button>
           </div>
         ) : null}
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={pacienteId ? `/relatorios/devolutiva-dia?pacienteId=${pacienteId}` : "/relatorios/devolutiva-dia"}
+            aria-disabled={!pacienteId}
+            className={
+              "inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 " +
+              (!pacienteId ? "pointer-events-none opacity-50" : "")
+            }
+          >
+            Devolutiva diaria
+          </Link>
+          <Link
+            href={pacienteId ? `/relatorios/devolutiva-mensal?pacienteId=${pacienteId}` : "/relatorios/devolutiva-mensal"}
+            aria-disabled={!pacienteId}
+            className={
+              "inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 " +
+              (!pacienteId ? "pointer-events-none opacity-50" : "")
+            }
+          >
+            Devolutiva mensal
+          </Link>
+        </div>
 
         {msg ? <p className="mt-3 text-sm text-red-600">{msg}</p> : null}
         {loading ? <p className="mt-3 text-sm text-gray-600">Gerando...</p> : null}

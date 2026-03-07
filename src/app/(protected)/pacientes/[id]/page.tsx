@@ -232,6 +232,18 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 >
                   Relatorio Evolutivo
                 </Link>
+                <Link
+                  href={`/relatorios/devolutiva-dia?pacienteId=${paciente.id}`}
+                  className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                >
+                  Devolutiva diaria
+                </Link>
+                <Link
+                  href={`/relatorios/devolutiva-mensal?pacienteId=${paciente.id}`}
+                  className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                >
+                  Devolutiva mensal
+                </Link>
               </div>
             </div>
           </div>
