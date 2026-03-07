@@ -26,6 +26,11 @@ type DiaReport = {
     resumo_repasse: string | null;
     motivo: string | null;
   }>;
+  evolucoes?: Array<{
+    id: number;
+    data: string;
+    payload?: Record<string, unknown> | null;
+  }>;
 };
 
 function ymdToday(): string {
@@ -61,6 +66,15 @@ function readApiError(json: unknown): string | null {
   return typeof rec.error === "string" ? rec.error : null;
 }
 
+type DesempenhoKey = "ajuda" | "nao_fez" | "independente";
+
+function normalizeDesempenho(value: unknown): DesempenhoKey | null {
+  if (typeof value !== "string") return null;
+  const v = value.toLowerCase().trim().replace(/\s+/g, "_");
+  if (v === "ajuda" || v === "nao_fez" || v === "independente") return v;
+  return null;
+}
+
 export function DevolutivaDiaClient(props: {
   pacienteId: number;
   pacienteNome: string;
@@ -68,6 +82,7 @@ export function DevolutivaDiaClient(props: {
   const [dataRef, setDataRef] = useState(ymdToday());
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [report, setReport] = useState<DiaReport | null>(null);
 
   const query = useMemo(() => {
@@ -82,37 +97,117 @@ export function DevolutivaDiaClient(props: {
     if (!report) return "";
     const dia = fmtDate(report.periodo.from);
     const total = report.indicadores.totalAtendimentos;
-    const presentes = report.indicadores.presentes;
-    const ausentes = report.indicadores.ausentes;
-    const taxa = report.indicadores.taxaPresencaPercent;
 
     if (!total) {
-      return `No dia ${dia}, nao houve atendimentos registrados para ${props.pacienteNome}.`;
+      return `No dia ${dia}, nao houve devolutiva registrada para ${props.pacienteNome}.`;
     }
 
-    const atendimentoLabel = total === 1 ? "atendimento" : "atendimentos";
-    const presencaLabel = presentes === 1 ? "presenca" : "presencas";
-    const faltaLabel = ausentes === 1 ? "falta" : "faltas";
+    const base = `No dia ${dia}, a equipe realizou o acompanhamento de ${props.pacienteNome}.`;
 
-    const base =
-      `No dia ${dia}, ${props.pacienteNome} teve ${total} ${atendimentoLabel}, ` +
-      `${presentes} ${presencaLabel} e ${ausentes} ${faltaLabel} (taxa de presenca ${taxa}%).`;
-
-    const devolutivas = (report.destaques.ultimasObservacoes || [])
+    const devolutivas = (report.atendimentos || [])
       .slice(0, 2)
-      .map((o) => `${o.terapeuta_nome}: ${o.texto}`)
-      .map((t) => (t.length > 170 ? `${t.slice(0, 170)}...` : t));
+      .map((a) => (a.resumo_repasse || a.observacoes || a.motivo || "").replace(/\s+/g, " ").trim())
+      .filter(Boolean);
 
     if (!devolutivas.length) {
       return `${base} Nao houve devolutiva textual registrada pelos profissionais neste dia.`;
     }
 
-    return `${base} Principais devolutivas: ${devolutivas.join(" | ")}`;
+    return `${base} Resumo clinico: ${devolutivas.join(" ")}`;
   }, [props.pacienteNome, report]);
+
+  const desempenhoResumo = useMemo(() => {
+    const counts: Record<DesempenhoKey, number> = {
+      ajuda: 0,
+      nao_fez: 0,
+      independente: 0,
+    };
+
+    (report?.evolucoes || []).forEach((e) => {
+      const payload = e?.payload;
+      if (!payload || typeof payload !== "object") return;
+      const itensRaw = Array.isArray(payload.itensDesempenho)
+        ? payload.itensDesempenho
+        : Array.isArray(payload.itens)
+          ? payload.itens
+          : [];
+
+      itensRaw.forEach((item) => {
+        if (!item || typeof item !== "object") return;
+        const rec = item as Record<string, unknown>;
+        const d = normalizeDesempenho(rec.desempenho ?? rec.performance);
+        if (!d) return;
+        counts[d] += 1;
+      });
+    });
+
+    const total = counts.ajuda + counts.nao_fez + counts.independente;
+    const percent = (value: number) => (total ? Math.round((value / total) * 100) : 0);
+    return {
+      total,
+      rows: [
+        { key: "independente", label: "Independente", value: counts.independente, pct: percent(counts.independente), bar: "bg-green-500" },
+        { key: "ajuda", label: "Com ajuda", value: counts.ajuda, pct: percent(counts.ajuda), bar: "bg-amber-500" },
+        { key: "nao_fez", label: "Nao fez", value: counts.nao_fez, pct: percent(counts.nao_fez), bar: "bg-rose-500" },
+      ] as Array<{ key: DesempenhoKey; label: string; value: number; pct: number; bar: string }>,
+    };
+  }, [report]);
+
+  const textoResumoParaPais = useMemo(() => {
+    if (!report) return "";
+    const linhas = [`Resumo do dia (${fmtDate(report.periodo.from)})`, resumoDia];
+    if (desempenhoResumo.total) {
+      linhas.push("Desempenho do dia:");
+      desempenhoResumo.rows.forEach((row) => {
+        linhas.push(`- ${row.label}: ${row.value} (${row.pct}%)`);
+      });
+    }
+    const devolutivasProfissionais = (report.destaques?.ultimasObservacoes || [])
+      .map((o) => ({
+        data: fmtDate(o.data),
+        terapeuta: (o.terapeuta_nome || "Profissional").replace(/\s+/g, " ").trim(),
+        texto: String(o.texto || "").replace(/\s+/g, " ").trim(),
+      }))
+      .filter((o) => o.texto);
+    if (devolutivasProfissionais.length) {
+      linhas.push("Devolutiva do profissional:");
+      devolutivasProfissionais.forEach((o) => {
+        linhas.push(`- ${o.data} | ${o.terapeuta}: ${o.texto}`);
+      });
+    }
+    return linhas.join("\n");
+  }, [desempenhoResumo, report, resumoDia]);
+
+  async function copiarResumo() {
+    if (!textoResumoParaPais) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(textoResumoParaPais);
+      } else if (typeof document !== "undefined") {
+        const ta = document.createElement("textarea");
+        ta.value = textoResumoParaPais;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "absolute";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      } else {
+        throw new Error("Clipboard indisponivel");
+      }
+      setCopyMsg("Resumo copiado.");
+      setTimeout(() => setCopyMsg(null), 1800);
+    } catch {
+      setCopyMsg("Nao foi possivel copiar.");
+      setTimeout(() => setCopyMsg(null), 2200);
+    }
+  }
 
   async function consultar() {
     setLoading(true);
     setMsg(null);
+    setCopyMsg(null);
     try {
       const resp = await fetch(`/api/relatorios/evolutivo?${query}`, { cache: "no-store" });
       const json = (await resp.json().catch(() => null)) as unknown;
@@ -132,80 +227,88 @@ export function DevolutivaDiaClient(props: {
   }, []);
 
   return (
-    <main className="space-y-6">
-      <section className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-sm text-gray-500">Acompanhamento diario</p>
-            <h1 className="text-xl font-semibold text-[var(--marrom)]">Devolutiva do dia</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Paciente: <span className="font-semibold">{props.pacienteNome}</span> (#{props.pacienteId})
-            </p>
-          </div>
-          <div className="flex items-end gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-[var(--marrom)]">Dia</span>
-              <input
-                type="date"
-                value={dataRef}
-                onChange={(e) => setDataRef(e.target.value)}
-                className="rounded-lg border border-gray-200 px-3 py-2"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => void consultar()}
-              disabled={loading}
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
-            >
-              Consultar dia
-            </button>
-          </div>
+    <main className="space-y-3">
+      <div className="flex flex-wrap items-end justify-end gap-2">
+        <div className="flex items-end gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-[var(--marrom)]">Dia</span>
+            <input
+              type="date"
+              value={dataRef}
+              onChange={(e) => setDataRef(e.target.value)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void consultar()}
+            disabled={loading}
+            className="rounded-lg bg-[var(--laranja)] px-4 py-1.5 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+          >
+            Consultar dia
+          </button>
         </div>
-        {msg ? <p className="mt-3 text-sm text-red-600">{msg}</p> : null}
-      </section>
+      </div>
+      {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
 
       {loading ? (
-        <section className="rounded-xl bg-white p-6 shadow-sm">
+        <section className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-600">Carregando devolutiva...</p>
         </section>
       ) : null}
 
       {report ? (
         <>
-          <section className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do dia</h2>
+          <section className="rounded-xl bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do dia</h2>
+              <button
+                type="button"
+                onClick={() => void copiarResumo()}
+                disabled={!textoResumoParaPais}
+                className="rounded-lg border border-[var(--laranja)] px-3 py-1.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Copiar resumo
+              </button>
+            </div>
+            {copyMsg ? (
+              <p className={`mt-2 text-xs ${copyMsg.includes("Nao") ? "text-red-600" : "text-green-700"}`}>{copyMsg}</p>
+            ) : null}
             <p className="mt-2 text-sm text-gray-700">{resumoDia}</p>
           </section>
 
-          <section className="rounded-xl bg-white p-6 shadow-sm">
+          <section className="rounded-xl bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Frequencia do dia</h2>
+              <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho do dia</h2>
               <p className="text-sm text-gray-600">{fmtDate(report.periodo.from)}</p>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Total de atendimentos</p>
-                <p className="text-2xl font-bold text-[var(--marrom)]">{report.indicadores.totalAtendimentos}</p>
+            <p className="mt-1 text-sm text-gray-600">
+              Baseado nos registros de metas das evolucoes do dia ({desempenhoResumo.total} item(ns)).
+            </p>
+            {desempenhoResumo.total ? (
+              <div className="mt-4 space-y-3">
+                {desempenhoResumo.rows.map((row) => (
+                  <div key={row.key}>
+                    <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
+                      <span>{row.label}</span>
+                      <span className="font-semibold">
+                        {row.value} ({row.pct}%)
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                      <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${row.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Presentes</p>
-                <p className="text-2xl font-bold text-green-600">{report.indicadores.presentes}</p>
-              </div>
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Ausentes</p>
-                <p className="text-2xl font-bold text-red-600">{report.indicadores.ausentes}</p>
-              </div>
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Taxa de presenca</p>
-                <p className="text-2xl font-bold text-[var(--marrom)]">
-                  {report.indicadores.taxaPresencaPercent}%
-                </p>
-              </div>
-            </div>
+            ) : (
+              <p className="mt-3 text-sm text-gray-600">
+                Nao ha dados de desempenho estruturado nas evolucoes deste dia.
+              </p>
+            )}
           </section>
 
-          <section className="rounded-xl bg-white p-6 shadow-sm">
+          <section className="rounded-xl bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-[var(--marrom)]">Atendimentos do dia</h2>
               <span className="text-sm text-gray-500">{report.atendimentos.length} itens</span>
@@ -247,7 +350,7 @@ export function DevolutivaDiaClient(props: {
             </div>
           </section>
 
-          <section className="rounded-xl bg-white p-6 shadow-sm">
+          <section className="rounded-xl bg-white p-4 shadow-sm">
             <h2 className="text-lg font-semibold text-[var(--marrom)]">Devolutiva do profissional</h2>
             <p className="mt-1 text-sm text-gray-600">
               Comentarios e registros clinicos feitos no dia selecionado.
