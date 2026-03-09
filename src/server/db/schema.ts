@@ -119,7 +119,9 @@ export const pacientes = pgTable(
     documento: varchar("documento", { length: 255 }),
     ativo: boolean("ativo").notNull().default(true),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -237,7 +239,9 @@ export const atendimentos = pgTable(
     motivo: text("motivo"),
     observacoes: text("observacoes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }),
+    deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
