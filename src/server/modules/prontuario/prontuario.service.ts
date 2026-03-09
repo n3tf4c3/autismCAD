@@ -244,7 +244,7 @@ export async function obterEvolucaoPorId(id: number) {
   return {
     ...row,
     data: row.data ? String(row.data).slice(0, 10) : row.data,
-    created_at: row.created_at ? String(row.created_at).slice(0, 10) : row.created_at,
+    created_at: row.created_at ? String(row.created_at) : row.created_at,
   };
 }
 
