@@ -109,19 +109,24 @@ export async function salvarTerapeuta(input: SaveTerapeutaInput, id?: number | n
     updatedAt: sql`now()`,
   };
 
-  if (id) {
-    await db
-      .update(terapeutas)
-      .set(payload)
-      .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)));
-    return id;
-  }
+  return runDbTransaction(
+    async (tx) => {
+      if (id) {
+        await tx
+          .update(terapeutas)
+          .set(payload)
+          .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)));
+        return id;
+      }
 
-  const [saved] = await db
-    .insert(terapeutas)
-    .values(payload)
-    .returning({ id: terapeutas.id });
-  return saved.id;
+      const [saved] = await tx
+        .insert(terapeutas)
+        .values(payload)
+        .returning({ id: terapeutas.id });
+      return saved.id;
+    },
+    { operation: "terapeutas.salvarTerapeuta", mode: "required" }
+  );
 }
 
 export async function obterTerapeutaPorUsuario(userId: number) {
