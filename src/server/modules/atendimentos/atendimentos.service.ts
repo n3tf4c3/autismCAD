@@ -9,6 +9,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
+import { runDbTransaction } from "@/server/db/transaction";
 import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
 import {
   AtendimentosQueryInput,
@@ -54,7 +55,9 @@ function parseDateOnlyUtc(value: string): Date {
   return dt;
 }
 
-async function existeConflitoHorario(params: {
+type DbExecutor = typeof db;
+
+async function existeConflitoHorario(executor: DbExecutor, params: {
   pacienteId: number;
   data: string;
   horaInicio: string;
@@ -72,13 +75,97 @@ async function existeConflitoHorario(params: {
     where.push(sql`${atendimentos.id} <> ${params.ignoreId}`);
   }
 
-  const [row] = await db
+  const [row] = await executor
     .select({ id: atendimentos.id })
     .from(atendimentos)
     .where(and(...where))
     .limit(1);
 
   return Boolean(row);
+}
+
+async function salvarAtendimentoDb(
+  executor: DbExecutor,
+  input: SaveAtendimentoInput,
+  id?: number | null
+) {
+  const data = normalizeDateRequired(input.data);
+  const horaInicio = normalizeTime(input.horaInicio);
+  const horaFim = normalizeTime(input.horaFim);
+  const turno = normalizeTurno(input.turno);
+  const presenca = normalizePresenca(input.presenca);
+
+  if (presenca === "Ausente" && !input.motivo?.trim()) {
+    throw new AppError("Motivo e obrigatorio quando ausente", 400, "MOTIVO_REQUIRED");
+  }
+
+  const conflito = await existeConflitoHorario(executor, {
+    pacienteId: input.pacienteId,
+    data,
+    horaInicio,
+    horaFim,
+    ignoreId: id ?? null,
+  });
+  if (conflito) {
+    throw new AppError("Conflito de horario para este paciente", 409, "SCHEDULE_CONFLICT");
+  }
+
+  const realizado = presenca === "Presente";
+
+  if (id) {
+    const [existing] = await executor
+      .select({ id: atendimentos.id })
+      .from(atendimentos)
+      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+      .limit(1);
+    if (!existing) {
+      throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+    }
+
+    const [updated] = await executor
+      .update(atendimentos)
+      .set({
+        pacienteId: input.pacienteId,
+        terapeutaId: input.terapeutaId,
+        data,
+        horaInicio,
+        horaFim,
+        turno,
+        periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
+        periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
+        presenca,
+        realizado,
+        motivo: input.motivo?.trim() || null,
+        observacoes: input.observacoes?.trim() || null,
+        updatedAt: sql`now()`,
+      })
+      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+      .returning({ id: atendimentos.id });
+    if (!updated) {
+      throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+    }
+    return id;
+  }
+
+  const [saved] = await executor
+    .insert(atendimentos)
+    .values({
+      pacienteId: input.pacienteId,
+      terapeutaId: input.terapeutaId,
+      data,
+      horaInicio,
+      horaFim,
+      turno,
+      periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
+      periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
+      presenca,
+      realizado,
+      motivo: input.motivo?.trim() || null,
+      observacoes: input.observacoes?.trim() || null,
+    })
+    .returning({ id: atendimentos.id });
+
+  return saved.id;
 }
 
 export async function listarAtendimentos(filters: AtendimentosQueryInput) {
@@ -136,83 +223,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
 }
 
 export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number | null) {
-  const data = normalizeDateRequired(input.data);
-  const horaInicio = normalizeTime(input.horaInicio);
-  const horaFim = normalizeTime(input.horaFim);
-  const turno = normalizeTurno(input.turno);
-  const presenca = normalizePresenca(input.presenca);
-
-  if (presenca === "Ausente" && !input.motivo?.trim()) {
-    throw new AppError("Motivo e obrigatorio quando ausente", 400, "MOTIVO_REQUIRED");
-  }
-
-  const conflito = await existeConflitoHorario({
-    pacienteId: input.pacienteId,
-    data,
-    horaInicio,
-    horaFim,
-    ignoreId: id ?? null,
-  });
-  if (conflito) {
-    throw new AppError("Conflito de horario para este paciente", 409, "SCHEDULE_CONFLICT");
-  }
-
-  const realizado = presenca === "Presente";
-
-  if (id) {
-    const [existing] = await db
-      .select({ id: atendimentos.id })
-      .from(atendimentos)
-      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-      .limit(1);
-    if (!existing) {
-      throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
-    }
-
-    const [updated] = await db
-      .update(atendimentos)
-      .set({
-        pacienteId: input.pacienteId,
-        terapeutaId: input.terapeutaId,
-        data,
-        horaInicio,
-        horaFim,
-        turno,
-        periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
-        periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
-        presenca,
-        realizado,
-        motivo: input.motivo?.trim() || null,
-        observacoes: input.observacoes?.trim() || null,
-        updatedAt: sql`now()`,
-      })
-      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-      .returning({ id: atendimentos.id });
-    if (!updated) {
-      throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
-    }
-    return id;
-  }
-
-  const [saved] = await db
-    .insert(atendimentos)
-    .values({
-      pacienteId: input.pacienteId,
-      terapeutaId: input.terapeutaId,
-      data,
-      horaInicio,
-      horaFim,
-      turno,
-      periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
-      periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
-      presenca,
-      realizado,
-      motivo: input.motivo?.trim() || null,
-      observacoes: input.observacoes?.trim() || null,
-    })
-    .returning({ id: atendimentos.id });
-
-  return saved.id;
+  return salvarAtendimentoDb(db, input, id);
 }
 
 export async function softDeleteAtendimento(id: number, deletedByUserId?: number | null) {
@@ -240,46 +251,56 @@ export async function criarRecorrentes(payload: RecorrenteInput) {
   }
 
   const dias = new Set(payload.diasSemana);
-  const results: { id: number; data: string }[] = [];
-  let total = 0;
+  return runDbTransaction(
+    async (tx) => {
+      const results: { id: number; data: string }[] = [];
+      let total = 0;
 
-  // Use UTC to avoid timezone-dependent getDay() behavior for date-only strings.
-  for (let dt = new Date(inicio); dt <= fim; dt.setUTCDate(dt.getUTCDate() + 1)) {
-    const dow = dt.getUTCDay(); // 0..6 (Sun..Sat) matches Postgres extract(dow)
-    if (!dias.has(dow)) continue;
-    total += 1;
-    if (total > 400) {
-      throw new AppError("Intervalo muito grande. Limite de 400 atendimentos por lote.", 400, "TOO_LARGE");
-    }
-    const data = dt.toISOString().slice(0, 10);
-    const id = await salvarAtendimento(
-      {
-        pacienteId: payload.pacienteId,
-        terapeutaId: payload.terapeutaId,
-        data,
-        horaInicio: payload.horaInicio,
-        horaFim: payload.horaFim,
-        turno: payload.turno,
-        periodoInicio: payload.periodoInicio,
-        periodoFim: payload.periodoFim,
-        presenca: payload.presenca,
-        motivo: payload.motivo,
-        observacoes: payload.observacoes,
-      },
-      null
-    );
-    results.push({ id, data });
-  }
+      // Use UTC to avoid timezone-dependent getDay() behavior for date-only strings.
+      for (let dt = new Date(inicio); dt <= fim; dt.setUTCDate(dt.getUTCDate() + 1)) {
+        const dow = dt.getUTCDay(); // 0..6 (Sun..Sat) matches Postgres extract(dow)
+        if (!dias.has(dow)) continue;
+        total += 1;
+        if (total > 400) {
+          throw new AppError(
+            "Intervalo muito grande. Limite de 400 atendimentos por lote.",
+            400,
+            "TOO_LARGE"
+          );
+        }
+        const data = dt.toISOString().slice(0, 10);
+        const id = await salvarAtendimentoDb(
+          tx,
+          {
+            pacienteId: payload.pacienteId,
+            terapeutaId: payload.terapeutaId,
+            data,
+            horaInicio: payload.horaInicio,
+            horaFim: payload.horaFim,
+            turno: payload.turno,
+            periodoInicio: payload.periodoInicio,
+            periodoFim: payload.periodoFim,
+            presenca: payload.presenca,
+            motivo: payload.motivo,
+            observacoes: payload.observacoes,
+          },
+          null
+        );
+        results.push({ id, data });
+      }
 
-  if (!results.length) {
-    throw new AppError(
-      "Nenhum atendimento gerado para o periodo e dias selecionados",
-      400,
-      "NO_MATCH"
-    );
-  }
+      if (!results.length) {
+        throw new AppError(
+          "Nenhum atendimento gerado para o periodo e dias selecionados",
+          400,
+          "NO_MATCH"
+        );
+      }
 
-  return { criados: results.length, atendimentos: results };
+      return { criados: results.length, atendimentos: results };
+    },
+    { operation: "atendimentos.criarRecorrentes", mode: "required" }
+  );
 }
 
 export async function excluirDia(payload: ExcluirDiaInput, deletedByUserId?: number | null) {
