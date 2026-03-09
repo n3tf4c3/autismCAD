@@ -6,8 +6,6 @@ import {
   eq,
   inArray,
   isNull,
-  isNotNull,
-  ne,
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
@@ -315,25 +313,7 @@ export async function listRoles() {
     .select({ nome: roles.slug })
     .from(roles)
     .orderBy(asc(roles.slug));
-  const userRoles = await db
-    .select({ nome: users.role })
-    .from(users)
-    .where(
-      and(
-        isNotNull(users.role),
-        ne(users.role, ""),
-        eq(users.ativo, true),
-        isNull(users.deletedAt)
-      )
-    );
-
-  const roleNames = new Set<string>();
-  baseRoles.forEach((item) => roleNames.add(item.nome));
-  userRoles.forEach((item) => roleNames.add(item.nome));
-
-  return Array.from(roleNames)
-    .sort((a, b) => a.localeCompare(b))
-    .map((nome) => ({ nome }));
+  return baseRoles;
 }
 
 export async function getRolePermissions(roleName: string) {
