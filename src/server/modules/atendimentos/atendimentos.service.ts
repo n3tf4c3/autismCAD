@@ -163,13 +163,13 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
     const [existing] = await db
       .select({ id: atendimentos.id })
       .from(atendimentos)
-      .where(eq(atendimentos.id, id))
+      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
       .limit(1);
     if (!existing) {
       throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
     }
 
-    await db
+    const [updated] = await db
       .update(atendimentos)
       .set({
         pacienteId: input.pacienteId,
@@ -186,7 +186,11 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
         observacoes: input.observacoes?.trim() || null,
         updatedAt: sql`now()`,
       })
-      .where(eq(atendimentos.id, id));
+      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+      .returning({ id: atendimentos.id });
+    if (!updated) {
+      throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+    }
     return id;
   }
 
