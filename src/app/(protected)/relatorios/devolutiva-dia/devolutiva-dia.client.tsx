@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DesempenhoPorHabilidadeChart } from "@/components/desempenho-por-habilidade-chart";
+import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 
 type DiaReport = {
   paciente: { id: number; nome: string };
@@ -66,16 +68,8 @@ function readApiError(json: unknown): string | null {
   return typeof rec.error === "string" ? rec.error : null;
 }
 
-type DesempenhoKey = "ajuda" | "nao_fez" | "independente";
 type ComportamentoLado = "negativo" | "positivo";
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
-
-function normalizeDesempenho(value: unknown): DesempenhoKey | null {
-  if (typeof value !== "string") return null;
-  const v = value.toLowerCase().trim().replace(/\s+/g, "_");
-  if (v === "ajuda" || v === "nao_fez" || v === "independente") return v;
-  return null;
-}
 
 function normalizeComportamentoResultado(value: unknown): ComportamentoResultado | null {
   if (typeof value !== "string") return null;
@@ -175,40 +169,7 @@ export function DevolutivaDiaClient(props: {
   }, [props.pacienteNome, report]);
 
   const desempenhoResumo = useMemo(() => {
-    const counts: Record<DesempenhoKey, number> = {
-      ajuda: 0,
-      nao_fez: 0,
-      independente: 0,
-    };
-
-    (report?.evolucoes || []).forEach((e) => {
-      const payload = e?.payload;
-      if (!payload || typeof payload !== "object") return;
-      const itensRaw = Array.isArray(payload.itensDesempenho)
-        ? payload.itensDesempenho
-        : Array.isArray(payload.itens)
-          ? payload.itens
-          : [];
-
-      itensRaw.forEach((item) => {
-        if (!item || typeof item !== "object") return;
-        const rec = item as Record<string, unknown>;
-        const d = normalizeDesempenho(rec.desempenho ?? rec.performance);
-        if (!d) return;
-        counts[d] += 1;
-      });
-    });
-
-    const total = counts.ajuda + counts.nao_fez + counts.independente;
-    const percent = (value: number) => (total ? Math.round((value / total) * 100) : 0);
-    return {
-      total,
-      rows: [
-        { key: "independente", label: "Independente", value: counts.independente, pct: percent(counts.independente), bar: "bg-green-500" },
-        { key: "ajuda", label: "Com ajuda", value: counts.ajuda, pct: percent(counts.ajuda), bar: "bg-amber-500" },
-        { key: "nao_fez", label: "Nao fez", value: counts.nao_fez, pct: percent(counts.nao_fez), bar: "bg-rose-500" },
-      ] as Array<{ key: DesempenhoKey; label: string; value: number; pct: number; bar: string }>,
-    };
+    return buildDesempenhoResumo(report?.evolucoes);
   }, [report]);
 
   const comportamentoResumo = useMemo(() => {
@@ -456,11 +417,18 @@ export function DevolutivaDiaClient(props: {
                         {row.value} ({row.pct}%)
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div className={`h-2 overflow-hidden rounded-full ${row.track}`}>
                       <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${row.pct}%` }} />
                     </div>
                   </div>
                 ))}
+
+                <DesempenhoPorHabilidadeChart
+                  rows={desempenhoResumo.rowsBySkill}
+                  title="Grafico por habilidade"
+                  subtitle="Cada habilidade mostra a distribuicao dos registros do dia em barras horizontais."
+                  emptyMessage="Nao ha habilidades suficientes para montar o grafico deste dia."
+                />
               </div>
             ) : (
               <p className="mt-3 text-sm text-gray-600">

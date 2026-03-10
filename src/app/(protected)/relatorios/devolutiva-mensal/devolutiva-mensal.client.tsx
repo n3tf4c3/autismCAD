@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DesempenhoPorHabilidadeChart } from "@/components/desempenho-por-habilidade-chart";
+import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 
 type MensalReport = {
   paciente: { id: number; nome: string };
@@ -38,7 +40,6 @@ type MensalReport = {
   }>;
 };
 
-type DesempenhoKey = "ajuda" | "nao_fez" | "independente";
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
 
 function ymdFromLocalDate(d: Date): string {
@@ -88,13 +89,6 @@ function readApiError(json: unknown): string | null {
   if (!json || typeof json !== "object") return null;
   const rec = json as Record<string, unknown>;
   return typeof rec.error === "string" ? rec.error : null;
-}
-
-function normalizeDesempenho(value: unknown): DesempenhoKey | null {
-  if (typeof value !== "string") return null;
-  const v = value.toLowerCase().trim().replace(/\s+/g, "_");
-  if (v === "ajuda" || v === "nao_fez" || v === "independente") return v;
-  return null;
 }
 
 function normalizeComportamentoResultado(value: unknown): ComportamentoResultado | null {
@@ -174,88 +168,7 @@ export function DevolutivaMensalClient(props: {
   }, [monthRef, props.pacienteId]);
 
   const desempenhoMensal = useMemo(() => {
-    const counts: Record<DesempenhoKey, number> = {
-      ajuda: 0,
-      nao_fez: 0,
-      independente: 0,
-    };
-    const byDay = new Map<
-      string,
-      { total: number; ajuda: number; nao_fez: number; independente: number }
-    >();
-
-    (report?.evolucoes || []).forEach((e) => {
-      const payload = e?.payload;
-      if (!payload || typeof payload !== "object") return;
-      const itensRaw = Array.isArray(payload.itensDesempenho)
-        ? payload.itensDesempenho
-        : Array.isArray(payload.itens)
-          ? payload.itens
-          : [];
-
-      itensRaw.forEach((item) => {
-        if (!item || typeof item !== "object") return;
-        const rec = item as Record<string, unknown>;
-        const d = normalizeDesempenho(rec.desempenho ?? rec.performance);
-        if (!d) return;
-        counts[d] += 1;
-
-        const dateKey = String(e.data || "").slice(0, 10);
-        if (!dateKey) return;
-        if (!byDay.has(dateKey)) {
-          byDay.set(dateKey, { total: 0, ajuda: 0, nao_fez: 0, independente: 0 });
-        }
-        const day = byDay.get(dateKey);
-        if (!day) return;
-        day.total += 1;
-        day[d] += 1;
-      });
-    });
-
-    const total = counts.ajuda + counts.nao_fez + counts.independente;
-    const percent = (value: number) => (total ? Math.round((value / total) * 100) : 0);
-
-    const rowsByDay = Array.from(byDay.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, day]) => ({
-        date,
-        total: day.total,
-        ajuda: day.ajuda,
-        nao_fez: day.nao_fez,
-        independente: day.independente,
-        pctAjuda: day.total ? Math.round((day.ajuda / day.total) * 100) : 0,
-        pctNaoFez: day.total ? Math.round((day.nao_fez / day.total) * 100) : 0,
-        pctIndependente: day.total ? Math.round((day.independente / day.total) * 100) : 0,
-      }));
-
-    return {
-      total,
-      diasComRegistro: rowsByDay.length,
-      rows: [
-        {
-          key: "independente",
-          label: "Independente",
-          value: counts.independente,
-          pct: percent(counts.independente),
-          bar: "bg-green-500",
-        },
-        {
-          key: "ajuda",
-          label: "Com ajuda",
-          value: counts.ajuda,
-          pct: percent(counts.ajuda),
-          bar: "bg-amber-500",
-        },
-        {
-          key: "nao_fez",
-          label: "Nao fez",
-          value: counts.nao_fez,
-          pct: percent(counts.nao_fez),
-          bar: "bg-rose-500",
-        },
-      ] as Array<{ key: DesempenhoKey; label: string; value: number; pct: number; bar: string }>,
-      rowsByDay,
-    };
+    return buildDesempenhoResumo(report?.evolucoes);
   }, [report]);
 
   const comportamentoMensal = useMemo(() => {
@@ -520,11 +433,18 @@ export function DevolutivaMensalClient(props: {
                         {row.value} ({row.pct}%)
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div className={`h-2 overflow-hidden rounded-full ${row.track}`}>
                       <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${row.pct}%` }} />
                     </div>
                   </div>
                 ))}
+
+                <DesempenhoPorHabilidadeChart
+                  rows={desempenhoMensal.rowsBySkill}
+                  title="Grafico por habilidade"
+                  subtitle="Distribuicao mensal das habilidades registradas, mantendo barras horizontais."
+                  emptyMessage="Nao ha habilidades suficientes para montar o grafico deste mes."
+                />
               </div>
             ) : null}
 
