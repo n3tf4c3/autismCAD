@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { RecentFeedbackList } from "@/components/reports/recent-feedback-list";
+import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
@@ -302,6 +304,16 @@ export function DevolutivaDiaClient(props: {
     return linhas.join("\n");
   }, [comportamentoResumo, desempenhoResumo, report, resumoDia]);
 
+  const feedbackItems = useMemo(() => {
+    return (report?.destaques?.ultimasObservacoes || []).map((item, index) => ({
+      id: `${item.data}-${item.terapeuta_nome}-${index}`,
+      dateLabel: fmtDate(item.data),
+      professional: item.terapeuta_nome || "Profissional",
+      origin: item.origem || "devolutiva",
+      text: item.texto || "",
+    }));
+  }, [report]);
+
   async function copiarResumo() {
     if (!textoResumoParaPais) return;
     try {
@@ -353,8 +365,8 @@ export function DevolutivaDiaClient(props: {
   return (
     <main className="space-y-4">
       <ReportFilters
-        title="Filtro do periodo"
-        description="Selecione o dia desejado para atualizar os indicadores, os cards de habilidade e os detalhes dos atendimentos sem alterar a regra atual de consulta."
+        title="Periodo"
+        description="Selecione o dia para atualizar o resumo, as habilidades e os comentarios."
         label="Dia"
         type="date"
         value={dataRef}
@@ -362,6 +374,7 @@ export function DevolutivaDiaClient(props: {
         buttonLabel="Consultar dia"
         onSubmit={() => void consultar()}
         loading={loading}
+        compact
       />
 
       {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
@@ -374,12 +387,22 @@ export function DevolutivaDiaClient(props: {
 
       {report ? (
         <>
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <ReportSectionTabs
+            items={[
+              { id: "resumo", label: "Resumo" },
+              { id: "habilidades", label: "Habilidades", badge: desempenhoResumo.rowsBySkill.length },
+              { id: "devolutivas", label: "Devolutivas", badge: feedbackItems.length },
+              { id: "comportamentos", label: "Comport.", badge: comportamentoResumo.total },
+              { id: "atendimentos", label: "Atend.", badge: report.atendimentos.length },
+            ]}
+          />
+
+          <section id="resumo" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do dia</h2>
+                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Resumo rapido</h2>
                 <p className="mt-1 text-sm text-gray-700">
-                  Visao geral do periodo selecionado com os mesmos indicadores ja carregados pela tela atual.
+                  Baseado nos registros de metas e atendimentos do dia {fmtDate(report.periodo.from)}.
                 </p>
               </div>
               <button
@@ -397,6 +420,20 @@ export function DevolutivaDiaClient(props: {
 
             <div className="mt-4">
               <ReportSummaryCards
+                compact
+                columns={3}
+                items={desempenhoResumo.rows.map((row) => ({
+                  label: row.label,
+                  value: row.value,
+                  description: `${row.pct}% do total avaliado.`,
+                  tone: row.key === "independente" ? "success" : row.key === "ajuda" ? "warning" : "danger",
+                }))}
+              />
+            </div>
+
+            <div className="mt-3">
+              <ReportSummaryCards
+                compact
                 items={[
                   {
                     label: "Atendimentos",
@@ -407,68 +444,61 @@ export function DevolutivaDiaClient(props: {
                   {
                     label: "Presencas",
                     value: report.indicadores.presentes,
-                    description: "Atendimentos com presenca registrada.",
+                    description: "Atendimentos com presenca.",
                     tone: "success",
                   },
                   {
                     label: "Ausencias",
                     value: report.indicadores.ausentes,
-                    description: "Atendimentos sem presenca no dia.",
+                    description: "Atendimentos sem presenca.",
                     tone: "danger",
                   },
                   {
-                    label: "Taxa de presenca",
+                    label: "Taxa",
                     value: `${report.indicadores.taxaPresencaPercent}%`,
-                    description: "Percentual do dia selecionado.",
+                    description: "Percentual do dia.",
                     tone: "warning",
                   },
                 ]}
               />
             </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm leading-6 text-gray-700">{resumoDia}</p>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+              <p className="text-sm text-gray-700">{resumoDia}</p>
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--laranja)]">Ver resumo para compartilhar</summary>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-700">{textoResumoParaPais}</p>
+              </details>
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <SkillsGrid
+            sectionId="habilidades"
+            compact
+            rows={desempenhoResumo.rowsBySkill}
+            title="Habilidades avaliadas"
+            subtitle="Cards mais compactos para leitura rapida no celular, mantendo comparacao clara entre os tres status."
+            emptyMessage="Nao ha habilidades suficientes para montar o grafico deste dia."
+          />
+
+          <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho do dia</h2>
-                <p className="mt-1 text-sm text-gray-700">
-                  Baseado nos registros de metas das evolucoes do dia ({desempenhoResumo.total} item(ns)).
-                </p>
+                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Devolutivas do profissional</h2>
+                <p className="mt-1 text-sm text-gray-700">Comentarios com preview compacto e expansao sob demanda.</p>
               </div>
-              <p className="text-sm font-medium text-gray-600">{fmtDate(report.periodo.from)}</p>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                {feedbackItems.length} item(ns)
+              </span>
             </div>
-
-            {desempenhoResumo.total ? (
-              <div className="mt-4 space-y-4">
-                <ReportSummaryCards
-                  items={desempenhoResumo.rows.map((row) => ({
-                    label: row.label,
-                    value: row.value,
-                    description: `${row.pct}% do total avaliado.`,
-                    tone:
-                      row.key === "independente" ? "success" : row.key === "ajuda" ? "warning" : "danger",
-                  }))}
-                />
-
-                <SkillsGrid
-                  rows={desempenhoResumo.rowsBySkill}
-                  title="Habilidades avaliadas"
-                  subtitle="Cada habilidade foi condensada em um card compacto com barra empilhada para reduzir scroll e facilitar comparacao."
-                  emptyMessage="Nao ha habilidades suficientes para montar o grafico deste dia."
-                />
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-gray-700">
-                Nao ha dados de desempenho estruturado nas evolucoes deste dia.
-              </p>
-            )}
+            <RecentFeedbackList
+              items={feedbackItems}
+              previewLength={180}
+              emptyMessage="Sem devolutiva registrada para este dia."
+            />
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <section id="comportamentos" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--marrom)]">Grafico de comportamento</h2>
@@ -481,6 +511,8 @@ export function DevolutivaDiaClient(props: {
             {comportamentoResumo.total ? (
               <div className="mt-4 space-y-4">
                 <ReportSummaryCards
+                  compact
+                  columns={3}
                   items={[
                     {
                       label: "Negativos",
@@ -573,14 +605,41 @@ export function DevolutivaDiaClient(props: {
             )}
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <section id="atendimentos" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-[var(--marrom)]">Atendimentos do dia</h2>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-gray-600">
                 {report.atendimentos.length} itens
               </span>
             </div>
-            <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+
+            <div className="mt-4 space-y-3 lg:hidden">
+              {report.atendimentos.length ? (
+                report.atendimentos.map((a) => (
+                  <article key={a.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--marrom)]">
+                          {fmtHour(a.hora_inicio)} - {fmtHour(a.hora_fim)}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-600">{a.terapeuta_nome || "Profissional"}</p>
+                      </div>
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700">
+                        {a.presenca}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-xs text-gray-600">Duracao: {a.duracao_min || "-"} min</p>
+                    <p className="mt-2 text-sm text-gray-700">
+                      {(a.resumo_repasse || a.observacoes || a.motivo || "-").slice(0, 180)}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <p className="text-sm text-gray-600">Nenhum atendimento registrado para este dia.</p>
+              )}
+            </div>
+
+            <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-slate-200 lg:block">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50">
                   <tr>
@@ -615,30 +674,6 @@ export function DevolutivaDiaClient(props: {
                 </tbody>
               </table>
             </div>
-          </section>
-
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-lg font-semibold text-[var(--marrom)]">Devolutiva do profissional</h2>
-            <p className="mt-1 text-sm text-gray-700">
-              Comentarios e registros clinicos feitos no dia selecionado.
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-800">
-              {(report.destaques.ultimasObservacoes || []).length ? (
-                report.destaques.ultimasObservacoes.map((o, idx) => (
-                  <li
-                    key={`${o.data}-${o.terapeuta_nome}-${idx}`}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <p className="text-xs text-gray-600">
-                      {fmtDate(o.data)} - {o.terapeuta_nome} - {o.origem}
-                    </p>
-                    <p className="mt-1">{o.texto}</p>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-600">Sem devolutiva registrada para este dia.</li>
-              )}
-            </ul>
           </section>
         </>
       ) : null}

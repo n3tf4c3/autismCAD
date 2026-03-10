@@ -7,6 +7,12 @@ export type ReportSummaryCardItem = {
   tone?: ReportSummaryTone;
 };
 
+export type ReportSectionTabItem = {
+  id: string;
+  label: string;
+  badge?: number | string;
+};
+
 export type SkillPerformanceRow = {
   key: string;
   label: string;
@@ -17,4 +23,23 @@ export type SkillPerformanceRow = {
   pctAjuda: number;
   pctNaoFez: number;
   pctIndependente: number;
+};
+
+export type DailyDistributionRow = {
+  date: string;
+  total: number;
+  ajuda: number;
+  nao_fez: number;
+  independente: number;
+  pctAjuda: number;
+  pctNaoFez: number;
+  pctIndependente: number;
+};
+
+export type RecentFeedbackItem = {
+  id: string;
+  dateLabel: string;
+  professional: string;
+  origin: string;
+  text: string;
 };

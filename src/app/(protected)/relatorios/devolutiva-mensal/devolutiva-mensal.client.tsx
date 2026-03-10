@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DailyTimeline } from "@/components/reports/daily-timeline";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { RecentFeedbackList } from "@/components/reports/recent-feedback-list";
+import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
@@ -276,6 +279,16 @@ export function DevolutivaMensalClient(props: {
     return lines.join("\n");
   }, [desempenhoMensal, monthRef, props.pacienteNome, report]);
 
+  const feedbackItems = useMemo(() => {
+    return (report?.destaques?.ultimasObservacoes || []).map((item, index) => ({
+      id: `${item.data}-${item.terapeuta_nome}-${index}`,
+      dateLabel: fmtDate(item.data),
+      professional: item.terapeuta_nome || "Profissional",
+      origin: item.origem || "devolutiva",
+      text: item.texto || "",
+    }));
+  }, [report]);
+
   async function copiarResumo() {
     if (!resumoMensal) return;
     try {
@@ -331,8 +344,8 @@ export function DevolutivaMensalClient(props: {
   return (
     <main className="space-y-4">
       <ReportFilters
-        title="Filtro do periodo"
-        description="Selecione o mes para atualizar o consolidado da mesma API atual, agora com leitura mais compacta para muitas habilidades."
+        title="Periodo"
+        description="Selecione o mes para atualizar o consolidado sem sair da tela."
         label="Mes"
         type="month"
         value={monthRef}
@@ -340,6 +353,7 @@ export function DevolutivaMensalClient(props: {
         buttonLabel="Consultar mes"
         onSubmit={() => void consultar()}
         loading={loading}
+        compact
       />
 
       {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
@@ -352,12 +366,24 @@ export function DevolutivaMensalClient(props: {
 
       {report ? (
         <>
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <ReportSectionTabs
+            items={[
+              { id: "resumo", label: "Resumo" },
+              { id: "habilidades", label: "Habilidades", badge: desempenhoMensal.rowsBySkill.length },
+              { id: "devolutivas", label: "Devolutivas", badge: feedbackItems.length },
+              { id: "comportamentos", label: "Comport.", badge: comportamentoMensal.total },
+              { id: "evolucao", label: "Evolucao", badge: desempenhoMensal.rowsByDay.length },
+            ]}
+          />
+
+          <section id="resumo" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do mes</h2>
+                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Resumo rapido</h2>
                 <p className="mt-1 text-sm text-gray-700">
-                  Consolidado mensal construido a partir das devolutivas diarias registradas no prontuario.
+                  {desempenhoMensal.total
+                    ? `${desempenhoMensal.total} metas avaliadas em ${desempenhoMensal.diasComRegistro} dia(s).`
+                    : "Sem metas estruturadas nas devolutivas deste mes."}
                 </p>
               </div>
               <button
@@ -375,117 +401,95 @@ export function DevolutivaMensalClient(props: {
 
             <div className="mt-4">
               <ReportSummaryCards
+                compact
+                columns={3}
+                items={desempenhoMensal.rows.map((row) => ({
+                  label: row.label,
+                  value: row.value,
+                  description: `${row.pct}% do total avaliado.`,
+                  tone: row.key === "independente" ? "success" : row.key === "ajuda" ? "warning" : "danger",
+                }))}
+              />
+            </div>
+
+            <div className="mt-3">
+              <ReportSummaryCards
+                compact
                 items={[
                   {
                     label: "Atendimentos",
                     value: report.indicadores.totalAtendimentos,
-                    description: `${report.indicadores.tempoTotalMinutos} minuto(s) acumulados no periodo.`,
+                    description: `${report.indicadores.tempoTotalMinutos} min no periodo.`,
                     tone: "brand",
                   },
                   {
                     label: "Presencas",
                     value: report.indicadores.presentes,
-                    description: "Atendimentos com presenca confirmada.",
+                    description: "Compare com o total do mes.",
                     tone: "success",
                   },
                   {
                     label: "Ausencias",
                     value: report.indicadores.ausentes,
-                    description: "Atendimentos registrados como ausencia.",
+                    description: "Atendimentos sem presenca.",
                     tone: "danger",
                   },
                   {
-                    label: "Taxa de presenca",
+                    label: "Taxa",
                     value: `${report.indicadores.taxaPresencaPercent}%`,
-                    description: `${report.indicadores.mediaMinutosPorSessao} min em media por sessao.`,
+                    description: `${report.indicadores.mediaMinutosPorSessao} min por sessao.`,
                     tone: "warning",
                   },
                 ]}
               />
             </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm leading-6 text-gray-700">
-              Periodo: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}.
-              {report.indicadores.primeiroAtendimento ? (
-                <> Primeiro atendimento: {fmtDate(report.indicadores.primeiroAtendimento)}.</>
-              ) : null}
-              {report.indicadores.ultimoAtendimento ? (
-                <> Ultimo atendimento: {fmtDate(report.indicadores.ultimoAtendimento)}.</>
-              ) : null}
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+              <p className="text-sm text-gray-700">
+                Periodo: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}.
+                {report.indicadores.primeiroAtendimento ? (
+                  <> Primeiro atendimento: {fmtDate(report.indicadores.primeiroAtendimento)}.</>
+                ) : null}
+                {report.indicadores.ultimoAtendimento ? (
+                  <> Ultimo atendimento: {fmtDate(report.indicadores.ultimoAtendimento)}.</>
+                ) : null}
               </p>
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--laranja)]">Ver resumo textual</summary>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-700">{resumoMensal}</p>
+              </details>
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <SkillsGrid
+            sectionId="habilidades"
+            compact
+            rows={desempenhoMensal.rowsBySkill}
+            title="Habilidades avaliadas"
+            subtitle="Cards compactos com barra empilhada para comparar rapidamente o desempenho em cada habilidade."
+            emptyMessage="Nao ha habilidades suficientes para montar o grafico deste mes."
+          />
+
+          <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho no mes</h2>
+                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Devolutivas recentes</h2>
                 <p className="mt-1 text-sm text-gray-700">
-                  {desempenhoMensal.total
-                    ? `${desempenhoMensal.total} metas avaliadas em ${desempenhoMensal.diasComRegistro} dia(s) com devolutiva.`
-                    : "Sem metas estruturadas nas devolutivas deste mes."}
+                  Preview compacto com opcao de expandir o texto quando necessario.
                 </p>
               </div>
-              <p className="text-sm font-medium text-gray-600">{fmtMonth(monthRef)}</p>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                {feedbackItems.length} item(ns)
+              </span>
             </div>
-
-            {desempenhoMensal.total ? (
-              <div className="mt-4 space-y-4">
-                <ReportSummaryCards
-                  items={desempenhoMensal.rows.map((row) => ({
-                    label: row.label,
-                    value: row.value,
-                    description: `${row.pct}% do total avaliado.`,
-                    tone:
-                      row.key === "independente" ? "success" : row.key === "ajuda" ? "warning" : "danger",
-                  }))}
-                />
-
-                <SkillsGrid
-                  rows={desempenhoMensal.rowsBySkill}
-                  title="Habilidades avaliadas"
-                  subtitle="Os cards agora usam barra horizontal empilhada para comparar muitas habilidades com menos altura e menos repeticao visual."
-                  emptyMessage="Nao ha habilidades suficientes para montar o grafico deste mes."
-                />
-              </div>
-            ) : null}
-
-            {desempenhoMensal.rowsByDay.length ? (
-              <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Dia</th>
-                      <th className="px-3 py-2 text-left">Total</th>
-                      <th className="px-3 py-2 text-left">Distribuicao</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {desempenhoMensal.rowsByDay.map((row) => (
-                      <tr key={row.date}>
-                        <td className="px-3 py-2">{fmtDate(row.date)}</td>
-                        <td className="px-3 py-2">{row.total}</td>
-                        <td className="px-3 py-2">
-                          <div className="mb-1 flex h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-full bg-green-500" style={{ width: `${row.pctIndependente}%` }} />
-                            <div className="h-full bg-amber-500" style={{ width: `${row.pctAjuda}%` }} />
-                            <div className="h-full bg-rose-500" style={{ width: `${row.pctNaoFez}%` }} />
-                          </div>
-                          <p className="text-xs text-gray-700">
-                            Indep: {row.independente} ({row.pctIndependente}%) | Ajuda: {row.ajuda} ({row.pctAjuda}
-                            %) | Nao fez: {row.nao_fez} ({row.pctNaoFez}%)
-                          </p>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
+            <RecentFeedbackList
+              items={feedbackItems}
+              previewLength={180}
+              emptyMessage="Sem devolutiva registrada neste mes."
+            />
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <section id="comportamentos" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do mes</h2>
@@ -498,6 +502,8 @@ export function DevolutivaMensalClient(props: {
             {comportamentoMensal.total ? (
               <div className="mt-4 space-y-4">
                 <ReportSummaryCards
+                  compact
+                  columns={3}
                   items={[
                     {
                       label: "Negativos",
@@ -557,28 +563,23 @@ export function DevolutivaMensalClient(props: {
             )}
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-lg font-semibold text-[var(--marrom)]">Devolutivas recentes do mes</h2>
-            <p className="mt-1 text-sm text-gray-700">
-              Comentarios e registros clinicos feitos pelos profissionais no periodo selecionado.
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-800">
-              {(report.destaques.ultimasObservacoes || []).length ? (
-                report.destaques.ultimasObservacoes.map((o, idx) => (
-                  <li
-                    key={`${o.data}-${o.terapeuta_nome}-${idx}`}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <p className="text-xs text-gray-600">
-                      {fmtDate(o.data)} - {o.terapeuta_nome} - {o.origem}
-                    </p>
-                    <p className="mt-1">{o.texto}</p>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-600">Sem devolutiva registrada neste mes.</li>
-              )}
-            </ul>
+          <section id="evolucao" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Evolucao por dia</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  No celular a distribuicao vira uma timeline compacta; no desktop a leitura analitica continua em tabela.
+                </p>
+              </div>
+              <p className="text-sm font-medium text-gray-600">{fmtMonth(monthRef)}</p>
+            </div>
+            <div className="mt-4">
+              <DailyTimeline
+                rows={desempenhoMensal.rowsByDay}
+                formatDate={fmtDate}
+                emptyMessage="Nao ha distribuicao diaria para este mes."
+              />
+            </div>
           </section>
         </>
       ) : null}

@@ -109,8 +109,8 @@ export default async function RelatorioDevolutivaDiaPage(props: {
         </section>
       ) : (
         <ReportsHeader
-          title="Relatorio diario de desempenho"
-          subtitle="Acompanhe o resumo do periodo selecionado com foco em leitura rapida, comparacao entre habilidades e acesso consistente no desktop e no mobile."
+          title="Relatorio diario"
+          subtitle="Visao diaria compacta para leitura rapida no celular, preservando o mesmo comportamento da tela atual."
           modeToggle={<ReportModeToggle mode="daily" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
             <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
@@ -135,7 +135,7 @@ export default async function RelatorioDevolutivaDiaPage(props: {
                   <p className="text-base font-semibold text-[var(--marrom)]">
                     {pacienteAtivo.nome} #{pacienteAtivo.id}
                   </p>
-                  <p className="text-sm text-gray-700">Modo diario com dados do mesmo fluxo ja utilizado em producao.</p>
+                  <p className="hidden text-sm text-gray-700 sm:block">Dia selecionado no cliente, usando o mesmo fluxo atual.</p>
                 </div>
               </div>
             ) : null
@@ -156,12 +156,7 @@ export default async function RelatorioDevolutivaDiaPage(props: {
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">Modo atual</p>
-                <p className="text-sm text-gray-700">Use a alternancia para navegar entre as visoes diaria e mensal.</p>
-              </div>
-            )
+            ) : null
           }
         />
       )}

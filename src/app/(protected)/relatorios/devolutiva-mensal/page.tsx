@@ -109,8 +109,8 @@ export default async function RelatorioDevolutivaMensalPage(props: {
         </section>
       ) : (
         <ReportsHeader
-          title="Relatorio mensal de desempenho"
-          subtitle="Consolide o mes em uma interface mais compacta, com leitura clara das habilidades e comparacao visual consistente entre os status acompanhados."
+          title="Relatorio mensal"
+          subtitle="Visao mensal com foco em leitura rapida no celular e comparacao clara entre habilidades."
           modeToggle={<ReportModeToggle mode="monthly" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
             <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
@@ -135,7 +135,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
                   <p className="text-base font-semibold text-[var(--marrom)]">
                     {pacienteAtivo.nome} #{pacienteAtivo.id}
                   </p>
-                  <p className="text-sm text-gray-700">Modo mensal com a mesma consolidacao de dados usada atualmente.</p>
+                  <p className="hidden text-sm text-gray-700 sm:block">Mes selecionado no cliente, com a mesma consolidacao atual.</p>
                 </div>
               </div>
             ) : null
@@ -156,12 +156,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">Modo atual</p>
-                <p className="text-sm text-gray-700">Use a alternancia para navegar entre as visoes diaria e mensal.</p>
-              </div>
-            )
+            ) : null
           }
         />
       )}

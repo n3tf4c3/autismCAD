@@ -13,6 +13,7 @@ type SkillSegment = {
 
 type SkillStackedBarProps = {
   row: SkillPerformanceRow;
+  compact?: boolean;
 };
 
 export const SKILL_STATUS_SEGMENTS: SkillSegment[] = [
@@ -65,10 +66,11 @@ function buildSegments(row: SkillPerformanceRow): SkillSegment[] {
 export function SkillStackedBar(props: SkillStackedBarProps) {
   const segments = buildSegments(props.row);
   const visibleSegments = segments.filter((segment) => segment.value > 0);
+  const compact = props.compact ?? false;
 
   return (
-    <div className="space-y-3">
-      <div className="flex h-3 overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200/80">
+    <div className={compact ? "space-y-2.5" : "space-y-3"}>
+      <div className={`flex overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200/80 ${compact ? "h-2.5" : "h-3"}`}>
         {visibleSegments.length ? (
           visibleSegments.map((segment) => (
             <div
@@ -82,11 +84,11 @@ export function SkillStackedBar(props: SkillStackedBarProps) {
           <div className="h-full w-full bg-slate-200" />
         )}
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className={`grid grid-cols-3 ${compact ? "gap-1.5" : "gap-2"}`}>
         {segments.map((segment) => (
-          <div key={segment.key} className={`rounded-xl px-3 py-2 text-xs ${segment.surface}`}>
-            <p className="font-semibold">{segment.label}</p>
-            <p className="mt-1 font-medium">
+          <div key={segment.key} className={`rounded-xl ${compact ? "px-2 py-1.5 text-[10px] sm:text-xs" : "px-3 py-2 text-xs"} ${segment.surface}`}>
+            <p className="font-semibold leading-tight">{segment.label}</p>
+            <p className="mt-1 font-medium leading-tight">
               {segment.value} <span className="opacity-70">({segment.pct}%)</span>
             </p>
           </div>
