@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DesempenhoPorHabilidadeChart } from "@/components/desempenho-por-habilidade-chart";
+import { ReportFilters } from "@/components/reports/report-filters";
+import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
+import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 
 type DiaReport = {
@@ -349,46 +351,42 @@ export function DevolutivaDiaClient(props: {
   }, []);
 
   return (
-    <main className="space-y-3">
-      <div className="flex flex-wrap items-end justify-end gap-2">
-        <div className="flex items-end gap-2">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-[var(--marrom)]">Dia</span>
-            <input
-              type="date"
-              value={dataRef}
-              onChange={(e) => setDataRef(e.target.value)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => void consultar()}
-            disabled={loading}
-            className="rounded-lg bg-[var(--laranja)] px-4 py-1.5 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
-          >
-            Consultar dia
-          </button>
-        </div>
-      </div>
+    <main className="space-y-4">
+      <ReportFilters
+        title="Filtro do periodo"
+        description="Selecione o dia desejado para atualizar os indicadores, os cards de habilidade e os detalhes dos atendimentos sem alterar a regra atual de consulta."
+        label="Dia"
+        type="date"
+        value={dataRef}
+        onChange={setDataRef}
+        buttonLabel="Consultar dia"
+        onSubmit={() => void consultar()}
+        loading={loading}
+      />
+
       {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
 
       {loading ? (
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-600">Carregando devolutiva...</p>
+        <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-700">Carregando devolutiva...</p>
         </section>
       ) : null}
 
       {report ? (
         <>
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do dia</h2>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do dia</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Visao geral do periodo selecionado com os mesmos indicadores ja carregados pela tela atual.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => void copiarResumo()}
                 disabled={!textoResumoParaPais}
-                className="rounded-lg border border-[var(--laranja)] px-3 py-1.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--laranja)] transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Copiar resumo
               </button>
@@ -396,81 +394,114 @@ export function DevolutivaDiaClient(props: {
             {copyMsg ? (
               <p className={`mt-2 text-xs ${copyMsg.includes("Nao") ? "text-red-600" : "text-green-700"}`}>{copyMsg}</p>
             ) : null}
-            <p className="mt-2 text-sm text-gray-700">{resumoDia}</p>
+
+            <div className="mt-4">
+              <ReportSummaryCards
+                items={[
+                  {
+                    label: "Atendimentos",
+                    value: report.indicadores.totalAtendimentos,
+                    description: `Periodo: ${fmtDate(report.periodo.from)}`,
+                    tone: "brand",
+                  },
+                  {
+                    label: "Presencas",
+                    value: report.indicadores.presentes,
+                    description: "Atendimentos com presenca registrada.",
+                    tone: "success",
+                  },
+                  {
+                    label: "Ausencias",
+                    value: report.indicadores.ausentes,
+                    description: "Atendimentos sem presenca no dia.",
+                    tone: "danger",
+                  },
+                  {
+                    label: "Taxa de presenca",
+                    value: `${report.indicadores.taxaPresencaPercent}%`,
+                    description: "Percentual do dia selecionado.",
+                    tone: "warning",
+                  },
+                ]}
+              />
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm leading-6 text-gray-700">{resumoDia}</p>
+            </div>
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho do dia</h2>
-              <p className="text-sm text-gray-600">{fmtDate(report.periodo.from)}</p>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho do dia</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Baseado nos registros de metas das evolucoes do dia ({desempenhoResumo.total} item(ns)).
+                </p>
+              </div>
+              <p className="text-sm font-medium text-gray-600">{fmtDate(report.periodo.from)}</p>
             </div>
-            <p className="mt-1 text-sm text-gray-600">
-              Baseado nos registros de metas das evolucoes do dia ({desempenhoResumo.total} item(ns)).
-            </p>
-            {desempenhoResumo.total ? (
-              <div className="mt-4 space-y-3">
-                {desempenhoResumo.rows.map((row) => (
-                  <div key={row.key}>
-                    <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
-                      <span>{row.label}</span>
-                      <span className="font-semibold">
-                        {row.value} ({row.pct}%)
-                      </span>
-                    </div>
-                    <div className={`h-2 overflow-hidden rounded-full ${row.track}`}>
-                      <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${row.pct}%` }} />
-                    </div>
-                  </div>
-                ))}
 
-                <DesempenhoPorHabilidadeChart
+            {desempenhoResumo.total ? (
+              <div className="mt-4 space-y-4">
+                <ReportSummaryCards
+                  items={desempenhoResumo.rows.map((row) => ({
+                    label: row.label,
+                    value: row.value,
+                    description: `${row.pct}% do total avaliado.`,
+                    tone:
+                      row.key === "independente" ? "success" : row.key === "ajuda" ? "warning" : "danger",
+                  }))}
+                />
+
+                <SkillsGrid
                   rows={desempenhoResumo.rowsBySkill}
-                  title="Grafico por habilidade"
-                  subtitle="Cada habilidade mostra a distribuicao dos registros do dia em barras horizontais."
+                  title="Habilidades avaliadas"
+                  subtitle="Cada habilidade foi condensada em um card compacto com barra empilhada para reduzir scroll e facilitar comparacao."
                   emptyMessage="Nao ha habilidades suficientes para montar o grafico deste dia."
                 />
               </div>
             ) : (
-              <p className="mt-3 text-sm text-gray-600">
+              <p className="mt-3 text-sm text-gray-700">
                 Nao ha dados de desempenho estruturado nas evolucoes deste dia.
               </p>
             )}
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Grafico de comportamento</h2>
-              <p className="text-sm text-gray-600">{fmtDate(report.periodo.from)}</p>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Grafico de comportamento</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Distribuicao dos comportamentos registrados nas evolucoes do dia.
+                </p>
+              </div>
+              <p className="text-sm font-medium text-gray-600">{fmtDate(report.periodo.from)}</p>
             </div>
-            <p className="mt-1 text-sm text-gray-600">
-              Distribuicao dos comportamentos registrados nas evolucoes do dia.
-            </p>
             {comportamentoResumo.total ? (
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Negativos</p>
-                    <p className="text-lg font-semibold text-rose-700">
-                      {comportamentoResumo.totalNegativo} ({comportamentoResumo.pctNegativo}%)
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Positivos</p>
-                    <p className="text-lg font-semibold text-green-700">
-                      {comportamentoResumo.totalPositivo} ({comportamentoResumo.pctPositivo}%)
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                      Resultado geral
-                    </p>
-                    <p className="text-sm font-semibold text-amber-800">
-                      Negativo: {comportamentoResumo.resultado.negativo} | Positivo:{" "}
-                      {comportamentoResumo.resultado.positivo} | Parcial:{" "}
-                      {comportamentoResumo.resultado.parcial}
-                    </p>
-                  </div>
-                </div>
+                <ReportSummaryCards
+                  items={[
+                    {
+                      label: "Negativos",
+                      value: `${comportamentoResumo.totalNegativo} (${comportamentoResumo.pctNegativo}%)`,
+                      description: "Ocorrencias classificadas como negativas.",
+                      tone: "danger",
+                    },
+                    {
+                      label: "Positivos",
+                      value: `${comportamentoResumo.totalPositivo} (${comportamentoResumo.pctPositivo}%)`,
+                      description: "Ocorrencias classificadas como positivas.",
+                      tone: "success",
+                    },
+                    {
+                      label: "Resultado geral",
+                      value: `${comportamentoResumo.resultado.positivo}/${comportamentoResumo.resultado.parcial}/${comportamentoResumo.resultado.negativo}`,
+                      description: "Positivo / Parcial / Negativo nas evolucoes.",
+                      tone: "warning",
+                    },
+                  ]}
+                />
 
                 <div className="flex h-3 overflow-hidden rounded-full bg-gray-100">
                   <div
@@ -487,33 +518,36 @@ export function DevolutivaDiaClient(props: {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4">
                     <p className="text-sm font-semibold text-[var(--marrom)]">Top comportamentos negativos</p>
-                    {comportamentoResumo.rowsNegativo.length ? (
-                      comportamentoResumo.rowsNegativo.map((row) => (
-                        <div key={row.key}>
-                          <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
-                            <span>{row.label}</span>
-                            <span className="font-semibold">
-                              {row.value} ({row.pct}%)
-                            </span>
+                    <div className="mt-3 space-y-2">
+                      {comportamentoResumo.rowsNegativo.length ? (
+                        comportamentoResumo.rowsNegativo.map((row) => (
+                          <div key={row.key}>
+                            <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
+                              <span>{row.label}</span>
+                              <span className="font-semibold">
+                                {row.value} ({row.pct}%)
+                              </span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                              <div className="h-full rounded-full bg-rose-500" style={{ width: `${row.pct}%` }} />
+                            </div>
                           </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-full rounded-full bg-rose-500" style={{ width: `${row.pct}%` }} />
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-600">Sem itens negativos registrados.</p>
-                    )}
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-700">Sem itens negativos registrados.</p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
                     <p className="text-sm font-semibold text-[var(--marrom)]">Top comportamentos positivos</p>
-                    {comportamentoResumo.rowsPositivo.length ? (
-                      comportamentoResumo.rowsPositivo.map((row) => (
-                        <div key={row.key}>
+                    <div className="mt-3 space-y-2">
+                      {comportamentoResumo.rowsPositivo.length ? (
+                        comportamentoResumo.rowsPositivo.map((row) => (
+                          <div key={row.key}>
                           <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
                             <span>{row.label}</span>
                             <span className="font-semibold">
@@ -521,29 +555,32 @@ export function DevolutivaDiaClient(props: {
                             </span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-full rounded-full bg-green-500" style={{ width: `${row.pct}%` }} />
+                              <div className="h-full rounded-full bg-green-500" style={{ width: `${row.pct}%` }} />
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-600">Sem itens positivos registrados.</p>
-                    )}
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-700">Sem itens positivos registrados.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-gray-600">
+              <p className="mt-3 text-sm text-gray-700">
                 Nao ha registros de comportamentos estruturados nas evolucoes deste dia.
               </p>
             )}
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-[var(--marrom)]">Atendimentos do dia</h2>
-              <span className="text-sm text-gray-500">{report.atendimentos.length} itens</span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-gray-600">
+                {report.atendimentos.length} itens
+              </span>
             </div>
-            <div className="mt-3 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50">
                   <tr>
@@ -580,23 +617,26 @@ export function DevolutivaDiaClient(props: {
             </div>
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="text-lg font-semibold text-[var(--marrom)]">Devolutiva do profissional</h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-700">
               Comentarios e registros clinicos feitos no dia selecionado.
             </p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-700">
+            <ul className="mt-3 space-y-2 text-sm text-gray-800">
               {(report.destaques.ultimasObservacoes || []).length ? (
                 report.destaques.ultimasObservacoes.map((o, idx) => (
-                  <li key={`${o.data}-${o.terapeuta_nome}-${idx}`} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                    <p className="text-xs text-gray-500">
+                  <li
+                    key={`${o.data}-${o.terapeuta_nome}-${idx}`}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <p className="text-xs text-gray-600">
                       {fmtDate(o.data)} - {o.terapeuta_nome} - {o.origem}
                     </p>
                     <p className="mt-1">{o.texto}</p>
                   </li>
                 ))
               ) : (
-                <li className="text-gray-500">Sem devolutiva registrada para este dia.</li>
+                <li className="text-gray-600">Sem devolutiva registrada para este dia.</li>
               )}
             </ul>
           </section>

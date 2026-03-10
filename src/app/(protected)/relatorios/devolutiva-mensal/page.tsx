@@ -9,6 +9,8 @@ import { createSignedReadUrl } from "@/server/storage/r2";
 import { DevolutivaMensalClient } from "@/app/(protected)/relatorios/devolutiva-mensal/devolutiva-mensal.client";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { toAppError } from "@/server/shared/errors";
+import { ReportsHeader } from "@/components/reports/reports-header";
+import { ReportModeToggle } from "@/components/reports/report-mode-toggle";
 
 async function maybeSignedUrl(stored: string | null | undefined): Promise<string | null> {
   if (!stored) return null;
@@ -87,72 +89,82 @@ export default async function RelatorioDevolutivaMensalPage(props: {
 
   const fotoPacienteAtivoUrl = await maybeSignedUrl(pacienteAtivo?.foto);
   const hasPaciente = !!pacienteAtivo;
+  const dailyHref = pacienteAtivo ? `/relatorios/devolutiva-dia?pacienteId=${pacienteAtivo.id}` : "/relatorios/devolutiva-dia";
+  const monthlyHref = pacienteAtivo
+    ? `/relatorios/devolutiva-mensal?pacienteId=${pacienteAtivo.id}`
+    : "/relatorios/devolutiva-mensal";
+  const backHref = isResponsavel
+    ? "/relatorios"
+    : pacienteAtivo
+      ? `/relatorios/evolutivo?pacienteId=${pacienteAtivo.id}`
+      : "/relatorios/evolutivo";
 
   return (
     <div className="space-y-3">
-      <section className="rounded-xl bg-white p-4 shadow-sm">
-        {isResponsavel && !pacientesVinculados.length ? (
+      {isResponsavel && !pacientesVinculados.length ? (
+        <section className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-red-600">
             Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
           </p>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              {pacienteAtivo ? (
-                <div className="inline-flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1.5">
-                  <div className="h-8 w-8 overflow-hidden rounded-full border border-amber-200 bg-white">
-                    {fotoPacienteAtivoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={fotoPacienteAtivoUrl}
-                        alt={`Foto de ${pacienteAtivo.nome}`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[var(--laranja)]">
-                        {firstLetter(pacienteAtivo.nome)}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-sm font-semibold text-[var(--marrom)]">
-                    {pacienteAtivo.nome} #{pacienteAtivo.id}
-                  </span>
+        </section>
+      ) : (
+        <ReportsHeader
+          title="Relatorio mensal de desempenho"
+          subtitle="Consolide o mes em uma interface mais compacta, com leitura clara das habilidades e comparacao visual consistente entre os status acompanhados."
+          modeToggle={<ReportModeToggle mode="monthly" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
+          actions={
+            <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
+              &larr; Voltar
+            </Link>
+          }
+          patientSlot={
+            pacienteAtivo ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="h-12 w-12 overflow-hidden rounded-full border border-amber-200 bg-white">
+                  {fotoPacienteAtivoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={fotoPacienteAtivoUrl} alt={`Foto de ${pacienteAtivo.nome}`} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[var(--laranja)]">
+                      {firstLetter(pacienteAtivo.nome)}
+                    </div>
+                  )}
                 </div>
-              ) : null}
-              {isResponsavel && outrosPacientes.length ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-gray-600">Trocar:</span>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">Paciente ativo</p>
+                  <p className="text-base font-semibold text-[var(--marrom)]">
+                    {pacienteAtivo.nome} #{pacienteAtivo.id}
+                  </p>
+                  <p className="text-sm text-gray-700">Modo mensal com a mesma consolidacao de dados usada atualmente.</p>
+                </div>
+              </div>
+            ) : null
+          }
+          secondarySlot={
+            isResponsavel && outrosPacientes.length ? (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">Trocar paciente</p>
+                <div className="flex flex-wrap gap-2">
                   {outrosPacientes.map((paciente) => (
                     <Link
                       key={paciente.id}
                       href={`/relatorios/devolutiva-mensal?pacienteId=${paciente.id}`}
-                      className="inline-flex rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:border-[var(--laranja)] hover:text-[var(--laranja)]"
+                      className="inline-flex rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-[var(--laranja)] hover:text-[var(--laranja)]"
                     >
                       {paciente.nome} #{paciente.id}
                     </Link>
                   ))}
                 </div>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
-                <Link
-                  href={pacienteAtivo ? `/relatorios/devolutiva-dia?pacienteId=${pacienteAtivo.id}` : "/relatorios/devolutiva-dia"}
-                  className="text-sm font-semibold text-[var(--laranja)]"
-                >
-                  Devolutiva diaria
-                </Link>
-                <Link
-                  href={isResponsavel ? "/relatorios" : (pacienteAtivo ? `/relatorios/evolutivo?pacienteId=${pacienteAtivo.id}` : "/relatorios/evolutivo")}
-                  className="text-sm font-semibold text-[var(--laranja)]"
-                >
-                  &larr; Voltar
-                </Link>
               </div>
-            </div>
-          </div>
-        )}
-      </section>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">Modo atual</p>
+                <p className="text-sm text-gray-700">Use a alternancia para navegar entre as visoes diaria e mensal.</p>
+              </div>
+            )
+          }
+        />
+      )}
 
       {hasPaciente ? (
         <DevolutivaMensalClient pacienteId={pacienteAtivo.id} pacienteNome={pacienteAtivo.nome} />

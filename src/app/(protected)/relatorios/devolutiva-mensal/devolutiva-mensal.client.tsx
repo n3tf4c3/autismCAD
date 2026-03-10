@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DesempenhoPorHabilidadeChart } from "@/components/desempenho-por-habilidade-chart";
+import { ReportFilters } from "@/components/reports/report-filters";
+import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
+import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 
 type MensalReport = {
@@ -327,54 +329,42 @@ export function DevolutivaMensalClient(props: {
   }, []);
 
   return (
-    <main className="space-y-3">
-      <section className="rounded-xl bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--marrom)]">Relatorio mensal de desempenho</h2>
-            <p className="text-sm text-gray-600">
-              Consolidado mensal construido a partir das devolutivas diarias registradas no prontuario.
-            </p>
-          </div>
-          <div className="flex items-end gap-2">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-[var(--marrom)]">Mes</span>
-              <input
-                type="month"
-                value={monthRef}
-                onChange={(e) => setMonthRef(e.target.value)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => void consultar()}
-              disabled={loading}
-              className="rounded-lg bg-[var(--laranja)] px-4 py-1.5 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
-            >
-              Consultar mes
-            </button>
-          </div>
-        </div>
-        {msg ? <p className="mt-2 text-sm text-red-600">{msg}</p> : null}
-      </section>
+    <main className="space-y-4">
+      <ReportFilters
+        title="Filtro do periodo"
+        description="Selecione o mes para atualizar o consolidado da mesma API atual, agora com leitura mais compacta para muitas habilidades."
+        label="Mes"
+        type="month"
+        value={monthRef}
+        onChange={setMonthRef}
+        buttonLabel="Consultar mes"
+        onSubmit={() => void consultar()}
+        loading={loading}
+      />
+
+      {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
 
       {loading ? (
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-600">Carregando relatorio mensal...</p>
+        <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-700">Carregando relatorio mensal...</p>
         </section>
       ) : null}
 
       {report ? (
         <>
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do mes</h2>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Resumo do mes</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Consolidado mensal construido a partir das devolutivas diarias registradas no prontuario.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => void copiarResumo()}
                 disabled={!resumoMensal}
-                className="rounded-lg border border-[var(--laranja)] px-3 py-1.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--laranja)] transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Copiar resumo
               </button>
@@ -383,25 +373,39 @@ export function DevolutivaMensalClient(props: {
               <p className={`mt-2 text-xs ${copyMsg.includes("Nao") ? "text-red-600" : "text-green-700"}`}>{copyMsg}</p>
             ) : null}
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Atendimentos</p>
-                <p className="text-xl font-semibold text-[var(--marrom)]">{report.indicadores.totalAtendimentos}</p>
-              </div>
-              <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Presencas</p>
-                <p className="text-xl font-semibold text-green-700">{report.indicadores.presentes}</p>
-              </div>
-              <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Ausencias</p>
-                <p className="text-xl font-semibold text-rose-700">{report.indicadores.ausentes}</p>
-              </div>
-              <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Taxa de presenca</p>
-                <p className="text-xl font-semibold text-amber-700">{report.indicadores.taxaPresencaPercent}%</p>
-              </div>
+            <div className="mt-4">
+              <ReportSummaryCards
+                items={[
+                  {
+                    label: "Atendimentos",
+                    value: report.indicadores.totalAtendimentos,
+                    description: `${report.indicadores.tempoTotalMinutos} minuto(s) acumulados no periodo.`,
+                    tone: "brand",
+                  },
+                  {
+                    label: "Presencas",
+                    value: report.indicadores.presentes,
+                    description: "Atendimentos com presenca confirmada.",
+                    tone: "success",
+                  },
+                  {
+                    label: "Ausencias",
+                    value: report.indicadores.ausentes,
+                    description: "Atendimentos registrados como ausencia.",
+                    tone: "danger",
+                  },
+                  {
+                    label: "Taxa de presenca",
+                    value: `${report.indicadores.taxaPresencaPercent}%`,
+                    description: `${report.indicadores.mediaMinutosPorSessao} min em media por sessao.`,
+                    tone: "warning",
+                  },
+                ]}
+              />
             </div>
-            <p className="mt-3 text-sm text-gray-600">
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm leading-6 text-gray-700">
               Periodo: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}.
               {report.indicadores.primeiroAtendimento ? (
                 <> Primeiro atendimento: {fmtDate(report.indicadores.primeiroAtendimento)}.</>
@@ -409,47 +413,46 @@ export function DevolutivaMensalClient(props: {
               {report.indicadores.ultimoAtendimento ? (
                 <> Ultimo atendimento: {fmtDate(report.indicadores.ultimoAtendimento)}.</>
               ) : null}
-            </p>
+              </p>
+            </div>
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho no mes</h2>
-              <p className="text-sm text-gray-600">{fmtMonth(monthRef)}</p>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Desempenho no mes</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  {desempenhoMensal.total
+                    ? `${desempenhoMensal.total} metas avaliadas em ${desempenhoMensal.diasComRegistro} dia(s) com devolutiva.`
+                    : "Sem metas estruturadas nas devolutivas deste mes."}
+                </p>
+              </div>
+              <p className="text-sm font-medium text-gray-600">{fmtMonth(monthRef)}</p>
             </div>
-            <p className="mt-1 text-sm text-gray-600">
-              {desempenhoMensal.total
-                ? `${desempenhoMensal.total} metas avaliadas em ${desempenhoMensal.diasComRegistro} dia(s) com devolutiva.`
-                : "Sem metas estruturadas nas devolutivas deste mes."}
-            </p>
 
             {desempenhoMensal.total ? (
-              <div className="mt-4 space-y-3">
-                {desempenhoMensal.rows.map((row) => (
-                  <div key={row.key}>
-                    <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
-                      <span>{row.label}</span>
-                      <span className="font-semibold">
-                        {row.value} ({row.pct}%)
-                      </span>
-                    </div>
-                    <div className={`h-2 overflow-hidden rounded-full ${row.track}`}>
-                      <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${row.pct}%` }} />
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-4 space-y-4">
+                <ReportSummaryCards
+                  items={desempenhoMensal.rows.map((row) => ({
+                    label: row.label,
+                    value: row.value,
+                    description: `${row.pct}% do total avaliado.`,
+                    tone:
+                      row.key === "independente" ? "success" : row.key === "ajuda" ? "warning" : "danger",
+                  }))}
+                />
 
-                <DesempenhoPorHabilidadeChart
+                <SkillsGrid
                   rows={desempenhoMensal.rowsBySkill}
-                  title="Grafico por habilidade"
-                  subtitle="Distribuicao mensal das habilidades registradas, mantendo barras horizontais."
+                  title="Habilidades avaliadas"
+                  subtitle="Os cards agora usam barra horizontal empilhada para comparar muitas habilidades com menos altura e menos repeticao visual."
                   emptyMessage="Nao ha habilidades suficientes para montar o grafico deste mes."
                 />
               </div>
             ) : null}
 
             {desempenhoMensal.rowsByDay.length ? (
-              <div className="mt-5 overflow-x-auto">
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
@@ -469,7 +472,7 @@ export function DevolutivaMensalClient(props: {
                             <div className="h-full bg-amber-500" style={{ width: `${row.pctAjuda}%` }} />
                             <div className="h-full bg-rose-500" style={{ width: `${row.pctNaoFez}%` }} />
                           </div>
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-gray-700">
                             Indep: {row.independente} ({row.pctIndependente}%) | Ajuda: {row.ajuda} ({row.pctAjuda}
                             %) | Nao fez: {row.nao_fez} ({row.pctNaoFez}%)
                           </p>
@@ -482,89 +485,98 @@ export function DevolutivaMensalClient(props: {
             ) : null}
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do mes</h2>
-              <p className="text-sm text-gray-600">{fmtMonth(monthRef)}</p>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do mes</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Consolidado comportamental estruturado a partir das devolutivas do periodo selecionado.
+                </p>
+              </div>
+              <p className="text-sm font-medium text-gray-600">{fmtMonth(monthRef)}</p>
             </div>
             {comportamentoMensal.total ? (
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Negativos</p>
-                    <p className="text-lg font-semibold text-rose-700">
-                      {comportamentoMensal.totalNegativo} ({comportamentoMensal.pctNegativo}%)
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Positivos</p>
-                    <p className="text-lg font-semibold text-green-700">
-                      {comportamentoMensal.totalPositivo} ({comportamentoMensal.pctPositivo}%)
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Resultado geral</p>
-                    <p className="text-sm font-semibold text-amber-800">
-                      Negativo: {comportamentoMensal.resultado.negativo} | Positivo:{" "}
-                      {comportamentoMensal.resultado.positivo} | Parcial:{" "}
-                      {comportamentoMensal.resultado.parcial}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-1">
+                <ReportSummaryCards
+                  items={[
+                    {
+                      label: "Negativos",
+                      value: `${comportamentoMensal.totalNegativo} (${comportamentoMensal.pctNegativo}%)`,
+                      description: "Ocorrencias classificadas como negativas no mes.",
+                      tone: "danger",
+                    },
+                    {
+                      label: "Positivos",
+                      value: `${comportamentoMensal.totalPositivo} (${comportamentoMensal.pctPositivo}%)`,
+                      description: "Ocorrencias classificadas como positivas no mes.",
+                      tone: "success",
+                    },
+                    {
+                      label: "Resultado geral",
+                      value: `${comportamentoMensal.resultado.positivo}/${comportamentoMensal.resultado.parcial}/${comportamentoMensal.resultado.negativo}`,
+                      description: "Positivo / Parcial / Negativo nas evolucoes.",
+                      tone: "warning",
+                    },
+                  ]}
+                />
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4">
                     <p className="text-sm font-semibold text-[var(--marrom)]">Top negativos</p>
-                    {comportamentoMensal.topNegativo.length ? (
-                      comportamentoMensal.topNegativo.map((item) => (
-                        <p key={item.key} className="text-sm text-gray-700">
-                          {item.label}: <span className="font-semibold">{item.value}</span>
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-600">Sem registros negativos.</p>
-                    )}
+                    <div className="mt-3 space-y-2">
+                      {comportamentoMensal.topNegativo.length ? (
+                        comportamentoMensal.topNegativo.map((item) => (
+                          <p key={item.key} className="text-sm text-gray-700">
+                            {item.label}: <span className="font-semibold">{item.value}</span>
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-700">Sem registros negativos.</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
                     <p className="text-sm font-semibold text-[var(--marrom)]">Top positivos</p>
-                    {comportamentoMensal.topPositivo.length ? (
-                      comportamentoMensal.topPositivo.map((item) => (
-                        <p key={item.key} className="text-sm text-gray-700">
-                          {item.label}: <span className="font-semibold">{item.value}</span>
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-600">Sem registros positivos.</p>
-                    )}
+                    <div className="mt-3 space-y-2">
+                      {comportamentoMensal.topPositivo.length ? (
+                        comportamentoMensal.topPositivo.map((item) => (
+                          <p key={item.key} className="text-sm text-gray-700">
+                            {item.label}: <span className="font-semibold">{item.value}</span>
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-700">Sem registros positivos.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-gray-600">
+              <p className="mt-3 text-sm text-gray-700">
                 Nao ha comportamentos estruturados registrados nas devolutivas deste mes.
               </p>
             )}
           </section>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm">
+          <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="text-lg font-semibold text-[var(--marrom)]">Devolutivas recentes do mes</h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-700">
               Comentarios e registros clinicos feitos pelos profissionais no periodo selecionado.
             </p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-700">
+            <ul className="mt-3 space-y-2 text-sm text-gray-800">
               {(report.destaques.ultimasObservacoes || []).length ? (
                 report.destaques.ultimasObservacoes.map((o, idx) => (
                   <li
                     key={`${o.data}-${o.terapeuta_nome}-${idx}`}
-                    className="rounded-lg border border-gray-100 bg-gray-50 p-3"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                   >
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-600">
                       {fmtDate(o.data)} - {o.terapeuta_nome} - {o.origem}
                     </p>
                     <p className="mt-1">{o.texto}</p>
                   </li>
                 ))
               ) : (
-                <li className="text-gray-500">Sem devolutiva registrada neste mes.</li>
+                <li className="text-gray-600">Sem devolutiva registrada neste mes.</li>
               )}
             </ul>
           </section>
