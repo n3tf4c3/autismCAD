@@ -1,5 +1,10 @@
 import { requirePermission } from "@/server/auth/auth";
-import { salvarAnamneseCompleta, obterAnamneseBase, obterAnamneseVersao } from "@/server/modules/anamnese/anamnese.service";
+import {
+  excluirAnamneseCompleta,
+  obterAnamneseBase,
+  obterAnamneseVersao,
+  salvarAnamneseCompleta,
+} from "@/server/modules/anamnese/anamnese.service";
 import { AppError } from "@/server/shared/errors";
 import { withErrorHandling } from "@/server/shared/http";
 
@@ -51,4 +56,13 @@ export const PUT = withErrorHandling(async (request: Request, context: RouteCont
   });
 
   return Response.json(saved);
+});
+
+export const DELETE = withErrorHandling(async (_request: Request, context: RouteContext) => {
+  await requirePermission("pacientes:delete");
+  const { pacienteId: raw } = await context.params;
+  const pacienteId = parsePacienteId(raw);
+
+  const deleted = await excluirAnamneseCompleta(pacienteId);
+  return Response.json(deleted);
 });

@@ -261,6 +261,8 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingFicha, setDeletingFicha] = useState(false);
+  const [deletingVersion, setDeletingVersion] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [anamnese, setAnamnese] = useState<Anamnese | null>(null);
   const [versions, setVersions] = useState<VersionItem[]>([]);
@@ -443,6 +445,74 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
     }
   }
 
+  async function loadVersion(version: number) {
+    setError(null);
+    try {
+      const resp = await fetch(`/api/anamnese/${pacienteId}?version=${version}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await safeJson(resp);
+      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao carregar versao");
+      const data = json as Anamnese;
+      setAnamnese(data);
+      fillFormFrom(data);
+    } catch (err) {
+      setError(normalizeApiError(err));
+    }
+  }
+
+  async function deleteFicha() {
+    if (deletingFicha || deletingVersion !== null) return;
+
+    const ok = window.confirm(
+      `Excluir a ficha de anamnese do paciente #${pacienteId}? Esta acao remove toda a ficha e o historico de versoes.`
+    );
+    if (!ok) return;
+
+    const okFinal = window.confirm("Confirmacao final: deseja realmente excluir esta ficha de anamnese?");
+    if (!okFinal) return;
+
+    setDeletingFicha(true);
+    setError(null);
+    try {
+      const resp = await fetch(`/api/anamnese/${pacienteId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const json = await safeJson(resp);
+      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao excluir ficha");
+      await loadAll();
+    } catch (err) {
+      setError(normalizeApiError(err));
+    } finally {
+      setDeletingFicha(false);
+    }
+  }
+
+  async function deleteVersionItem(version: number) {
+    if (deletingFicha || deletingVersion !== null) return;
+
+    const ok = window.confirm(`Excluir a versao ${version} da anamnese?`);
+    if (!ok) return;
+
+    setDeletingVersion(version);
+    setError(null);
+    try {
+      const resp = await fetch(`/api/anamnese/${pacienteId}/versions/${version}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const json = await safeJson(resp);
+      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao excluir versao");
+      await loadAll();
+    } catch (err) {
+      setError(normalizeApiError(err));
+    } finally {
+      setDeletingVersion(null);
+    }
+  }
+
   useEffect(() => {
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -462,14 +532,23 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
             <button
               type="button"
               onClick={() => void loadAll()}
+              disabled={deletingFicha || deletingVersion !== null}
               className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Recarregar
             </button>
             <button
               type="button"
+              onClick={() => void deleteFicha()}
+              disabled={deletingFicha || deletingVersion !== null || saving || (!anamnese && !versions.length)}
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
+            >
+              {deletingFicha ? "Excluindo..." : "Excluir ficha"}
+            </button>
+            <button
+              type="button"
               onClick={() => void save()}
-              disabled={saving}
+              disabled={saving || deletingFicha || deletingVersion !== null}
               className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
             >
               {saving ? "Salvando..." : "Salvar"}
@@ -604,28 +683,24 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
                     {v.created_at ? new Date(v.created_at).toLocaleString("pt-BR") : "-"}
                   </td>
                   <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                      onClick={async () => {
-                        try {
-                          const resp = await fetch(`/api/anamnese/${pacienteId}?version=${v.version}`, {
-                            cache: "no-store",
-                            credentials: "include",
-                          });
-                          const json = await safeJson(resp);
-                          if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao carregar versao");
-                          const data = json as Anamnese;
-                          setAnamnese(data);
-                          fillFormFrom(data);
-                          setError(null);
-                        } catch (err) {
-                          setError(normalizeApiError(err));
-                        }
-                      }}
-                    >
-                      Carregar
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        onClick={() => void loadVersion(v.version)}
+                        disabled={deletingFicha || deletingVersion !== null}
+                      >
+                        {anamnese?.version === v.version ? "Editando" : "Editar"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
+                        onClick={() => void deleteVersionItem(v.version)}
+                        disabled={deletingFicha || deletingVersion !== null}
+                      >
+                        {deletingVersion === v.version ? "Excluindo..." : "Excluir"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -643,4 +718,3 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
     </main>
   );
 }
-

@@ -296,3 +296,84 @@ export async function salvarAnamneseCompleta(params: {
 
   throw new AppError("Erro ao salvar anamnese", 500, "INTERNAL_ERROR");
 }
+
+export async function excluirAnamneseCompleta(pacienteId: number) {
+  await assertPacienteExists(pacienteId);
+
+  return runDbTransaction(async (tx) => {
+    const deletedVersions = await tx
+      .delete(anamneseVersions)
+      .where(eq(anamneseVersions.pacienteId, pacienteId))
+      .returning({ id: anamneseVersions.id });
+
+    const deletedBase = await tx
+      .delete(anamnese)
+      .where(eq(anamnese.pacienteId, pacienteId))
+      .returning({ id: anamnese.id });
+
+    if (!deletedVersions.length && !deletedBase.length) {
+      throw new AppError("Anamnese nao encontrada", 404, "NOT_FOUND");
+    }
+
+    return {
+      paciente_id: pacienteId,
+      deleted: true,
+      versions_deleted: deletedVersions.length,
+    };
+  }, { operation: "anamnese.excluirAnamneseCompleta", mode: "required" });
+}
+
+export async function excluirAnamneseVersao(pacienteId: number, version: number) {
+  await assertPacienteExists(pacienteId);
+
+  return runDbTransaction(async (tx) => {
+    const deletedRows = await tx
+      .delete(anamneseVersions)
+      .where(
+        and(
+          eq(anamneseVersions.pacienteId, pacienteId),
+          eq(anamneseVersions.version, version)
+        )
+      )
+      .returning({ id: anamneseVersions.id });
+
+    if (!deletedRows.length) {
+      throw new AppError("Versao da anamnese nao encontrada", 404, "NOT_FOUND");
+    }
+
+    const [latestRemaining] = await tx
+      .select({
+        version: anamneseVersions.version,
+        payload: anamneseVersions.payload,
+      })
+      .from(anamneseVersions)
+      .where(eq(anamneseVersions.pacienteId, pacienteId))
+      .orderBy(desc(anamneseVersions.version))
+      .limit(1);
+
+    if (latestRemaining) {
+      await tx
+        .insert(anamnese)
+        .values({
+          pacienteId,
+          payload: latestRemaining.payload as AnyRecord,
+        })
+        .onConflictDoUpdate({
+          target: anamnese.pacienteId,
+          set: {
+            payload: latestRemaining.payload as AnyRecord,
+            updatedAt: sql`now()`,
+          },
+        });
+    } else {
+      await tx.delete(anamnese).where(eq(anamnese.pacienteId, pacienteId));
+    }
+
+    return {
+      paciente_id: pacienteId,
+      version,
+      deleted: true,
+      has_current: !!latestRemaining,
+    };
+  }, { operation: "anamnese.excluirAnamneseVersao", mode: "required" });
+}
