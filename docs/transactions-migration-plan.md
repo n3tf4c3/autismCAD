@@ -13,6 +13,14 @@ Guarantee atomic writes in critical flows by migrating from `neon-http` fallback
   - `0` (default): allows non-transaction fallback when driver does not support transactions
   - `1`: blocks fallback and fails with `TRANSACTION_UNSUPPORTED`
 
+## When To Use `runDbTransaction`
+
+- Use `runDbTransaction` only when a write flow spans multiple SQL statements and requires all-or-nothing behavior.
+- Do not add `runDbTransaction` around a single `INSERT`, `UPDATE`, or `DELETE` just for stylistic consistency. A single SQL statement is already atomic at the database level.
+- Prefer `mode: "required"` for flows where partial persistence would be a bug.
+- If a flow is currently one statement but is likely to gain pre-checks or secondary writes soon, document that intent before adding a transaction wrapper.
+- With `DATABASE_DRIVER=neon-http`, `mode: "required"` will fail with `TRANSACTION_UNSUPPORTED`, so unnecessary wrappers increase operational risk without adding correctness.
+
 ## Rollout Steps
 
 1. Staging config:
