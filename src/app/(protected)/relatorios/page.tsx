@@ -29,7 +29,7 @@ export default async function RelatoriosIndexPage() {
 
         {pacientesVinculados.length ? (
           <section className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutivas (diaria e mensal)</h2>
+            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutivas (diaria e periodo)</h2>
             <p className="mt-1 text-sm text-gray-600">
               Escolha o paciente para acompanhar desempenho e feedback do profissional.
             </p>
@@ -53,7 +53,7 @@ export default async function RelatoriosIndexPage() {
                       href={`/relatorios/devolutiva-mensal?pacienteId=${paciente.id}`}
                       className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                     >
-                      Relatorio mensal
+                      Devolutiva periodo
                     </Link>
                   </div>
                 </li>

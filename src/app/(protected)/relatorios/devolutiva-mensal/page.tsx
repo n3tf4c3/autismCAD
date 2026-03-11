@@ -54,7 +54,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
         <main className="space-y-3">
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-sm text-red-600">
-              Informe `pacienteId` para abrir o relatorio mensal a partir do relatorio evolutivo.
+              Informe `pacienteId` para abrir a devolutiva periodo a partir do relatorio evolutivo.
             </p>
             <Link href="/relatorios/evolutivo" className="mt-2 inline-flex text-sm font-semibold text-[var(--laranja)]">
               &larr; Ir para relatorio evolutivo
@@ -109,8 +109,8 @@ export default async function RelatorioDevolutivaMensalPage(props: {
         </section>
       ) : (
         <ReportsHeader
-          title="Relatorio mensal"
-          subtitle="Visao mensal com foco em leitura rapida no celular e comparacao clara entre habilidades."
+          title="Devolutiva periodo"
+          subtitle="Visao consolidada por periodo com foco em leitura rapida no celular e comparacao clara entre habilidades."
           modeToggle={<ReportModeToggle mode="monthly" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
             <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
@@ -135,7 +135,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
                   <p className="text-base font-semibold text-[var(--marrom)]">
                     {pacienteAtivo.nome} #{pacienteAtivo.id}
                   </p>
-                  <p className="hidden text-sm text-gray-700 sm:block">Mes selecionado no cliente, com a mesma consolidacao atual.</p>
+                  <p className="hidden text-sm text-gray-700 sm:block">Periodo selecionado no cliente, com a mesma consolidacao atual.</p>
                 </div>
               </div>
             ) : null

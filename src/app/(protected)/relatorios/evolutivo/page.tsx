@@ -54,7 +54,7 @@ export default async function RelatorioEvolutivoPage(props: {
               href={devolutivaMensalHref}
               className="rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
             >
-              Devolutiva mensal
+              Devolutiva periodo
             </Link>
             <Link href="/relatorios" className="text-sm font-semibold text-[var(--laranja)]">
               &larr; Voltar

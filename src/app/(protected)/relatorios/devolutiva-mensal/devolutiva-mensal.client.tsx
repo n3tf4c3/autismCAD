@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DailyTimeline } from "@/components/reports/daily-timeline";
-import { ReportFilters } from "@/components/reports/report-filters";
 import { RecentFeedbackList } from "@/components/reports/recent-feedback-list";
 import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
@@ -46,6 +45,7 @@ type MensalReport = {
 };
 
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
+type PeriodPreset = "1m" | "3m" | "6m" | "12m" | "custom";
 
 function ymdFromLocalDate(d: Date): string {
   const y = d.getFullYear();
@@ -56,6 +56,16 @@ function ymdFromLocalDate(d: Date): string {
 
 function ymNow(): string {
   return ymdFromLocalDate(new Date()).slice(0, 7);
+}
+
+function addMonths(ym: string, offset: number): string | null {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return null;
+  const [ys, ms] = ym.split("-");
+  const year = Number(ys);
+  const month = Number(ms);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+  const d = new Date(year, month - 1 + offset, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function monthRange(ym: string): { from: string; to: string } | null {
@@ -69,6 +79,16 @@ function monthRange(ym: string): { from: string; to: string } | null {
     from: `${ys}-${ms}-01`,
     to: `${ys}-${ms}-${String(lastDay).padStart(2, "0")}`,
   };
+}
+
+function presetRange(referenceMonth: string, months: number): { from: string; to: string } | null {
+  const end = monthRange(referenceMonth);
+  if (!end) return null;
+  const startMonth = addMonths(referenceMonth, -(months - 1));
+  if (!startMonth) return null;
+  const start = monthRange(startMonth);
+  if (!start) return null;
+  return { from: start.from, to: end.to };
 }
 
 function fmtDate(value?: string | null): string {
@@ -85,9 +105,17 @@ function fmtMonth(ym: string): string {
   return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
 
+function fmtPeriodLabel(from?: string | null, to?: string | null): string {
+  if (!from || !to) return "periodo selecionado";
+  const fromMonth = from.slice(0, 7);
+  const toMonth = to.slice(0, 7);
+  if (fromMonth === toMonth) return fmtMonth(fromMonth);
+  return `${fmtMonth(fromMonth)} a ${fmtMonth(toMonth)}`;
+}
+
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return "Erro ao consultar devolutiva mensal";
+  return "Erro ao consultar devolutiva do periodo";
 }
 
 function readApiError(json: unknown): string | null {
@@ -156,21 +184,37 @@ export function DevolutivaMensalClient(props: {
   pacienteId: number;
   pacienteNome: string;
 }) {
-  const [monthRef, setMonthRef] = useState(ymNow());
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("1m");
+  const [referenceMonth, setReferenceMonth] = useState(ymNow());
+  const [customFrom, setCustomFrom] = useState(() => monthRange(ymNow())?.from ?? "");
+  const [customTo, setCustomTo] = useState(() => monthRange(ymNow())?.to ?? "");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [report, setReport] = useState<MensalReport | null>(null);
 
+  const selectedRange = useMemo(() => {
+    if (periodPreset === "custom") {
+      if (!customFrom || !customTo || customFrom > customTo) return null;
+      return { from: customFrom, to: customTo };
+    }
+    const monthsByPreset: Record<Exclude<PeriodPreset, "custom">, number> = {
+      "1m": 1,
+      "3m": 3,
+      "6m": 6,
+      "12m": 12,
+    };
+    return presetRange(referenceMonth, monthsByPreset[periodPreset]);
+  }, [customFrom, customTo, periodPreset, referenceMonth]);
+
   const query = useMemo(() => {
-    const range = monthRange(monthRef);
-    if (!range) return "";
+    if (!selectedRange) return "";
     const qs = new URLSearchParams();
     qs.set("pacienteId", String(props.pacienteId));
-    qs.set("from", range.from);
-    qs.set("to", range.to);
+    qs.set("from", selectedRange.from);
+    qs.set("to", selectedRange.to);
     return qs.toString();
-  }, [monthRef, props.pacienteId]);
+  }, [props.pacienteId, selectedRange]);
 
   const desempenhoMensal = useMemo(() => {
     return buildDesempenhoResumo(report?.evolucoes);
@@ -265,7 +309,7 @@ export function DevolutivaMensalClient(props: {
   const resumoMensal = useMemo(() => {
     if (!report) return "";
     const lines: string[] = [];
-    lines.push(`Resumo mensal de ${props.pacienteNome} (${fmtMonth(monthRef)}).`);
+    lines.push(`Resumo do periodo de ${props.pacienteNome} (${fmtPeriodLabel(report.periodo.from, report.periodo.to)}).`);
     lines.push(
       `Atendimentos: ${report.indicadores.totalAtendimentos} (Presencas: ${report.indicadores.presentes}, Ausencias: ${report.indicadores.ausentes}).`
     );
@@ -277,7 +321,7 @@ export function DevolutivaMensalClient(props: {
       });
     }
     return lines.join("\n");
-  }, [desempenhoMensal, monthRef, props.pacienteNome, report]);
+  }, [desempenhoMensal, props.pacienteNome, report]);
 
   const feedbackItems = useMemo(() => {
     return (report?.destaques?.ultimasObservacoes || []).map((item, index) => ({
@@ -307,7 +351,7 @@ export function DevolutivaMensalClient(props: {
       } else {
         throw new Error("Clipboard indisponivel");
       }
-      setCopyMsg("Resumo mensal copiado.");
+      setCopyMsg("Resumo do periodo copiado.");
       setTimeout(() => setCopyMsg(null), 1800);
     } catch {
       setCopyMsg("Nao foi possivel copiar.");
@@ -317,7 +361,7 @@ export function DevolutivaMensalClient(props: {
 
   async function consultar() {
     if (!query) {
-      setMsg("Mes invalido.");
+      setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
       return;
     }
     setLoading(true);
@@ -326,7 +370,7 @@ export function DevolutivaMensalClient(props: {
     try {
       const resp = await fetch(`/api/relatorios/evolutivo?${query}`, { cache: "no-store" });
       const json = (await resp.json().catch(() => null)) as unknown;
-      if (!resp.ok) throw new Error(readApiError(json) || "Falha ao carregar relatorio mensal");
+      if (!resp.ok) throw new Error(readApiError(json) || "Falha ao carregar relatorio do periodo");
       setReport(json as MensalReport);
     } catch (err) {
       setReport(null);
@@ -343,24 +387,96 @@ export function DevolutivaMensalClient(props: {
 
   return (
     <main className="space-y-4">
-      <ReportFilters
-        title="Periodo"
-        description="Selecione o mes para atualizar o consolidado sem sair da tela."
-        label="Mes"
-        type="month"
-        value={monthRef}
-        onChange={setMonthRef}
-        buttonLabel="Consultar mes"
-        onSubmit={() => void consultar()}
-        loading={loading}
-        compact
-      />
+      <section className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-600">Periodo</h2>
+            <p className="hidden text-sm text-gray-700 sm:block">
+              Escolha um recorte de 1, 3, 6 ou 12 meses. Se precisar, use intervalo personalizado.
+            </p>
+          </div>
+
+          <div className="flex w-full flex-col gap-3 lg:w-auto">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[200px_180px_180px_auto]">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de periodo</span>
+                <select
+                  value={periodPreset}
+                  onChange={(event) => {
+                    const next = event.target.value as PeriodPreset;
+                    if (next === "custom" && selectedRange) {
+                      setCustomFrom(selectedRange.from);
+                      setCustomTo(selectedRange.to);
+                    }
+                    setPeriodPreset(next);
+                  }}
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
+                >
+                  <option value="1m">1 mes</option>
+                  <option value="3m">Trimestral</option>
+                  <option value="6m">Semestral</option>
+                  <option value="12m">Anual</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+              </label>
+
+              {periodPreset === "custom" ? (
+                <>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-[var(--marrom)]">Inicio</span>
+                    <input
+                      type="date"
+                      value={customFrom}
+                      onChange={(event) => setCustomFrom(event.target.value)}
+                      className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-[var(--marrom)]">Fim</span>
+                    <input
+                      type="date"
+                      value={customTo}
+                      onChange={(event) => setCustomTo(event.target.value)}
+                      className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
+                    />
+                  </label>
+                </>
+              ) : (
+                <label className="flex flex-col gap-1.5 sm:col-span-2">
+                  <span className="text-sm font-semibold text-[var(--marrom)]">Mes de referencia</span>
+                  <input
+                    type="month"
+                    value={referenceMonth}
+                    onChange={(event) => setReferenceMonth(event.target.value)}
+                    className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
+                  />
+                </label>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void consultar()}
+                disabled={loading}
+                className="min-h-10 rounded-xl bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Consultar periodo
+              </button>
+            </div>
+
+            {selectedRange ? (
+              <p className="text-xs text-gray-500">
+                Recorte atual: {fmtDate(selectedRange.from)} a {fmtDate(selectedRange.to)}.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
 
       {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
 
       {loading ? (
         <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-700">Carregando relatorio mensal...</p>
+          <p className="text-sm text-gray-700">Carregando relatorio do periodo...</p>
         </section>
       ) : null}
 
@@ -383,7 +499,7 @@ export function DevolutivaMensalClient(props: {
                 <p className="mt-1 text-sm text-gray-700">
                   {desempenhoMensal.total
                     ? `${desempenhoMensal.total} metas avaliadas em ${desempenhoMensal.diasComRegistro} dia(s).`
-                    : "Sem metas estruturadas nas devolutivas deste mes."}
+                    : "Sem metas estruturadas nas devolutivas deste periodo."}
                 </p>
               </div>
               <button
@@ -425,7 +541,7 @@ export function DevolutivaMensalClient(props: {
                   {
                     label: "Presencas",
                     value: report.indicadores.presentes,
-                    description: "Compare com o total do mes.",
+                    description: "Compare com o total do periodo.",
                     tone: "success",
                   },
                   {
@@ -467,7 +583,7 @@ export function DevolutivaMensalClient(props: {
             rows={desempenhoMensal.rowsBySkill}
             title="Habilidades avaliadas"
             subtitle="Cards compactos com barra empilhada para comparar rapidamente o desempenho em cada habilidade."
-            emptyMessage="Nao ha habilidades suficientes para montar o grafico deste mes."
+            emptyMessage="Nao ha habilidades suficientes para montar o grafico deste periodo."
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -485,19 +601,19 @@ export function DevolutivaMensalClient(props: {
             <RecentFeedbackList
               items={feedbackItems}
               previewLength={180}
-              emptyMessage="Sem devolutiva registrada neste mes."
+              emptyMessage="Sem devolutiva registrada neste periodo."
             />
           </section>
 
           <section id="comportamentos" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do mes</h2>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do periodo</h2>
                 <p className="mt-1 text-sm text-gray-700">
                   Consolidado comportamental estruturado a partir das devolutivas do periodo selecionado.
                 </p>
               </div>
-              <p className="text-sm font-medium text-gray-600">{fmtMonth(monthRef)}</p>
+              <p className="text-sm font-medium text-gray-600">{fmtPeriodLabel(report.periodo.from, report.periodo.to)}</p>
             </div>
             {comportamentoMensal.total ? (
               <div className="mt-4 space-y-4">
@@ -508,13 +624,13 @@ export function DevolutivaMensalClient(props: {
                     {
                       label: "Negativos",
                       value: `${comportamentoMensal.totalNegativo} (${comportamentoMensal.pctNegativo}%)`,
-                      description: "Ocorrencias classificadas como negativas no mes.",
+                      description: "Ocorrencias classificadas como negativas no periodo.",
                       tone: "danger",
                     },
                     {
                       label: "Positivos",
                       value: `${comportamentoMensal.totalPositivo} (${comportamentoMensal.pctPositivo}%)`,
-                      description: "Ocorrencias classificadas como positivas no mes.",
+                      description: "Ocorrencias classificadas como positivas no periodo.",
                       tone: "success",
                     },
                     {
@@ -558,7 +674,7 @@ export function DevolutivaMensalClient(props: {
               </div>
             ) : (
               <p className="mt-3 text-sm text-gray-700">
-                Nao ha comportamentos estruturados registrados nas devolutivas deste mes.
+                Nao ha comportamentos estruturados registrados nas devolutivas deste periodo.
               </p>
             )}
           </section>
@@ -571,13 +687,13 @@ export function DevolutivaMensalClient(props: {
                   No celular a distribuicao vira uma timeline compacta; no desktop a leitura analitica continua em tabela.
                 </p>
               </div>
-              <p className="text-sm font-medium text-gray-600">{fmtMonth(monthRef)}</p>
+              <p className="text-sm font-medium text-gray-600">{fmtPeriodLabel(report.periodo.from, report.periodo.to)}</p>
             </div>
             <div className="mt-4">
               <DailyTimeline
                 rows={desempenhoMensal.rowsByDay}
                 formatDate={fmtDate}
-                emptyMessage="Nao ha distribuicao diaria para este mes."
+                emptyMessage="Nao ha distribuicao diaria para este periodo."
               />
             </div>
           </section>

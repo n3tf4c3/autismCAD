@@ -249,7 +249,7 @@ export function EvolutivoReportClient(props: {
               (!pacienteId ? "pointer-events-none opacity-50" : "")
             }
           >
-            Devolutiva mensal
+            Devolutiva periodo
           </Link>
         </div>
 
