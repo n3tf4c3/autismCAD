@@ -2,6 +2,7 @@ import "server-only";
 import { desc, eq, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { accessLogs, users } from "@/server/db/schema";
+import { runDbTransaction } from "@/server/db/transaction";
 import { AppError } from "@/server/shared/errors";
 
 export const ACCESS_LOG_RETENTION_DAYS = 7;
@@ -224,17 +225,21 @@ export async function recordLoginAttemptAccess(params: {
     const meta = extractLoginRequestMeta(params.headers);
     const status = normalizeAccessLogStatus(params.status);
 
-    // neon-http (driver atual) nao suporta transacoes.
-    await db.delete(accessLogs).where(lt(accessLogs.createdAt, cutoff));
-    await db.insert(accessLogs).values({
-      userId: typeof params.userId === "number" ? params.userId : null,
-      userEmail: normalizeAccessLogEmail(params.userEmail),
-      ipOrigem: meta.ipOrigem,
-      userAgent: meta.userAgent,
-      browser: meta.browser,
-      status,
-      createdAt: sql`now()`,
-    });
+    await runDbTransaction(
+      async (tx) => {
+        await tx.delete(accessLogs).where(lt(accessLogs.createdAt, cutoff));
+        await tx.insert(accessLogs).values({
+          userId: typeof params.userId === "number" ? params.userId : null,
+          userEmail: normalizeAccessLogEmail(params.userEmail),
+          ipOrigem: meta.ipOrigem,
+          userAgent: meta.userAgent,
+          browser: meta.browser,
+          status,
+          createdAt: sql`now()`,
+        });
+      },
+      { operation: "accessLogs.recordLoginAttemptAccess", mode: "allow-fallback" }
+    );
   });
 }
 
