@@ -113,9 +113,20 @@ export default async function RelatorioDevolutivaMensalPage(props: {
           subtitle="Visao consolidada por periodo com foco em leitura rapida no celular e comparacao clara entre habilidades."
           modeToggle={<ReportModeToggle mode="monthly" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
-            <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
-              &larr; Voltar
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              {pacienteAtivo ? (
+                <Link
+                  href={`/impressao/devolutiva?pacienteId=${pacienteAtivo.id}`}
+                  target="_blank"
+                  className="text-sm font-semibold text-[var(--laranja)]"
+                >
+                  Versao para impressao
+                </Link>
+              ) : null}
+              <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
+                &larr; Voltar
+              </Link>
+            </div>
           }
           patientSlot={
             pacienteAtivo ? (

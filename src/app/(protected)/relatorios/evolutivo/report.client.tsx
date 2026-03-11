@@ -251,6 +251,17 @@ export function EvolutivoReportClient(props: {
           >
             Devolutiva periodo
           </Link>
+          <Link
+            href={pacienteId ? `/impressao/devolutiva?pacienteId=${pacienteId}` : "/impressao/devolutiva"}
+            target="_blank"
+            aria-disabled={!pacienteId}
+            className={
+              "inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 " +
+              (!pacienteId ? "pointer-events-none opacity-50" : "")
+            }
+          >
+            Relatorio para impressao
+          </Link>
         </div>
 
         {msg ? <p className="mt-3 text-sm text-red-600">{msg}</p> : null}

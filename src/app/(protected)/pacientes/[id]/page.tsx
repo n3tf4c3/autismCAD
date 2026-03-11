@@ -244,6 +244,13 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 >
                   Devolutiva periodo
                 </Link>
+                <Link
+                  href={`/impressao/devolutiva?pacienteId=${paciente.id}`}
+                  target="_blank"
+                  className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                >
+                  Relatorio para impressao
+                </Link>
               </div>
             </div>
           </div>
