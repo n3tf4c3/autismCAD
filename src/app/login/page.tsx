@@ -92,7 +92,7 @@ export default function LoginPage() {
               Acompanhe cada passo da evolucao com carinho e precisao.
             </p>
           </div>
-          <p className="relative z-10 text-base font-bold text-white">Suporte: suporte@girassois.com.br</p>
+          <p className="relative z-10 text-base font-bold text-white">Suporte: girassoisclinica@gmail.com</p>
         </section>
 
         <section className="bg-white p-10">

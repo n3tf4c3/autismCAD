@@ -966,7 +966,7 @@ export function DevolutivaImpressaoClient(props: {
               <div className="space-y-2">
                 <p className="text-sm font-semibold tracking-[0.2em] text-[#d8b18a]">CLINICA GIRASSOIS</p>
                 <p>(65) 3622-2826</p>
-                <p>@dinicagirassois</p>
+                <p>@clinicagirassois</p>
                 <p>girassoisclinica@gmail.com</p>
               </div>
               <div className="flex items-end justify-start sm:justify-end">
