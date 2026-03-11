@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { anamneseVersions, atendimentos, evolucoes, pacientes, terapeutas } from "@/server/db/schema";
+import { atendimentos, evolucoes, pacientes, terapeutas } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
@@ -11,7 +11,6 @@ import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import type {
   AssiduidadeQueryInput,
-  ClinicoQueryInput,
   EvolutivoQueryInput,
 } from "@/server/modules/relatorios/relatorios.schema";
 
@@ -435,130 +434,5 @@ export async function consolidateAssiduidadeReport(params: {
     filtros: { terapeutaId: terapeutaFiltro, pacienteNome: nomeFiltro, presenca: params.query.presenca ?? null, role: roleCanon },
     resumo: { total, presentes, faltas, semRegistro, taxa },
     linhas,
-  };
-}
-
-export async function consolidateClinicoReport(params: {
-  query: ClinicoQueryInput;
-  user: { id: number | string; role?: string | null };
-}) {
-  const pacienteId = Number(params.query.pacienteId);
-  if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
-
-  const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
-  const userId = Number(params.user.id);
-
-  // Enforce patient access (admins ok; terapeutas must be linked)
-  await assertPacienteAccess(params.user, pacienteId);
-
-  const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
-  const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
-  if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
-
-  const terapeutaFiltro = await resolveTerapeutaFiltro({
-    roleCanon,
-    userId,
-    terapeutaId: params.query.terapeutaId ?? null,
-  });
-
-  const [paciente] = await db
-    .select({
-      id: pacientes.id,
-      nome: pacientes.nome,
-      cpf: pacientes.cpf,
-      data_nascimento: pacientes.dataNascimento,
-      convenio: pacientes.convenio,
-    })
-    .from(pacientes)
-    .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
-    .limit(1);
-
-  if (!paciente) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-
-  const whereAtend = [
-    eq(atendimentos.pacienteId, pacienteId),
-    isNull(atendimentos.deletedAt),
-    gte(atendimentos.data, from),
-    lte(atendimentos.data, to),
-  ];
-  if (terapeutaFiltro) whereAtend.push(eq(atendimentos.terapeutaId, terapeutaFiltro));
-
-  const atendRows = await db
-    .select({
-      id: atendimentos.id,
-      data: atendimentos.data,
-      hora_inicio: atendimentos.horaInicio,
-      presenca: atendimentos.presenca,
-      motivo: atendimentos.motivo,
-      observacoes: atendimentos.observacoes,
-    })
-    .from(atendimentos)
-    .where(and(...whereAtend))
-    .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id));
-
-  const total = atendRows.length;
-  const presentes = atendRows.filter((a) => a.presenca === "Presente").length;
-  const ausentes = atendRows.filter((a) => a.presenca === "Ausente").length;
-  const denom = presentes + ausentes;
-  const taxaPresenca = denom ? Math.round((presentes / denom) * 100) : 0;
-
-  const observacoes = atendRows
-    .filter((a) => (a.observacoes || "").trim() || (a.motivo || "").trim())
-    .slice(0, 12)
-    .map((a) => ({
-      data: String(a.data).slice(0, 10),
-      hora_inicio: String(a.hora_inicio || "").slice(0, 5),
-      presenca: a.presenca,
-      observacoes: a.observacoes,
-      motivo: a.motivo,
-    }));
-
-  const versionRequested = params.query.version ? Number(params.query.version) : null;
-  const anamneseRow = await (async () => {
-    if (versionRequested) {
-      const [row] = await db
-        .select({
-          version: anamneseVersions.version,
-          status: anamneseVersions.status,
-          created_at: anamneseVersions.createdAt,
-        })
-        .from(anamneseVersions)
-        .where(and(eq(anamneseVersions.pacienteId, pacienteId), eq(anamneseVersions.version, versionRequested)))
-        .limit(1);
-      return row ?? null;
-    }
-    const [row] = await db
-      .select({
-        version: anamneseVersions.version,
-        status: anamneseVersions.status,
-        created_at: anamneseVersions.createdAt,
-      })
-      .from(anamneseVersions)
-      .where(eq(anamneseVersions.pacienteId, pacienteId))
-      .orderBy(desc(anamneseVersions.version), desc(anamneseVersions.createdAt))
-      .limit(1);
-    return row ?? null;
-  })();
-
-  const anamnese = anamneseRow
-    ? {
-        version: anamneseRow.version,
-        status: anamneseRow.status,
-        created_at: String(anamneseRow.created_at).slice(0, 10),
-      }
-    : null;
-
-  return {
-    paciente,
-    periodo: { from, to },
-    filtros: { terapeutaId: terapeutaFiltro, role: roleCanon, version: versionRequested },
-    atendimentos: {
-      total,
-      presentes,
-      ausentes,
-      taxaPresenca,
-      observacoes,
-    },
-    anamnese,
   };
 }
