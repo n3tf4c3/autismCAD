@@ -21,6 +21,11 @@ Guarantee atomic writes in critical flows by migrating from `neon-http` fallback
 - If a flow is currently one statement but is likely to gain pre-checks or secondary writes soon, document that intent before adding a transaction wrapper.
 - With `DATABASE_DRIVER=neon-http`, `mode: "required"` will fail with `TRANSACTION_UNSUPPORTED`, so unnecessary wrappers increase operational risk without adding correctness.
 
+## Intentional Non-Issues
+
+- Single-statement flows such as `prontuario.criarEvolucao`, `atendimentos.excluirDia`, `terapeutas.setTerapeutaAtivo`, `pacientes.setPacienteAtivo`, `pacientes.softDeletePaciente`, `atendimentos.softDeleteAtendimento`, and `users.deleteUser` do not require `runDbTransaction` only for stylistic parity.
+- These operations should only move to `runDbTransaction` if they gain additional writes, lock acquisition, or dependent reads that must commit atomically with the final mutation.
+
 ## Rollout Steps
 
 1. Staging config:

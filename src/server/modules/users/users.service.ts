@@ -298,6 +298,7 @@ export async function deleteUser(id: number, requesterUserId: number) {
 }
 
 export async function listPermissions() {
+  // Reference catalog: permissions are not scoped by user active/deleted state.
   return db
     .select({
       id: permissions.id,
@@ -309,6 +310,7 @@ export async function listPermissions() {
 }
 
 export async function listRoles() {
+  // Reference catalog: roles remain listable even when there are no active users.
   const baseRoles = await db
     .select({ nome: roles.slug })
     .from(roles)

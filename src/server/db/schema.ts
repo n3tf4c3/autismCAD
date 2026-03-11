@@ -274,6 +274,9 @@ export const anamnese = pgTable(
 export const anamneseVersions = pgTable(
   "anamnese_versions",
   {
+    // Immutable snapshots: versions are append-only and removed with hard-delete.
+    // The mutable "current" view lives in `anamnese`, so this table intentionally
+    // does not track `updatedAt` or soft-delete metadata.
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
