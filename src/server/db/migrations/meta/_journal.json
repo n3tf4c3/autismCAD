@@ -99,6 +99,13 @@
       "when": 1773069188418,
       "tag": "0013_deleted_by_user_fks",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1773261595418,
+      "tag": "0014_prontuario_documentos_updated_at",
+      "breakpoints": true
     }
   ]
 }

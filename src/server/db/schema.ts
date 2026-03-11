@@ -306,6 +306,7 @@ export const prontuarioDocumentos = pgTable(
     }),
     createdByRole: varchar("created_by_role", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
@@ -320,6 +321,7 @@ export const prontuarioDocumentos = pgTable(
     index("idx_prontuario_documentos_paciente").on(table.pacienteId),
     index("idx_prontuario_documentos_tipo").on(table.tipo),
     index("idx_prontuario_documentos_created_at").on(table.createdAt),
+    index("idx_prontuario_documentos_updated_at").on(table.updatedAt),
     index("idx_prontuario_documentos_deleted_at").on(table.deletedAt),
   ]
 );

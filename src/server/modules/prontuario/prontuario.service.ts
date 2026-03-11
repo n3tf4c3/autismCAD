@@ -64,6 +64,7 @@ export async function listarDocumentos(pacienteId: number, tipo?: string | null)
       created_by_user_id: prontuarioDocumentos.createdByUserId,
       created_by_role: prontuarioDocumentos.createdByRole,
       created_at: prontuarioDocumentos.createdAt,
+      updated_at: prontuarioDocumentos.updatedAt,
       autor_nome: users.nome,
     })
     .from(prontuarioDocumentos)
@@ -85,6 +86,7 @@ export async function obterDocumento(id: number) {
       created_by_user_id: prontuarioDocumentos.createdByUserId,
       created_by_role: prontuarioDocumentos.createdByRole,
       created_at: prontuarioDocumentos.createdAt,
+      updated_at: prontuarioDocumentos.updatedAt,
       autor_nome: users.nome,
     })
     .from(prontuarioDocumentos)
@@ -319,16 +321,20 @@ export async function excluirEvolucao(id: number, userId?: number | null) {
 export async function finalizarDocumento(id: number) {
   const [row] = await db
     .update(prontuarioDocumentos)
-    .set({ status: "Finalizado" })
+    .set({ status: "Finalizado", updatedAt: sql`now()` })
     .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
-    .returning({ id: prontuarioDocumentos.id, status: prontuarioDocumentos.status });
+    .returning({
+      id: prontuarioDocumentos.id,
+      status: prontuarioDocumentos.status,
+      updated_at: prontuarioDocumentos.updatedAt,
+    });
   return row ?? null;
 }
 
 export async function excluirDocumento(id: number, userId?: number | null) {
   const [row] = await db
     .update(prontuarioDocumentos)
-    .set({ deletedAt: sql`now()`, deletedByUserId: userId ?? null })
+    .set({ deletedAt: sql`now()`, deletedByUserId: userId ?? null, updatedAt: sql`now()` })
     .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
     .returning({ id: prontuarioDocumentos.id });
   return !!row;
