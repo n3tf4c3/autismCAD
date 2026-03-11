@@ -431,38 +431,6 @@ export function DevolutivaDiaClient(props: {
               />
             </div>
 
-            <div className="mt-3">
-              <ReportSummaryCards
-                compact
-                items={[
-                  {
-                    label: "Atendimentos",
-                    value: report.indicadores.totalAtendimentos,
-                    description: `Periodo: ${fmtDate(report.periodo.from)}`,
-                    tone: "brand",
-                  },
-                  {
-                    label: "Presencas",
-                    value: report.indicadores.presentes,
-                    description: "Atendimentos com presenca.",
-                    tone: "success",
-                  },
-                  {
-                    label: "Ausencias",
-                    value: report.indicadores.ausentes,
-                    description: "Atendimentos sem presenca.",
-                    tone: "danger",
-                  },
-                  {
-                    label: "Taxa",
-                    value: `${report.indicadores.taxaPresencaPercent}%`,
-                    description: "Percentual do dia.",
-                    tone: "warning",
-                  },
-                ]}
-              />
-            </div>
-
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
               <p className="text-sm text-gray-700">{resumoDia}</p>
               <details className="mt-3">
@@ -476,7 +444,7 @@ export function DevolutivaDiaClient(props: {
             sectionId="habilidades"
             compact
             rows={desempenhoResumo.rowsBySkill}
-            title="Habilidades avaliadas"
+            title="Habilidades trabalhadas"
             subtitle="Cards mais compactos para leitura rapida no celular, mantendo comparacao clara entre os tres status."
             emptyMessage="Nao ha habilidades suficientes para montar o grafico deste dia."
           />

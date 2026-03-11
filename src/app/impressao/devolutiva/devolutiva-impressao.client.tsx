@@ -854,7 +854,7 @@ export function DevolutivaImpressaoClient(props: {
             </div>
 
             <PrintSection
-              title="Habilidades avaliadas"
+              title="Habilidades trabalhadas"
               subtitle="Grafico em barras verticais com comparacao entre independencia, ajuda e nao realizacao por habilidade."
             >
               <SkillDistributionChart rows={desempenhoResumo.rowsBySkill.slice(0, 10)} />

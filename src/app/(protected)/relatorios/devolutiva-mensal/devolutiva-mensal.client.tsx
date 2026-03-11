@@ -528,38 +528,6 @@ export function DevolutivaMensalClient(props: {
               />
             </div>
 
-            <div className="mt-3">
-              <ReportSummaryCards
-                compact
-                items={[
-                  {
-                    label: "Atendimentos",
-                    value: report.indicadores.totalAtendimentos,
-                    description: `${report.indicadores.tempoTotalMinutos} min no periodo.`,
-                    tone: "brand",
-                  },
-                  {
-                    label: "Presencas",
-                    value: report.indicadores.presentes,
-                    description: "Compare com o total do periodo.",
-                    tone: "success",
-                  },
-                  {
-                    label: "Ausencias",
-                    value: report.indicadores.ausentes,
-                    description: "Atendimentos sem presenca.",
-                    tone: "danger",
-                  },
-                  {
-                    label: "Taxa",
-                    value: `${report.indicadores.taxaPresencaPercent}%`,
-                    description: `${report.indicadores.mediaMinutosPorSessao} min por sessao.`,
-                    tone: "warning",
-                  },
-                ]}
-              />
-            </div>
-
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
               <p className="text-sm text-gray-700">
                 Periodo: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}.
@@ -581,7 +549,7 @@ export function DevolutivaMensalClient(props: {
             sectionId="habilidades"
             compact
             rows={desempenhoMensal.rowsBySkill}
-            title="Habilidades avaliadas"
+            title="Habilidades trabalhadas"
             subtitle="Cards compactos com barra empilhada para comparar rapidamente o desempenho em cada habilidade."
             emptyMessage="Nao ha habilidades suficientes para montar o grafico deste periodo."
           />
