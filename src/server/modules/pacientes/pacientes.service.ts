@@ -128,7 +128,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
       let pacienteId = id ?? null;
 
       if (pacienteId) {
-        await tx
+        const [updated] = await tx
           .update(pacientes)
           .set({
             nome,
@@ -147,11 +147,14 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
             laudo: normalizeOptionalText(input.laudoAtual),
             documento: normalizeOptionalText(input.documentoAtual),
             ativo,
-            deletedAt: null,
-            deletedByUserId: null,
             updatedAt: sql`now()`,
           })
-          .where(eq(pacientes.id, pacienteId));
+          .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
+          .returning({ id: pacientes.id });
+
+        if (!updated) {
+          throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+        }
 
         await tx
           .delete(pacienteTerapia)
