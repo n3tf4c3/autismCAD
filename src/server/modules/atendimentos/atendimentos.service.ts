@@ -57,6 +57,10 @@ function parseDateOnlyUtc(value: string): Date {
 
 type DbExecutor = typeof db;
 
+async function acquireAtendimentoScheduleLock(executor: DbExecutor, pacienteId: number, data: string) {
+  await executor.execute(sql`select pg_advisory_xact_lock(${pacienteId}, hashtext(${data}))`);
+}
+
 async function existeConflitoHorario(executor: DbExecutor, params: {
   pacienteId: number;
   data: string;
@@ -98,6 +102,8 @@ async function salvarAtendimentoDb(
   if (presenca === "Ausente" && !input.motivo?.trim()) {
     throw new AppError("Motivo e obrigatorio quando ausente", 400, "MOTIVO_REQUIRED");
   }
+
+  await acquireAtendimentoScheduleLock(executor, input.pacienteId, data);
 
   const conflito = await existeConflitoHorario(executor, {
     pacienteId: input.pacienteId,
@@ -223,7 +229,10 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
 }
 
 export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number | null) {
-  return salvarAtendimentoDb(db, input, id);
+  return runDbTransaction(
+    async (tx) => salvarAtendimentoDb(tx, input, id),
+    { operation: "atendimentos.salvarAtendimento", mode: "required" }
+  );
 }
 
 export async function softDeleteAtendimento(id: number, deletedByUserId?: number | null) {
