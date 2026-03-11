@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   if (roleCanon === "RESPONSAVEL") {
     redirect("/relatorios");
   }
-  assertHasPermission(access, ["atendimentos:view"]);
+  assertHasPermission(access, ["consultas:view", "atendimentos:view"]);
   const isAdmin = access.roles.some((role) =>
     ADMIN_ROLES.has(canonicalRoleName(role) ?? role)
   );
