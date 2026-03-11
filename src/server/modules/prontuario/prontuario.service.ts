@@ -297,7 +297,7 @@ export async function atualizarEvolucao(
         terapeutaId,
         updatedAt: sql`now()`,
       })
-      .where(eq(evolucoes.id, id));
+      .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)));
     return { id, data: dataVal };
   } catch (error) {
     if (isUniqueViolation(error)) {
