@@ -68,9 +68,6 @@ function pickPerformanceLabel(item: Record<string, unknown>): string {
   const opcao = String(item.opcao ?? item.meta ?? "").trim();
   if (opcao) return opcao;
 
-  const recurso = String(item.recurso ?? "").trim();
-  if (recurso) return recurso;
-
   const ensino = String(item.ensino ?? "").trim();
   if (ensino) return ensino;
 

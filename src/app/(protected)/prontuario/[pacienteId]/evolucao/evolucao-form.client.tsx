@@ -21,13 +21,11 @@ type MetaRow = {
   id: string;
   ensino: string;
   habilidade: string;
-  recurso: string;
   opcao: string;
   desempenho: DesempenhoChoice;
   tipoAjuda: AjudaChoice;
   tentativas: string;
   acertos: string;
-  tempo: string;
   reforcador: string;
 };
 
@@ -136,7 +134,6 @@ function normalizeMetaFromAny(item: unknown, stableId?: string): MetaRow {
     id: stableId ?? uid(),
     ensino: pickString(obj.ensino),
     habilidade: pickString(obj.habilidade ?? obj.skill),
-    recurso: pickString(obj.recurso),
     opcao: pickString(obj.opcao ?? obj.meta),
     desempenho: toChoice(obj.desempenho ?? obj.performance, ["", "ajuda", "nao_fez", "independente"]),
     tipoAjuda: toChoice(obj.tipoAjuda ?? obj.tipo_ajuda ?? obj.ajuda, [
@@ -149,7 +146,6 @@ function normalizeMetaFromAny(item: unknown, stableId?: string): MetaRow {
     ]),
     tentativas: tent == null ? "" : String(tent),
     acertos: obj.acertos == null ? "" : String(obj.acertos),
-    tempo: obj.tempo == null ? "" : String(obj.tempo),
     reforcador: pickString(obj.reforcador ?? obj.reforco),
   };
 }
@@ -271,36 +267,30 @@ export function EvolucaoFormClient(props: {
       .map((r) => {
         const ensino = r.ensino.trim();
         const habilidade = r.habilidade.trim();
-        const recurso = r.recurso.trim();
         const opcao = r.opcao.trim();
         const reforcador = r.reforcador.trim();
         const tent = toIntOrNull(r.tentativas);
         const acertos = toIntOrNull(r.acertos);
-        const tempo = toIntOrNull(r.tempo);
         const desempenho = (r.desempenho || "").trim() || null;
         const tipoAjuda = (r.tipoAjuda || "").trim() || null;
         const temDados =
           ensino ||
           habilidade ||
-          recurso ||
           opcao ||
           reforcador ||
           desempenho ||
           tipoAjuda ||
           tent != null ||
-          acertos != null ||
-          tempo != null;
+          acertos != null;
         if (!temDados) return null;
         return {
           ensino: ensino || null,
           habilidade: habilidade || null,
-          recurso: recurso || null,
           opcao: opcao || null,
           desempenho,
           tipoAjuda,
           tentativas: tent,
           acertos,
-          tempo: tempo == null ? null : tempo,
           reforcador: reforcador || null,
         };
       })
@@ -308,7 +298,7 @@ export function EvolucaoFormClient(props: {
 
     const metas = itensDesempenho.length
       ? itensDesempenho
-          .map((i) => pickString(i.opcao || i.habilidade || i.recurso).trim())
+          .map((i) => pickString(i.opcao || i.habilidade).trim())
           .filter(Boolean)
       : [];
 
@@ -679,8 +669,8 @@ export function EvolucaoFormClient(props: {
             <div className="space-y-1">
               <p className="text-sm font-semibold text-[var(--marrom)]">Metas / desempenho da sessao</p>
               <p className="text-xs text-gray-500">
-                Registre habilidade, recurso usado, opcao apresentada, desempenho (Ajuda / Nao fez / Independente), tipo
-                de ajuda e reforcador.
+                Registre habilidade, alvo apresentado, desempenho (Ajuda / Nao fez / Independente), tipo de ajuda e
+                reforcador.
               </p>
               <p className="text-xs text-gray-500">
                 <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> Verbal, Gestual, Verbal e Gestual,
@@ -722,17 +712,8 @@ export function EvolucaoFormClient(props: {
                     placeholder="Ex: Nomeacao, Pareamento..."
                   />
                 </div>
-                <div className="flex flex-col gap-1 md:col-span-2">
-                  <p className="text-xs font-semibold text-gray-600">Recursos</p>
-                  <input
-                    value={row.recurso}
-                    onChange={(e) => updateMetaRow(row.id, { recurso: e.target.value })}
-                    className="rounded-lg border px-3 py-2 text-sm"
-                    placeholder="Ex: cards animais"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 md:col-span-2">
-                  <p className="text-xs font-semibold text-gray-600">Opcoes</p>
+                <div className="flex flex-col gap-1 md:col-span-3">
+                  <p className="text-xs font-semibold text-gray-600">Alvo</p>
                   <input
                     value={row.opcao}
                     onChange={(e) => updateMetaRow(row.id, { opcao: e.target.value })}
@@ -792,19 +773,7 @@ export function EvolucaoFormClient(props: {
                     placeholder="0"
                   />
                 </div>
-                <div className="flex flex-col gap-1 md:col-span-2">
-                  <p className="text-xs font-semibold text-gray-600">Tempo (min)</p>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={row.tempo}
-                    onChange={(e) => updateMetaRow(row.id, { tempo: e.target.value })}
-                    className="w-full rounded-lg border px-3 py-2 text-center text-sm"
-                    placeholder="0"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 md:col-span-2">
+                <div className="flex flex-col gap-1 md:col-span-3">
                   <p className="text-xs font-semibold text-gray-600">Reforcador</p>
                   <input
                     value={row.reforcador}

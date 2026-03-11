@@ -9,6 +9,7 @@ import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock"
 import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 import type {
   AssiduidadeQueryInput,
   EvolutivoQueryInput,
@@ -214,6 +215,11 @@ export async function consolidateEvolutivoReport(params: {
     )
     .orderBy(desc(evolucoes.data), desc(evolucoes.createdAt));
 
+  const evolsSanitized = evols.map((e) => ({
+    ...e,
+    payload: sanitizeEvolucaoPayload(e.payload).payload,
+  }));
+
   const observacoes: Array<{
     data: string;
     terapeuta_nome: string;
@@ -238,7 +244,7 @@ export async function consolidateEvolutivoReport(params: {
     }
   });
 
-  evols.forEach((e) => {
+  evolsSanitized.forEach((e) => {
     const p = (e.payload ?? {}) as Record<string, unknown>;
     const textos = [
       p.descricao,
@@ -272,8 +278,8 @@ export async function consolidateEvolutivoReport(params: {
   if (indicadores.totalAtendimentos && indicadores.naoInformado / indicadores.totalAtendimentos > 0.4) {
     regras.push("MUITOS_SEM_REGISTRO");
   }
-  if (!observacoes.length && evols.length === 0) regras.push("SEM_EVOLUCOES_TEXTUAIS");
-  if (observacoes.length + evols.length >= 5) regras.push("COM_REGISTROS_CLINICOS");
+  if (!observacoes.length && evolsSanitized.length === 0) regras.push("SEM_EVOLUCOES_TEXTUAIS");
+  if (observacoes.length + evolsSanitized.length >= 5) regras.push("COM_REGISTROS_CLINICOS");
 
   const adesaoTexto =
     tp >= 85
@@ -307,7 +313,7 @@ export async function consolidateEvolutivoReport(params: {
     distribuicao,
     destaques: { ultimasObservacoes, principaisMotivosAusencia },
     resumoAutomatico,
-    evolucoes: evols.map((e) => ({ ...e, data: String(e.data).slice(0, 10) })),
+    evolucoes: evolsSanitized.map((e) => ({ ...e, data: String(e.data).slice(0, 10) })),
     atendimentos: atend.map((a) => ({
       id: a.id,
       data: a.data,
