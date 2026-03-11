@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { asc, isNull } from "drizzle-orm";
+import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
-export default async function RelatoriosIndexPage() {
+export default async function RelatoriosIndexPage(props: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
   const { user } = await requirePermission(["relatorios_clinicos:view", "relatorios_admin:view"]);
   const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
   const isResponsavel = roleCanon === "RESPONSAVEL";
@@ -65,12 +67,27 @@ export default async function RelatoriosIndexPage() {
     );
   }
 
-  const rows = await db
-    .select({ id: pacientes.id, nome: pacientes.nome })
-    .from(pacientes)
-    .where(isNull(pacientes.deletedAt))
-    .orderBy(asc(pacientes.nome))
-    .limit(200);
+  const { q: queryRaw } = (await props.searchParams) ?? {};
+  const query = String(queryRaw || "").trim();
+  const queryDigits = Number(query);
+  const hasNumericQuery = query !== "" && Number.isInteger(queryDigits) && queryDigits > 0;
+  const hasQuery = query.length >= 2 || hasNumericQuery;
+
+  const rows = hasQuery
+    ? hasNumericQuery
+      ? await db
+          .select({ id: pacientes.id, nome: pacientes.nome })
+          .from(pacientes)
+          .where(and(isNull(pacientes.deletedAt), or(ilike(pacientes.nome, `%${query}%`), eq(pacientes.id, queryDigits))))
+          .orderBy(asc(pacientes.nome))
+          .limit(20)
+      : await db
+          .select({ id: pacientes.id, nome: pacientes.nome })
+          .from(pacientes)
+          .where(and(isNull(pacientes.deletedAt), ilike(pacientes.nome, `%${query}%`)))
+          .orderBy(asc(pacientes.nome))
+          .limit(20)
+    : [];
 
   return (
     <main className="space-y-4">
@@ -104,12 +121,50 @@ export default async function RelatoriosIndexPage() {
       </section>
 
       <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorio Evolutivo (por paciente)</h2>
+        <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorios por paciente</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Gere o relatorio evolutivo por paciente a partir da timeline do prontuario.
+          Busque o paciente pelo nome ou ID para abrir o relatorio desejado.
         </p>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse">
+        <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex-1">
+            <span className="mb-1 block text-sm font-semibold text-[var(--marrom)]">Buscar paciente</span>
+            <input
+              type="text"
+              name="q"
+              defaultValue={query}
+              placeholder="Digite nome ou ID"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+            >
+              Buscar
+            </button>
+            {query ? (
+              <Link
+                href="/relatorios"
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Limpar
+              </Link>
+            ) : null}
+          </div>
+        </form>
+
+        {!query ? (
+          <p className="mt-4 text-sm text-gray-500">Nenhum paciente listado por padrao. Use a busca para localizar.</p>
+        ) : null}
+
+        {query && !hasQuery ? (
+          <p className="mt-4 text-sm text-gray-500">Digite pelo menos 2 caracteres para pesquisar por nome.</p>
+        ) : null}
+
+        {hasQuery ? (
+          <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[920px] border-collapse">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
                 <th className="px-3 py-2">Paciente</th>
@@ -123,25 +178,47 @@ export default async function RelatoriosIndexPage() {
                     {row.nome} <span className="font-normal text-gray-500">#{row.id}</span>
                   </td>
                   <td className="px-3 py-3">
-                    <Link
-                      href={`/relatorios/evolutivo?pacienteId=${row.id}`}
-                      className="inline-flex rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-                    >
-                      Relatorio Evolutivo
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/relatorios/evolutivo?pacienteId=${row.id}`}
+                        className="inline-flex rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                      >
+                        Relatorio Evolutivo
+                      </Link>
+                      <Link
+                        href={`/relatorios/devolutiva-dia?pacienteId=${row.id}`}
+                        className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                      >
+                        Devolutiva diaria
+                      </Link>
+                      <Link
+                        href={`/relatorios/devolutiva-mensal?pacienteId=${row.id}`}
+                        className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                      >
+                        Devolutiva periodo
+                      </Link>
+                      <Link
+                        href={`/impressao/devolutiva?pacienteId=${row.id}`}
+                        target="_blank"
+                        className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                      >
+                        Relatorio para impressao
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
               {!rows.length ? (
                 <tr>
                   <td colSpan={2} className="px-3 py-6 text-center text-sm text-gray-500">
-                    Nenhum paciente encontrado.
+                    Nenhum paciente encontrado para &quot;{query}&quot;.
                   </td>
                 </tr>
               ) : null}
             </tbody>
           </table>
-        </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

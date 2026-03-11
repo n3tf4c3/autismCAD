@@ -144,7 +144,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         },
         {
           key: "relatorios",
-          label: "Relatorio",
+          label: "Relatorios",
           icon: "📊",
           href: "/relatorios",
           kind: "link",
