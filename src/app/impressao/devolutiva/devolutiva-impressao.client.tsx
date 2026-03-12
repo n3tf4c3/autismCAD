@@ -7,7 +7,7 @@ type PeriodPreset = "1m" | "3m" | "6m" | "12m" | "custom";
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
 
 type ImpressaoReport = {
-  paciente: { id: number; nome: string; cpf: string; convenio: string };
+  paciente: { id: number; nome: string; cpf: string };
   periodo: { from: string; to: string };
   indicadores: {
     totalAtendimentos: number;

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 type Terapeuta = { id: number; nome: string };
 
 type EvolutivoReport = {
-  paciente: { id: number; nome: string; cpf: string; convenio: string };
+  paciente: { id: number; nome: string; cpf: string };
   periodo: { from: string; to: string };
   indicadores: {
     totalAtendimentos: number;

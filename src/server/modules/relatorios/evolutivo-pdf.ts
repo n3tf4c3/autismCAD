@@ -4,7 +4,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { env } from "@/lib/env";
 
 export type EvolutivoReport = {
-  paciente: { id: number; nome: string; cpf: string; convenio: string };
+  paciente: { id: number; nome: string; cpf: string };
   periodo: { from: string; to: string };
   indicadores: {
     totalAtendimentos: number;
@@ -85,7 +85,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   const p = report.paciente;
   const periodo = report.periodo;
   drawLine(`Paciente: ${p.nome} (ID ${p.id})`, { bold: true });
-  drawLine(`CPF: ${p.cpf || "-"}   Convenio: ${p.convenio || "Particular"}`);
+  drawLine(`CPF: ${p.cpf || "-"}`);
   drawLine(`Periodo: ${periodo.from} a ${periodo.to}`);
   y -= 8;
 
