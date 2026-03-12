@@ -111,7 +111,11 @@ function fmtPeriodLabel(from?: string | null, to?: string | null): string {
 }
 
 function fmtNowPtBr(): string {
-  return new Date().toLocaleString("pt-BR");
+  return new Date().toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function normalizeApiError(error: unknown): string {
