@@ -44,15 +44,6 @@ type ImpressaoReport = {
   }>;
 };
 
-type BehaviorRow = {
-  key: string;
-  label: string;
-  value: number;
-  pct: number;
-  positivo: number;
-  negativo: number;
-};
-
 function ymdFromLocalDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -188,78 +179,39 @@ function behaviorLabelFromValue(value: string): string {
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
-function buildChartWidth(pct: number): string {
-  if (pct <= 0) return "0%";
-  return `${Math.max(pct, 4)}%`;
-}
-
-function ScreenMetric(props: { label: string; value: string | number; helper: string }) {
+function DocumentField(props: {
+  label: string;
+  value: React.ReactNode;
+  helper?: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{props.label}</p>
-      <p className="mt-2 text-2xl font-bold text-[var(--marrom)]">{props.value}</p>
-      <p className="mt-1 text-sm text-slate-600">{props.helper}</p>
-    </article>
-  );
-}
-
-function PrintSection(props: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
-  return (
-    <section className={`rounded-[28px] border border-[#eadfd6] bg-white p-5 ${props.className ?? ""}`}>
-      <div className="mb-4 space-y-1">
-        <h2 className="text-lg font-semibold text-[var(--marrom)]">{props.title}</h2>
-        {props.subtitle ? <p className="text-sm text-slate-600">{props.subtitle}</p> : null}
-      </div>
-      {props.children}
-    </section>
-  );
-}
-
-function AttendanceChart(props: { present: number; absent: number; other: number }) {
-  const total = props.present + props.absent + props.other;
-  const pctPresent = total ? Math.round((props.present / total) * 100) : 0;
-  const pctAbsent = total ? Math.round((props.absent / total) * 100) : 0;
-  const pctOther = Math.max(0, 100 - pctPresent - pctAbsent);
-  const donutStyle = {
-    background: `conic-gradient(#1f7a8c 0 ${pctPresent}%, #ef4444 ${pctPresent}% ${pctPresent + pctAbsent}%, #f7b32b ${pctPresent + pctAbsent}% 100%)`,
-  };
-
-  const legend = [
-    { label: "Presente", value: props.present, pct: pctPresent, color: "#1f7a8c" },
-    { label: "Ausente", value: props.absent, pct: pctAbsent, color: "#ef4444" },
-    { label: "Nao informado", value: props.other, pct: pctOther, color: "#f7b32b" },
-  ];
-
-  return (
-    <div className="grid gap-5 md:grid-cols-[220px_1fr] md:items-center">
-      <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-full" style={donutStyle}>
-        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Frequencia</p>
-          <p className="mt-1 text-2xl font-bold text-[var(--marrom)]">{total}</p>
-          <p className="text-sm text-slate-500">atendimentos</p>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {legend.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <div className="flex items-center gap-2 font-semibold text-slate-700">
-                <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                {item.label}
-              </div>
-              <span className="text-slate-600">
-                {item.value} registro(s) - {item.pct}%
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className={`rounded-[14px] border border-[#ddd1c4] bg-[#fffdfa] px-3 py-2.5 ${props.className ?? ""}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9c8a78]">{props.label}</p>
+      <div className="mt-1.5 text-sm font-semibold leading-6 text-[#3d3127]">{props.value}</div>
+      {props.helper ? <div className="mt-0.5 text-xs leading-5 text-slate-600">{props.helper}</div> : null}
     </div>
   );
 }
 
-function splitLabelLines(label: string, maxChars = 15): string[] {
+function DocumentSection(props: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`document-section border border-[#ddd1c4] bg-white px-4 py-4 ${props.className ?? ""}`}>
+      <div className="border-b border-[#ece2d8] pb-2">
+        <h2 className="text-base font-semibold uppercase tracking-[0.08em] text-[#5e4632]">{props.title}</h2>
+        {props.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-600">{props.subtitle}</p> : null}
+      </div>
+      <div className="pt-3">{props.children}</div>
+    </section>
+  );
+}
+
+function buildChartWidth(pct: number): string {
+  if (pct <= 0) return "0%";
+  return `${Math.max(pct, 3)}%`;
+}
+
+function splitLabelLines(label: string, maxChars = 16): string[] {
   const words = label.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = "";
@@ -278,6 +230,53 @@ function splitLabelLines(label: string, maxChars = 15): string[] {
   return lines.slice(0, 3);
 }
 
+function AttendanceDistributionChart(props: { present: number; absent: number; other: number }) {
+  const total = props.present + props.absent + props.other;
+  const rows = [
+    {
+      key: "present",
+      label: "Presencas confirmadas",
+      value: props.present,
+      pct: total ? Math.round((props.present / total) * 100) : 0,
+      color: "#1f6fb2",
+    },
+    {
+      key: "absent",
+      label: "Ausencias",
+      value: props.absent,
+      pct: total ? Math.round((props.absent / total) * 100) : 0,
+      color: "#d95550",
+    },
+    {
+      key: "other",
+      label: "Nao informado",
+      value: props.other,
+      pct: total ? Math.round((props.other / total) * 100) : 0,
+      color: "#e5a93b",
+    },
+  ];
+
+  return (
+    <div className="rounded-[18px] border border-[#e7ddd2] bg-[#fcfaf7] p-4">
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <div key={row.key} className="space-y-1.5">
+            <div className="flex items-center justify-between gap-3 text-sm text-slate-700">
+              <span className="font-medium">{row.label}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7c6a58]">
+                {row.value} registro(s) | {row.pct}%
+              </span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-white ring-1 ring-[#eadfd4]">
+              <div className="h-full rounded-full" style={{ width: buildChartWidth(row.pct), backgroundColor: row.color }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SkillDistributionChart(props: {
   rows: Array<{
     key: string;
@@ -292,17 +291,17 @@ function SkillDistributionChart(props: {
   }>;
 }) {
   if (!props.rows.length) {
-    return <p className="text-sm text-slate-600">Nao ha habilidades suficientes para o grafico deste periodo.</p>;
+    return <p className="text-sm leading-7 text-slate-700">Nao ha habilidades suficientes para gerar o grafico neste periodo.</p>;
   }
 
   const chartHeight = 240;
   const chartTop = 24;
-  const chartBottom = 76;
-  const leftPad = 52;
-  const rightPad = 24;
-  const groupWidth = 92;
-  const barWidth = 16;
-  const groupBarGap = 4;
+  const chartBottom = 84;
+  const leftPad = 50;
+  const rightPad = 18;
+  const groupWidth = 88;
+  const barWidth = 14;
+  const groupBarGap = 5;
   const svgWidth = leftPad + props.rows.length * groupWidth + rightPad;
   const svgHeight = chartTop + chartHeight + chartBottom;
   const yLevels = [0, 25, 50, 75, 100];
@@ -310,101 +309,91 @@ function SkillDistributionChart(props: {
   const yForPct = (pct: number) => chartTop + chartHeight - (chartHeight * pct) / 100;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+    <div className="space-y-4 rounded-[18px] border border-[#e7ddd2] bg-[#fcfaf7] p-4">
+      <div className="flex flex-wrap gap-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c6a58]">
         <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#1d70b8]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#1f6fb2]" />
           Independente
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#f7b32b]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#e5a93b]" />
           Com ajuda
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#d95550]" />
           Nao fez
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+      <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="min-w-[780px]"
+          className="min-w-[740px]"
           role="img"
-          aria-label="Grafico de barras verticais por habilidade"
+          aria-label="Grafico de barras por habilidade trabalhada"
         >
+          <rect x="0" y="0" width={svgWidth} height={svgHeight} rx="18" fill="#fcfaf7" />
+
           {yLevels.map((level) => {
             const y = yForPct(level);
             return (
               <g key={level}>
-                <line x1={leftPad} y1={y} x2={svgWidth - rightPad} y2={y} stroke="#d7dbe2" strokeWidth="1" />
-                <text x={leftPad - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280">
+                <line x1={leftPad} y1={y} x2={svgWidth - rightPad} y2={y} stroke="#ddd1c4" strokeWidth="1" />
+                <text x={leftPad - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#7c6a58">
                   {level}%
                 </text>
               </g>
             );
           })}
 
-          <line
-            x1={leftPad}
-            y1={chartTop}
-            x2={leftPad}
-            y2={chartTop + chartHeight}
-            stroke="#94a3b8"
-            strokeWidth="1.2"
-          />
+          <line x1={leftPad} y1={chartTop} x2={leftPad} y2={chartTop + chartHeight} stroke="#bda996" strokeWidth="1.2" />
           <line
             x1={leftPad}
             y1={chartTop + chartHeight}
             x2={svgWidth - rightPad}
             y2={chartTop + chartHeight}
-            stroke="#94a3b8"
+            stroke="#bda996"
             strokeWidth="1.2"
           />
 
           {props.rows.map((row, index) => {
             const groupX = leftPad + index * groupWidth + 14;
-            const firstBarX = groupX;
-            const secondBarX = firstBarX + barWidth + groupBarGap;
-            const thirdBarX = secondBarX + barWidth + groupBarGap;
+            const x1 = groupX;
+            const x2 = x1 + barWidth + groupBarGap;
+            const x3 = x2 + barWidth + groupBarGap;
             const labelLines = splitLabelLines(row.label);
+            const labelX = groupX + barWidth + groupBarGap;
+
             return (
               <g key={row.key}>
                 <rect
-                  x={firstBarX}
+                  x={x1}
                   y={yForPct(row.pctIndependente)}
                   width={barWidth}
                   height={(chartHeight * row.pctIndependente) / 100}
-                  fill="#1d70b8"
+                  fill="#1f6fb2"
                   rx="2"
                 />
                 <rect
-                  x={secondBarX}
-                  y={yForPct(row.pctNaoFez)}
-                  width={barWidth}
-                  height={(chartHeight * row.pctNaoFez) / 100}
-                  fill="#ef4444"
-                  rx="2"
-                />
-                <rect
-                  x={thirdBarX}
+                  x={x2}
                   y={yForPct(row.pctAjuda)}
                   width={barWidth}
                   height={(chartHeight * row.pctAjuda) / 100}
-                  fill="#f7b32b"
+                  fill="#e5a93b"
+                  rx="2"
+                />
+                <rect
+                  x={x3}
+                  y={yForPct(row.pctNaoFez)}
+                  width={barWidth}
+                  height={(chartHeight * row.pctNaoFez) / 100}
+                  fill="#d95550"
                   rx="2"
                 />
 
-                <text
-                  x={groupX + barWidth + groupBarGap}
-                  y={chartTop + chartHeight + 18}
-                  textAnchor="middle"
-                  fontSize="10.5"
-                  fill="#334155"
-                  fontWeight="600"
-                >
+                <text x={labelX} y={chartTop + chartHeight + 18} textAnchor="middle" fontSize="10.5" fill="#4d392a" fontWeight="600">
                   {labelLines.map((line, lineIndex) => (
-                    <tspan key={`${row.key}-${lineIndex}`} x={groupX + barWidth + groupBarGap} dy={lineIndex === 0 ? 0 : 12}>
+                    <tspan key={`${row.key}-${lineIndex}`} x={labelX} dy={lineIndex === 0 ? 0 : 12}>
                       {line}
                     </tspan>
                   ))}
@@ -413,39 +402,12 @@ function SkillDistributionChart(props: {
             );
           })}
         </svg>
-
-        <div className="mt-4 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-          <p>Azul: respostas independentes.</p>
-          <p>Vermelho: metas nao realizadas.</p>
-          <p>Amarelo: execucao com ajuda.</p>
-        </div>
       </div>
-    </div>
-  );
-}
 
-function BehaviorRanking(props: { title: string; rows: BehaviorRow[]; barClass: string; empty: string }) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-      <h3 className="text-base font-semibold text-[var(--marrom)]">{props.title}</h3>
-      <div className="mt-4 space-y-3">
-        {props.rows.length ? (
-          props.rows.map((row) => (
-            <div key={row.key}>
-              <div className="mb-1 flex items-center justify-between gap-3 text-sm text-slate-700">
-                <span>{row.label}</span>
-                <span className="font-semibold">
-                  {row.value} ({row.pct}%)
-                </span>
-              </div>
-              <div className="h-3 overflow-hidden rounded-full bg-white">
-                <div className={`h-full rounded-full ${props.barClass}`} style={{ width: buildChartWidth(row.pct) }} />
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-slate-600">{props.empty}</p>
-        )}
+      <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+        <p>Azul: respostas independentes.</p>
+        <p>Amarelo: execucao com ajuda.</p>
+        <p>Vermelho: metas nao realizadas.</p>
       </div>
     </div>
   );
@@ -462,7 +424,6 @@ export function DevolutivaImpressaoClient(props: {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [report, setReport] = useState<ImpressaoReport | null>(null);
-  const [hideFooterLogo, setHideFooterLogo] = useState(false);
 
   const selectedRange = useMemo(() => {
     if (periodPreset === "custom") {
@@ -594,6 +555,8 @@ export function DevolutivaImpressaoClient(props: {
 
   const motivosAusencia = report?.destaques?.principaisMotivosAusencia ?? [];
   const feedbackItems = report?.destaques?.ultimasObservacoes ?? [];
+  const topSkillRows = desempenhoResumo.rowsBySkill.slice(0, 8);
+  const behaviorRows = comportamentoResumo.rowsGeral.slice(0, 10);
 
   const sinteseClinica = useMemo(() => {
     if (!report) return [];
@@ -753,244 +716,273 @@ export function DevolutivaImpressaoClient(props: {
       ) : null}
 
       {report ? (
-        <article className="print-page overflow-hidden rounded-[32px] border border-[#eadfd6] bg-white shadow-[0_30px_80px_rgba(102,73,44,0.15)] print:rounded-none print:border-0 print:shadow-none">
-          <header className="border-b border-[#eadfd6] bg-[linear-gradient(180deg,#fffdf9_0%,#fbf6f0_100%)] px-6 py-6 sm:px-8">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] xl:items-start">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#c89b67]">Clinica Girassois</p>
-                  <h1 className="mt-2 max-w-xl text-3xl font-bold leading-tight text-[var(--marrom)] sm:text-4xl">
-                    Relatorio Devolutivo para Impressao
-                  </h1>
-                  <p className="mt-2 max-w-2xl text-sm leading-8 text-slate-600 sm:text-base">
-                    Documento resumido para acompanhamento interdisciplinar, com indicadores do periodo, devolutivas dos
-                    profissionais e sintese clinica para compartilhamento com responsaveis e especialistas.
-                  </p>
-                </div>
+        <article className="print-page overflow-hidden rounded-[20px] border border-[#d8c7b8] bg-white shadow-[0_28px_70px_rgba(78,58,39,0.12)] print:rounded-none print:border-0 print:shadow-none">
+          <header className="document-header px-6 pb-4 pt-5 sm:px-8">
+            <div className="flex items-start justify-between gap-4 border-b border-[#e8ddd2] pb-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d1a06c]">Clinica Girassois</p>
+                <h1 className="max-w-3xl text-2xl font-semibold uppercase tracking-[0.06em] text-[#4d392a] sm:text-3xl">
+                  Relatorio devolutivo interdisciplinar
+                </h1>
               </div>
 
-              <div className="flex flex-col gap-3 xl:items-end">
-                <div className="w-full rounded-[28px] bg-[linear-gradient(90deg,#101725_0%,#0c1a2d_100%)] px-5 py-4 text-right shadow-[0_8px_24px_rgba(15,23,42,0.25)]">
-                  <p className="text-2xl font-bold tracking-wide text-[#efc7a3] sm:text-4xl">CLINICA GIRASSOIS</p>
-                  <p className="mt-2 text-[10px] uppercase tracking-[0.32em] text-[#efc7a3] sm:text-[11px]">
-                    Desenvolvimento infanto juvenil intervencao ABA e Denver
-                  </p>
-                </div>
-                <div className="self-start rounded-full bg-[#f3e4d6] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--marrom)] xl:self-end">
-                  Documento para encaminhamento clinico
-                </div>
+              <div className="shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/girassois.svg"
+                  alt="Clinica Girassois"
+                  className="h-14 w-auto object-contain sm:h-16"
+                />
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-2xl border border-[#eadfd6] bg-white/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Paciente</p>
-                <p className="mt-2 break-words text-xl font-semibold leading-8 text-[var(--marrom)]">{report.paciente.nome}</p>
-                <p className="mt-1 text-sm text-slate-600">ID #{report.paciente.id}</p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfd6] bg-white/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Periodo</p>
-                <p className="mt-2 text-xl font-semibold leading-8 text-[var(--marrom)]">
-                  {fmtPeriodLabel(report.periodo.from, report.periodo.to)}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfd6] bg-white/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Emissao</p>
-                <p className="mt-2 break-words text-xl font-semibold leading-8 text-[var(--marrom)]">{fmtNowPtBr()}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">Documento clinico para compartilhamento medico</p>
-              </div>
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1.6fr_1fr_1fr] print:grid-cols-[1.6fr_1fr_1fr]">
+              <DocumentField
+                label="Paciente"
+                value={<p className="text-base font-semibold text-[#3d3127]">{report.paciente.nome}</p>}
+              />
+              <DocumentField
+                label="Periodo avaliado"
+                value={fmtPeriodLabel(report.periodo.from, report.periodo.to)}
+                helper={`${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`}
+              />
+              <DocumentField label="Emissao" value={fmtNowPtBr()} />
             </div>
           </header>
 
-          <div className="space-y-6 px-6 py-6 sm:px-8">
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <ScreenMetric
-                label="Atendimentos"
-                value={report.indicadores.totalAtendimentos}
-                helper={`${report.indicadores.tempoTotalMinutos} min registrados no periodo.`}
-              />
-              <ScreenMetric
-                label="Presenca"
-                value={`${report.indicadores.taxaPresencaPercent}%`}
-                helper={`${report.indicadores.presentes} presentes, ${report.indicadores.ausentes} ausentes.`}
-              />
-              <ScreenMetric
-                label="Metas avaliadas"
-                value={desempenhoResumo.total}
-                helper={`${desempenhoResumo.diasComRegistro} dia(s) com registro de desempenho.`}
-              />
-              <ScreenMetric
-                label="Comportamentos"
-                value={comportamentoResumo.total}
-                helper={`${comportamentoResumo.totalPositivo} positivos e ${comportamentoResumo.totalNegativo} negativos.`}
-              />
-            </section>
+          <div className="space-y-4 px-6 pb-5 sm:px-8">
+            <DocumentSection title="Sintese clinica do periodo">
+              <div className="space-y-3 text-sm leading-7 text-slate-700">
+                {sinteseClinica.map((paragraph, index) => (
+                  <p key={`${paragraph}-${index}`}>{paragraph}</p>
+                ))}
+              </div>
+            </DocumentSection>
 
-            <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-              <PrintSection
-                title="Sintese clinica do periodo"
-                subtitle="Texto pensado para leitura por neuro, psiquiatra, equipe interdisciplinar e responsaveis."
-              >
-                <div className="space-y-3 text-sm leading-7 text-slate-700">
-                  {sinteseClinica.map((paragraph, index) => (
-                    <p key={`${paragraph}-${index}`}>{paragraph}</p>
-                  ))}
-                </div>
-              </PrintSection>
-
-              <PrintSection
-                title="Frequencia de atendimentos"
-                subtitle="Distribuicao de presenca no periodo selecionado."
-              >
-                <AttendanceChart
-                  present={report.indicadores.presentes}
-                  absent={report.indicadores.ausentes}
-                  other={report.indicadores.naoInformado}
+            <DocumentSection title="Indicadores objetivos do periodo">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <DocumentField
+                  label="Atendimentos registrados"
+                  value={report.indicadores.totalAtendimentos}
+                  helper={`${report.indicadores.presentes} com presenca confirmada.`}
                 />
-              </PrintSection>
-            </div>
-
-            <PrintSection
-              title="Habilidades trabalhadas"
-              subtitle="Grafico em barras verticais com comparacao entre independencia, ajuda e nao realizacao por habilidade."
-            >
-              <SkillDistributionChart rows={desempenhoResumo.rowsBySkill.slice(0, 10)} />
-            </PrintSection>
-
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <PrintSection
-                title="Comportamentos apresentados"
-                subtitle="Ranking consolidado das ocorrencias registradas nas evolucoes do periodo."
-              >
-                {comportamentoResumo.rowsGeral.length ? (
-                  <div className="space-y-3">
-                    {comportamentoResumo.rowsGeral.map((row) => (
-                      <div key={row.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                        <div className="mb-1 flex items-center justify-between gap-3 text-sm text-slate-700">
-                          <span className="font-semibold">{row.label}</span>
-                          <span>
-                            {row.value} total - {row.positivo} positivo(s) / {row.negativo} negativo(s)
-                          </span>
-                        </div>
-                        <div className="flex h-3 overflow-hidden rounded-full bg-white">
-                          <div className="bg-emerald-500" style={{ width: buildChartWidth(row.positivo ? Math.round((row.positivo / row.value) * 100) : 0) }} />
-                          <div className="bg-rose-500" style={{ width: buildChartWidth(row.negativo ? Math.round((row.negativo / row.value) * 100) : 0) }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-600">Nao ha comportamentos estruturados neste periodo.</p>
-                )}
-              </PrintSection>
-
-              <div className="space-y-6">
-                <BehaviorRanking
-                  title="Top positivos"
-                  rows={comportamentoResumo.rowsPositivo}
-                  barClass="bg-emerald-500"
-                  empty="Sem registros positivos estruturados."
+                <DocumentField
+                  label="Taxa de presenca"
+                  value={`${report.indicadores.taxaPresencaPercent}%`}
+                  helper={`${report.indicadores.ausentes} ausencia(s) no recorte.`}
                 />
-                <BehaviorRanking
-                  title="Top negativos"
-                  rows={comportamentoResumo.rowsNegativo}
-                  barClass="bg-rose-500"
-                  empty="Sem registros negativos estruturados."
+                <DocumentField
+                  label="Tempo clinico total"
+                  value={`${report.indicadores.tempoTotalMinutos} min`}
+                  helper={`Media de ${report.indicadores.mediaMinutosPorSessao} min por sessao.`}
+                />
+                <DocumentField
+                  label="Metas avaliadas"
+                  value={desempenhoResumo.total}
+                  helper={`${desempenhoResumo.diasComRegistro} dia(s) com registro estruturado.`}
+                />
+                <DocumentField
+                  label="Comportamentos registrados"
+                  value={comportamentoResumo.total}
+                  helper={`${comportamentoResumo.totalPositivo} positivos e ${comportamentoResumo.totalNegativo} negativos.`}
+                />
+                <DocumentField
+                  label="Janela assistencial"
+                  value={`${fmtDate(report.indicadores.primeiroAtendimento)} ate ${fmtDate(report.indicadores.ultimoAtendimento)}`}
+                  helper="Primeiro e ultimo atendimento identificados dentro do periodo."
                 />
               </div>
-            </div>
+            </DocumentSection>
 
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <PrintSection
-                title="Devolutivas selecionadas"
-                subtitle="Recortes recentes das observacoes registradas pelos profissionais."
-              >
-                {feedbackItems.length ? (
-                  <div className="space-y-3">
-                    {feedbackItems.map((item, index) => (
-                      <article key={`${item.data}-${item.terapeuta_nome}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                          <span>{fmtDate(item.data)}</span>
-                          <span>{item.terapeuta_nome || "Profissional"}</span>
-                          <span>{item.origem || "devolutiva"}</span>
-                        </div>
-                        <p className="mt-3 text-sm leading-7 text-slate-700">{item.texto || "-"}</p>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-600">Sem devolutivas textuais registradas no periodo.</p>
-                )}
-              </PrintSection>
-
-              <PrintSection
-                title="Alertas e pontos de atencao"
-                subtitle="Itens de ausencia e observacoes rapidas para acompanhamento."
-              >
+            <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+              <DocumentSection title="Frequencia e continuidade assistencial">
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-[var(--marrom)]">Motivos de ausencia</p>
-                    <div className="mt-3 space-y-2 text-sm text-slate-700">
-                      {motivosAusencia.length ? (
-                        motivosAusencia.map((item) => (
-                          <div key={item.motivo} className="flex items-center justify-between gap-3">
-                            <span>{item.motivo}</span>
-                            <span className="font-semibold">{item.count}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p>Sem faltas com motivo registrado.</p>
-                      )}
-                    </div>
-                  </div>
+                  <AttendanceDistributionChart
+                    present={report.indicadores.presentes}
+                    absent={report.indicadores.ausentes}
+                    other={report.indicadores.naoInformado}
+                  />
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-[var(--marrom)]">Dados de sessao</p>
-                    <div className="mt-3 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-                      <p>Primeiro atendimento: {fmtDate(report.indicadores.primeiroAtendimento)}</p>
-                      <p>Ultimo atendimento: {fmtDate(report.indicadores.ultimoAtendimento)}</p>
-                      <p>Media por sessao: {report.indicadores.mediaMinutosPorSessao} min</p>
-                      <p>Total de tempo clinico: {report.indicadores.tempoTotalMinutos} min</p>
-                    </div>
+                  <div className="overflow-x-auto">
+                    <table className="document-table min-w-full border-collapse text-sm text-slate-700">
+                      <thead>
+                        <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
+                          <th className="px-3 py-3">Indicador</th>
+                          <th className="px-3 py-3">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ece2d8]">
+                        <tr>
+                          <td className="px-3 py-3">Presencas confirmadas</td>
+                          <td className="px-3 py-3 font-semibold">{report.indicadores.presentes}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-3">Ausencias</td>
+                          <td className="px-3 py-3 font-semibold">{report.indicadores.ausentes}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-3">Nao informado</td>
+                          <td className="px-3 py-3 font-semibold">{report.indicadores.naoInformado}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-3">Taxa de presenca</td>
+                          <td className="px-3 py-3 font-semibold">{report.indicadores.taxaPresencaPercent}%</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-3">Media por sessao</td>
+                          <td className="px-3 py-3 font-semibold">{report.indicadores.mediaMinutosPorSessao} min</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-3">Tempo clinico total</td>
+                          <td className="px-3 py-3 font-semibold">{report.indicadores.tempoTotalMinutos} min</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </PrintSection>
-            </div>
-          </div>
+              </DocumentSection>
 
-          <footer className="border-t border-[#eadfd6] bg-[#fffaf6]">
-            <div className="grid gap-4 px-6 py-5 text-sm text-[#b19898] sm:grid-cols-[1.3fr_1fr] sm:px-8">
-              <div className="space-y-2">
-                <p className="text-sm font-semibold tracking-[0.2em] text-[#d8b18a]">CLINICA GIRASSOIS</p>
-                <p>(65) 3622-2826</p>
-                <p>@clinicagirassois</p>
-                <p>girassoisclinica@gmail.com</p>
-              </div>
-              <div className="flex items-end justify-start sm:justify-end">
-                <div className="text-right">
-                  {!hideFooterLogo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src="/logo-girassois.png"
-                      alt="Logo Clinica Girassois"
-                      className="ml-auto h-20 w-auto object-contain"
-                      onError={() => setHideFooterLogo(true)}
-                    />
+              <DocumentSection title="Intercorrencias e ausencias">
+                <div className="space-y-3 text-sm text-slate-700">
+                  {motivosAusencia.length ? (
+                    motivosAusencia.map((item) => (
+                      <div key={item.motivo} className="flex items-start justify-between gap-4 border-b border-[#eee4d8] pb-3">
+                        <span className="leading-6">{item.motivo}</span>
+                        <span className="min-w-10 text-right font-semibold">{item.count}</span>
+                      </div>
+                    ))
                   ) : (
-                    <>
-                      <p className="text-sm font-semibold tracking-[0.2em] text-[#d8b18a]">DOCUMENTO CLINICO</p>
-                      <p className="mt-2 max-w-[260px] text-xs leading-6 sm:text-sm">
-                        Material de acompanhamento para compartilhamento com medico e equipe interdisciplinar.
-                      </p>
-                    </>
+                    <p className="leading-7">Nao houve faltas com motivo estruturado registrado no periodo.</p>
                   )}
                 </div>
-              </div>
+              </DocumentSection>
             </div>
-            <div className="bg-[#b09097] px-6 py-4 text-center text-base font-semibold text-white sm:px-8">
+
+            <DocumentSection title="Habilidades com maior volume de registro">
+              {topSkillRows.length ? (
+                <div className="space-y-4">
+                  <SkillDistributionChart rows={topSkillRows} />
+
+                  <div className="overflow-x-auto">
+                    <table className="document-table min-w-full border-collapse text-sm text-slate-700">
+                      <thead>
+                        <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
+                          <th className="px-3 py-3">Habilidade</th>
+                          <th className="px-3 py-3">Registros</th>
+                          <th className="px-3 py-3">Independente</th>
+                          <th className="px-3 py-3">Com ajuda</th>
+                          <th className="px-3 py-3">Nao fez</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ece2d8]">
+                        {topSkillRows.map((row) => (
+                          <tr key={row.key}>
+                            <td className="px-3 py-3 font-medium">{row.label}</td>
+                            <td className="px-3 py-3">{row.total}</td>
+                            <td className="px-3 py-3">{row.pctIndependente}%</td>
+                            <td className="px-3 py-3">{row.pctAjuda}%</td>
+                            <td className="px-3 py-3">{row.pctNaoFez}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-slate-700">Nao ha habilidades com volume suficiente para consolidacao neste recorte.</p>
+              )}
+            </DocumentSection>
+
+            <DocumentSection title="Comportamentos observados">
+              {behaviorRows.length ? (
+                <div className="space-y-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <DocumentField
+                      label="Total consolidado"
+                      value={comportamentoResumo.total}
+                      helper="Ocorrencias comportamentais com registro estruturado."
+                    />
+                    <DocumentField
+                      label="Registros positivos"
+                      value={comportamentoResumo.totalPositivo}
+                      helper={`${comportamentoResumo.pctPositivo}% do total comportamental.`}
+                    />
+                    <DocumentField
+                      label="Registros negativos"
+                      value={comportamentoResumo.totalNegativo}
+                      helper={`${comportamentoResumo.pctNegativo}% do total comportamental.`}
+                    />
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="document-table min-w-full border-collapse text-sm text-slate-700">
+                      <thead>
+                        <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
+                          <th className="px-3 py-3">Comportamento</th>
+                          <th className="px-3 py-3">Total</th>
+                          <th className="px-3 py-3">Positivo</th>
+                          <th className="px-3 py-3">Negativo</th>
+                          <th className="px-3 py-3">Representatividade</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ece2d8]">
+                        {behaviorRows.map((row) => (
+                          <tr key={row.key}>
+                            <td className="px-3 py-3 font-medium">{row.label}</td>
+                            <td className="px-3 py-3">{row.value}</td>
+                            <td className="px-3 py-3">{row.positivo}</td>
+                            <td className="px-3 py-3">{row.negativo}</td>
+                            <td className="px-3 py-3">{row.pct}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-slate-700">Nao ha comportamentos estruturados suficientes para consolidacao neste periodo.</p>
+              )}
+            </DocumentSection>
+
+            <DocumentSection title="Observacoes clinicas selecionadas">
+              {feedbackItems.length ? (
+                <div className="space-y-3">
+                  {feedbackItems.map((item, index) => (
+                    <article
+                      key={`${item.data}-${item.terapeuta_nome}-${index}`}
+                      className="border border-[#e7ddd2] bg-[#fffdfa] px-4 py-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b7764]">
+                        <span>{fmtDate(item.data)}</span>
+                        <span>{item.terapeuta_nome || "Profissional"}</span>
+                        <span>{item.origem || "registro clinico"}</span>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-slate-700">{item.texto || "-"}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-slate-700">Sem observacoes textuais selecionadas para o periodo analisado.</p>
+              )}
+            </DocumentSection>
+          </div>
+
+          <footer className="border-t border-[#e4d3c1] bg-[#fcfaf7]">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-6 py-2 text-[13px] leading-5 text-[#6b4a4a] sm:px-8">
+              <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#d7a269]" />
+                (65) 3622-2826
+              </span>
+              <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#d7a269]" />
+                @clinicagirassois
+              </span>
+              <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#d7a269]" />
+                girassoisclinica@gmail.com
+              </span>
+            </div>
+            <div className="bg-[#6f111b] px-6 py-2 text-center text-[13px] font-medium leading-5 text-white sm:px-8">
               Av. Portugal, 337 - Jardim Tropical, Cuiaba - MT, 78065-145
             </div>
           </footer>
@@ -1000,7 +992,7 @@ export function DevolutivaImpressaoClient(props: {
       <style jsx global>{`
         @page {
           size: A4;
-          margin: 12mm;
+          margin: 12mm 10mm 14mm 10mm;
         }
 
         @media print {
@@ -1012,6 +1004,12 @@ export function DevolutivaImpressaoClient(props: {
           .print-page {
             width: auto !important;
             margin: 0 !important;
+          }
+
+          .document-header,
+          .document-table tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>
