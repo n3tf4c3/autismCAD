@@ -206,11 +206,6 @@ function DocumentSection(props: { title: string; subtitle?: string; children: Re
   );
 }
 
-function buildChartWidth(pct: number): string {
-  if (pct <= 0) return "0%";
-  return `${Math.max(pct, 3)}%`;
-}
-
 function splitLabelLines(label: string, maxChars = 16): string[] {
   const words = label.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -238,40 +233,52 @@ function AttendanceDistributionChart(props: { present: number; absent: number; o
       label: "Presencas confirmadas",
       value: props.present,
       pct: total ? Math.round((props.present / total) * 100) : 0,
-      color: "#1f6fb2",
+      color: "#4cc8d3",
     },
     {
       key: "absent",
       label: "Ausencias",
       value: props.absent,
       pct: total ? Math.round((props.absent / total) * 100) : 0,
-      color: "#d95550",
+      color: "#ff6b8a",
     },
     {
       key: "other",
       label: "Nao informado",
       value: props.other,
       pct: total ? Math.round((props.other / total) * 100) : 0,
-      color: "#e5a93b",
+      color: "#f2c94c",
     },
   ];
 
+  const donutStyle = {
+    background: `conic-gradient(${rows[0].color} 0 ${rows[0].pct}%, ${rows[1].color} ${rows[0].pct}% ${
+      rows[0].pct + rows[1].pct
+    }%, ${rows[2].color} ${rows[0].pct + rows[1].pct}% 100%)`,
+  };
+
   return (
-    <div className="rounded-[18px] border border-[#e7ddd2] bg-[#fcfaf7] p-4">
-      <div className="space-y-3">
-        {rows.map((row) => (
-          <div key={row.key} className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3 text-sm text-slate-700">
-              <span className="font-medium">{row.label}</span>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7c6a58]">
-                {row.value} registro(s) | {row.pct}%
+    <div className="rounded-[16px] border border-[#e7ddd2] bg-[#fcfaf7] p-3">
+      <div className="grid items-center gap-2 sm:grid-cols-[128px_minmax(0,1fr)]">
+        <div className="relative mx-auto h-24 w-24 rounded-full sm:h-24 sm:w-24" style={donutStyle}>
+          <div className="absolute inset-[11px] flex flex-col items-center justify-center rounded-full bg-[#fcfaf7] text-center">
+            <p className="text-2xl font-bold leading-none text-[#3d4960]">{total}</p>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          {rows.map((row) => (
+            <div key={row.key} className="flex items-center justify-between gap-2 border-b border-[#eee4d8] pb-1 text-[13px] text-slate-700 last:border-b-0 last:pb-0">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: row.color }} />
+                <span className="font-medium">{row.label}</span>
+              </div>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7c6a58]">
+                {row.pct}% | {row.value}
               </span>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-white ring-1 ring-[#eadfd4]">
-              <div className="h-full rounded-full" style={{ width: buildChartWidth(row.pct), backgroundColor: row.color }} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -294,14 +301,14 @@ function SkillDistributionChart(props: {
     return <p className="text-sm leading-7 text-slate-700">Nao ha habilidades suficientes para gerar o grafico neste periodo.</p>;
   }
 
-  const chartHeight = 240;
-  const chartTop = 24;
-  const chartBottom = 84;
-  const leftPad = 50;
-  const rightPad = 18;
-  const groupWidth = 88;
-  const barWidth = 14;
-  const groupBarGap = 5;
+  const chartHeight = 220;
+  const chartTop = 22;
+  const chartBottom = 78;
+  const leftPad = 42;
+  const rightPad = 14;
+  const groupWidth = 74;
+  const barWidth = 12;
+  const groupBarGap = 4;
   const svgWidth = leftPad + props.rows.length * groupWidth + rightPad;
   const svgHeight = chartTop + chartHeight + chartBottom;
   const yLevels = [0, 25, 50, 75, 100];
@@ -309,7 +316,7 @@ function SkillDistributionChart(props: {
   const yForPct = (pct: number) => chartTop + chartHeight - (chartHeight * pct) / 100;
 
   return (
-    <div className="space-y-4 rounded-[18px] border border-[#e7ddd2] bg-[#fcfaf7] p-4">
+    <div className="avoid-break space-y-4 rounded-[18px] border border-[#e7ddd2] bg-[#fcfaf7] p-4">
       <div className="flex flex-wrap gap-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c6a58]">
         <span className="inline-flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-[#1f6fb2]" />
@@ -325,90 +332,158 @@ function SkillDistributionChart(props: {
         </span>
       </div>
 
-      <div className="overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="min-w-[740px]"
-          role="img"
-          aria-label="Grafico de barras por habilidade trabalhada"
-        >
-          <rect x="0" y="0" width={svgWidth} height={svgHeight} rx="18" fill="#fcfaf7" />
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        className="block w-full"
+        preserveAspectRatio="xMinYMin meet"
+        role="img"
+        aria-label="Grafico de barras por habilidade trabalhada"
+      >
+        <rect x="0" y="0" width={svgWidth} height={svgHeight} rx="18" fill="#fcfaf7" />
 
-          {yLevels.map((level) => {
-            const y = yForPct(level);
-            return (
-              <g key={level}>
-                <line x1={leftPad} y1={y} x2={svgWidth - rightPad} y2={y} stroke="#ddd1c4" strokeWidth="1" />
-                <text x={leftPad - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#7c6a58">
-                  {level}%
-                </text>
-              </g>
-            );
-          })}
+        {yLevels.map((level) => {
+          const y = yForPct(level);
+          return (
+            <g key={level}>
+              <line x1={leftPad} y1={y} x2={svgWidth - rightPad} y2={y} stroke="#ddd1c4" strokeWidth="1" />
+              <text x={leftPad - 8} y={y + 4} textAnchor="end" fontSize="10.5" fill="#7c6a58">
+                {level}%
+              </text>
+            </g>
+          );
+        })}
 
-          <line x1={leftPad} y1={chartTop} x2={leftPad} y2={chartTop + chartHeight} stroke="#bda996" strokeWidth="1.2" />
-          <line
-            x1={leftPad}
-            y1={chartTop + chartHeight}
-            x2={svgWidth - rightPad}
-            y2={chartTop + chartHeight}
-            stroke="#bda996"
-            strokeWidth="1.2"
-          />
+        <line x1={leftPad} y1={chartTop} x2={leftPad} y2={chartTop + chartHeight} stroke="#bda996" strokeWidth="1.2" />
+        <line
+          x1={leftPad}
+          y1={chartTop + chartHeight}
+          x2={svgWidth - rightPad}
+          y2={chartTop + chartHeight}
+          stroke="#bda996"
+          strokeWidth="1.2"
+        />
 
-          {props.rows.map((row, index) => {
-            const groupX = leftPad + index * groupWidth + 14;
-            const x1 = groupX;
-            const x2 = x1 + barWidth + groupBarGap;
-            const x3 = x2 + barWidth + groupBarGap;
-            const labelLines = splitLabelLines(row.label);
-            const labelX = groupX + barWidth + groupBarGap;
+        {props.rows.map((row, index) => {
+          const groupX = leftPad + index * groupWidth + 12;
+          const x1 = groupX;
+          const x2 = x1 + barWidth + groupBarGap;
+          const x3 = x2 + barWidth + groupBarGap;
+          const labelLines = splitLabelLines(row.label, 13);
+          const labelX = groupX + barWidth + groupBarGap;
 
-            return (
-              <g key={row.key}>
-                <rect
-                  x={x1}
-                  y={yForPct(row.pctIndependente)}
-                  width={barWidth}
-                  height={(chartHeight * row.pctIndependente) / 100}
-                  fill="#1f6fb2"
-                  rx="2"
-                />
-                <rect
-                  x={x2}
-                  y={yForPct(row.pctAjuda)}
-                  width={barWidth}
-                  height={(chartHeight * row.pctAjuda) / 100}
-                  fill="#e5a93b"
-                  rx="2"
-                />
-                <rect
-                  x={x3}
-                  y={yForPct(row.pctNaoFez)}
-                  width={barWidth}
-                  height={(chartHeight * row.pctNaoFez) / 100}
-                  fill="#d95550"
-                  rx="2"
-                />
+          return (
+            <g key={row.key}>
+              <rect
+                x={x1}
+                y={yForPct(row.pctIndependente)}
+                width={barWidth}
+                height={(chartHeight * row.pctIndependente) / 100}
+                fill="#1f6fb2"
+                rx="2"
+              />
+              <rect
+                x={x2}
+                y={yForPct(row.pctAjuda)}
+                width={barWidth}
+                height={(chartHeight * row.pctAjuda) / 100}
+                fill="#e5a93b"
+                rx="2"
+              />
+              <rect
+                x={x3}
+                y={yForPct(row.pctNaoFez)}
+                width={barWidth}
+                height={(chartHeight * row.pctNaoFez) / 100}
+                fill="#d95550"
+                rx="2"
+              />
 
-                <text x={labelX} y={chartTop + chartHeight + 18} textAnchor="middle" fontSize="10.5" fill="#4d392a" fontWeight="600">
-                  {labelLines.map((line, lineIndex) => (
-                    <tspan key={`${row.key}-${lineIndex}`} x={labelX} dy={lineIndex === 0 ? 0 : 12}>
-                      {line}
-                    </tspan>
-                  ))}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+              <text x={labelX} y={chartTop + chartHeight + 16} textAnchor="middle" fontSize="9.8" fill="#4d392a" fontWeight="600">
+                {labelLines.map((line, lineIndex) => (
+                  <tspan key={`${row.key}-${lineIndex}`} x={labelX} dy={lineIndex === 0 ? 0 : 11}>
+                    {line}
+                  </tspan>
+                ))}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
 
       <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
         <p>Azul: respostas independentes.</p>
         <p>Amarelo: execucao com ajuda.</p>
         <p>Vermelho: metas nao realizadas.</p>
       </div>
+    </div>
+  );
+}
+
+function BehaviorHorizontalChart(props: {
+  rows: Array<{
+    key: string;
+    label: string;
+    value: number;
+  }>;
+}) {
+  if (!props.rows.length) {
+    return <p className="text-sm leading-7 text-slate-700">Nao ha comportamentos estruturados suficientes para gerar o grafico neste periodo.</p>;
+  }
+
+  const maxValue = Math.max(...props.rows.map((row) => row.value), 1);
+  const leftPad = 138;
+  const rightPad = 28;
+  const topPad = 10;
+  const bottomPad = 8;
+  const rowGap = 24;
+  const barHeight = 10;
+  const chartWidth = 680;
+  const chartHeight = topPad + bottomPad + props.rows.length * rowGap;
+  const barWidth = chartWidth - leftPad - rightPad;
+
+  return (
+    <div className="avoid-break rounded-[18px] border border-[#e7ddd2] bg-[#fcfaf7] p-4">
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className="block w-full"
+        preserveAspectRatio="xMinYMin meet"
+        role="img"
+        aria-label="Grafico horizontal de comportamentos observados"
+      >
+        <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="14" fill="#fcfaf7" />
+
+        {props.rows.map((row, index) => {
+          const y = topPad + index * rowGap;
+          const fillWidth = Math.max((row.value / maxValue) * barWidth, row.value > 0 ? 6 : 0);
+          return (
+            <g key={row.key}>
+              <text x="0" y={y + 9} fontSize="11.5" fill="#4d392a" fontWeight="500">
+                {row.label}
+              </text>
+              <rect
+                x={leftPad}
+                y={y}
+                width={barWidth}
+                height={barHeight}
+                rx="4"
+                fill="#ffffff"
+                stroke="#e2d7cb"
+              />
+              <rect
+                x={leftPad}
+                y={y}
+                width={fillWidth}
+                height={barHeight}
+                rx="4"
+                fill="#1f6fb2"
+              />
+              <text x={chartWidth - 2} y={y + 9} textAnchor="end" fontSize="11.5" fill="#4d392a" fontWeight="700">
+                {row.value}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -716,7 +791,7 @@ export function DevolutivaImpressaoClient(props: {
       ) : null}
 
       {report ? (
-        <article className="print-page overflow-hidden rounded-[20px] border border-[#d8c7b8] bg-white shadow-[0_28px_70px_rgba(78,58,39,0.12)] print:rounded-none print:border-0 print:shadow-none">
+        <article className="print-page overflow-hidden rounded-[20px] border border-[#d8c7b8] bg-white">
           <header className="document-header px-6 pb-4 pt-5 sm:px-8">
             <div className="flex items-start justify-between gap-4 border-b border-[#e8ddd2] pb-4">
               <div className="space-y-1">
@@ -736,7 +811,7 @@ export function DevolutivaImpressaoClient(props: {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1.6fr_1fr_1fr] print:grid-cols-[1.6fr_1fr_1fr]">
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1.6fr_1fr_1fr]">
               <DocumentField
                 label="Paciente"
                 value={<p className="text-base font-semibold text-[#3d3127]">{report.paciente.nome}</p>}
@@ -752,51 +827,16 @@ export function DevolutivaImpressaoClient(props: {
 
           <div className="space-y-4 px-6 pb-5 sm:px-8">
             <DocumentSection title="Sintese clinica do periodo">
-              <div className="space-y-3 text-sm leading-7 text-slate-700">
+              <div className="space-y-2 text-sm leading-6 text-slate-700">
                 {sinteseClinica.map((paragraph, index) => (
                   <p key={`${paragraph}-${index}`}>{paragraph}</p>
                 ))}
               </div>
             </DocumentSection>
 
-            <DocumentSection title="Indicadores objetivos do periodo">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <DocumentField
-                  label="Atendimentos registrados"
-                  value={report.indicadores.totalAtendimentos}
-                  helper={`${report.indicadores.presentes} com presenca confirmada.`}
-                />
-                <DocumentField
-                  label="Taxa de presenca"
-                  value={`${report.indicadores.taxaPresencaPercent}%`}
-                  helper={`${report.indicadores.ausentes} ausencia(s) no recorte.`}
-                />
-                <DocumentField
-                  label="Tempo clinico total"
-                  value={`${report.indicadores.tempoTotalMinutos} min`}
-                  helper={`Media de ${report.indicadores.mediaMinutosPorSessao} min por sessao.`}
-                />
-                <DocumentField
-                  label="Metas avaliadas"
-                  value={desempenhoResumo.total}
-                  helper={`${desempenhoResumo.diasComRegistro} dia(s) com registro estruturado.`}
-                />
-                <DocumentField
-                  label="Comportamentos registrados"
-                  value={comportamentoResumo.total}
-                  helper={`${comportamentoResumo.totalPositivo} positivos e ${comportamentoResumo.totalNegativo} negativos.`}
-                />
-                <DocumentField
-                  label="Janela assistencial"
-                  value={`${fmtDate(report.indicadores.primeiroAtendimento)} ate ${fmtDate(report.indicadores.ultimoAtendimento)}`}
-                  helper="Primeiro e ultimo atendimento identificados dentro do periodo."
-                />
-              </div>
-            </DocumentSection>
-
-            <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="grid items-start gap-5 xl:grid-cols-[1.15fr_0.85fr]">
               <DocumentSection title="Frequencia e continuidade assistencial">
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   <AttendanceDistributionChart
                     present={report.indicadores.presentes}
                     absent={report.indicadores.ausentes}
@@ -804,37 +844,37 @@ export function DevolutivaImpressaoClient(props: {
                   />
 
                   <div className="overflow-x-auto">
-                    <table className="document-table min-w-full border-collapse text-sm text-slate-700">
+                    <table className="document-table min-w-full border-collapse text-[13px] text-slate-700">
                       <thead>
                         <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
-                          <th className="px-3 py-3">Indicador</th>
-                          <th className="px-3 py-3">Valor</th>
+                          <th className="px-3 py-2">Indicador</th>
+                          <th className="px-3 py-2">Valor</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#ece2d8]">
                         <tr>
-                          <td className="px-3 py-3">Presencas confirmadas</td>
-                          <td className="px-3 py-3 font-semibold">{report.indicadores.presentes}</td>
+                          <td className="px-3 py-2">Presencas confirmadas</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.presentes}</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-3">Ausencias</td>
-                          <td className="px-3 py-3 font-semibold">{report.indicadores.ausentes}</td>
+                          <td className="px-3 py-2">Ausencias</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.ausentes}</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-3">Nao informado</td>
-                          <td className="px-3 py-3 font-semibold">{report.indicadores.naoInformado}</td>
+                          <td className="px-3 py-2">Nao informado</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.naoInformado}</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-3">Taxa de presenca</td>
-                          <td className="px-3 py-3 font-semibold">{report.indicadores.taxaPresencaPercent}%</td>
+                          <td className="px-3 py-2">Taxa de presenca</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.taxaPresencaPercent}%</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-3">Media por sessao</td>
-                          <td className="px-3 py-3 font-semibold">{report.indicadores.mediaMinutosPorSessao} min</td>
+                          <td className="px-3 py-2">Media por sessao</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.mediaMinutosPorSessao} min</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-3">Tempo clinico total</td>
-                          <td className="px-3 py-3 font-semibold">{report.indicadores.tempoTotalMinutos} min</td>
+                          <td className="px-3 py-2">Tempo clinico total</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.tempoTotalMinutos} min</td>
                         </tr>
                       </tbody>
                     </table>
@@ -895,8 +935,8 @@ export function DevolutivaImpressaoClient(props: {
 
             <DocumentSection title="Comportamentos observados">
               {behaviorRows.length ? (
-                <div className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <DocumentField
                       label="Total consolidado"
                       value={comportamentoResumo.total}
@@ -914,30 +954,13 @@ export function DevolutivaImpressaoClient(props: {
                     />
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="document-table min-w-full border-collapse text-sm text-slate-700">
-                      <thead>
-                        <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
-                          <th className="px-3 py-3">Comportamento</th>
-                          <th className="px-3 py-3">Total</th>
-                          <th className="px-3 py-3">Positivo</th>
-                          <th className="px-3 py-3">Negativo</th>
-                          <th className="px-3 py-3">Representatividade</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#ece2d8]">
-                        {behaviorRows.map((row) => (
-                          <tr key={row.key}>
-                            <td className="px-3 py-3 font-medium">{row.label}</td>
-                            <td className="px-3 py-3">{row.value}</td>
-                            <td className="px-3 py-3">{row.positivo}</td>
-                            <td className="px-3 py-3">{row.negativo}</td>
-                            <td className="px-3 py-3">{row.pct}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <BehaviorHorizontalChart
+                    rows={behaviorRows.map((row) => ({
+                      key: row.key,
+                      label: row.label,
+                      value: row.value,
+                    }))}
+                  />
                 </div>
               ) : (
                 <p className="text-sm leading-7 text-slate-700">Nao ha comportamentos estruturados suficientes para consolidacao neste periodo.</p>
@@ -1004,12 +1027,6 @@ export function DevolutivaImpressaoClient(props: {
           .print-page {
             width: auto !important;
             margin: 0 !important;
-          }
-
-          .document-header,
-          .document-table tr {
-            break-inside: avoid;
-            page-break-inside: avoid;
           }
         }
       `}</style>
