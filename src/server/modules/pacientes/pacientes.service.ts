@@ -91,7 +91,7 @@ export async function listarPacientes(filters: PacientesQueryInput) {
     nomeMae: row.nome_mae,
     nomePai: row.nome_pai,
     dataInicio: row.data_inicio,
-    ativo: row.ativo ? 1 : 0,
+    ativo: row.ativo,
     terapias: terapiasMap.get(row.id) ?? [],
   }));
 }
@@ -233,33 +233,43 @@ export async function softDeletePaciente(id: number, deletedByUserId?: number | 
     );
   }
 
-  const [result] = await db
-    .update(pacientes)
-    .set({
-      ativo: false,
-      deletedAt: sql`now()`,
-      deletedByUserId: deletedByUserId ?? null,
-      updatedAt: sql`now()`,
-    })
-    .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
-    .returning({ id: pacientes.id });
+  return runDbTransaction(
+    async (tx) => {
+      const [result] = await tx
+        .update(pacientes)
+        .set({
+          ativo: false,
+          deletedAt: sql`now()`,
+          deletedByUserId: deletedByUserId ?? null,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
+        .returning({ id: pacientes.id });
 
-  if (!result) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-  return result;
+      if (!result) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+      return result;
+    },
+    { operation: "pacientes.softDeletePaciente", mode: "required" }
+  );
 }
 
 export async function setPacienteAtivo(id: number, ativo: boolean) {
-  const [result] = await db
-    .update(pacientes)
-    .set({
-      ativo,
-      updatedAt: sql`now()`,
-    })
-    .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
-    .returning({ id: pacientes.id, ativo: pacientes.ativo });
+  return runDbTransaction(
+    async (tx) => {
+      const [result] = await tx
+        .update(pacientes)
+        .set({
+          ativo,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
+        .returning({ id: pacientes.id, ativo: pacientes.ativo });
 
-  if (!result) {
-    throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-  }
-  return result;
+      if (!result) {
+        throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+      }
+      return result;
+    },
+    { operation: "pacientes.setPacienteAtivo", mode: "required" }
+  );
 }

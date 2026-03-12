@@ -12,6 +12,7 @@ import {
   atualizarEvolucaoSchema,
   criarEvolucaoSchema,
 } from "@/server/modules/prontuario/prontuario.schema";
+import { AppError } from "@/server/shared/errors";
 import { withErrorHandling } from "@/server/shared/http";
 
 type RouteContext = {
@@ -37,10 +38,10 @@ export const GET = withErrorHandling(async (
   const { user } = await requirePermission("evolucoes:view");
   const { id } = await context.params;
   const evoId = Number(id);
-  if (!evoId) return Response.json({ error: "Evolucao invalida" }, { status: 400 });
+  if (!evoId) throw new AppError("Evolucao invalida", 400, "INVALID_INPUT");
 
   const evolucao = await obterEvolucaoPorId(evoId);
-  if (!evolucao) return Response.json({ error: "Evolucao nao encontrada" }, { status: 404 });
+  if (!evolucao) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
   const canAccess = await canAccessEvolucao(
     user,
@@ -48,7 +49,7 @@ export const GET = withErrorHandling(async (
     Number(evolucao.terapeuta_id)
   );
   if (!canAccess) {
-    return Response.json({ error: "Acesso negado" }, { status: 403 });
+    throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
   return Response.json({ ...evolucao, payload: evolucao.payload ?? {} });
@@ -62,7 +63,7 @@ export const POST = withErrorHandling(async (
   const { user } = await requirePermission("evolucoes:create");
   const { id } = await context.params;
   const pacienteId = Number(id);
-  if (!pacienteId) return Response.json({ error: "Paciente invalido" }, { status: 400 });
+  if (!pacienteId) throw new AppError("Paciente invalido", 400, "INVALID_INPUT");
 
   await assertPacienteAccess(user, pacienteId);
   const payload = await parseJsonBody(request, criarEvolucaoSchema);
@@ -77,10 +78,10 @@ export const PUT = withErrorHandling(async (
   const { user } = await requirePermission("evolucoes:edit");
   const { id } = await context.params;
   const evoId = Number(id);
-  if (!evoId) return Response.json({ error: "Evolucao invalida" }, { status: 400 });
+  if (!evoId) throw new AppError("Evolucao invalida", 400, "INVALID_INPUT");
 
   const evolucaoAtual = await obterEvolucaoPorId(evoId);
-  if (!evolucaoAtual) return Response.json({ error: "Evolucao nao encontrada" }, { status: 404 });
+  if (!evolucaoAtual) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
   const canAccess = await canAccessEvolucao(
     user,
@@ -88,7 +89,7 @@ export const PUT = withErrorHandling(async (
     Number(evolucaoAtual.terapeuta_id)
   );
   if (!canAccess) {
-    return Response.json({ error: "Acesso negado" }, { status: 403 });
+    throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
   const payload = await parseJsonBody(request, atualizarEvolucaoSchema);
@@ -103,10 +104,10 @@ export const DELETE = withErrorHandling(async (
   const { user } = await requirePermission("evolucoes:delete");
   const { id } = await context.params;
   const evoId = Number(id);
-  if (!evoId) return Response.json({ error: "Evolucao invalida" }, { status: 400 });
+  if (!evoId) throw new AppError("Evolucao invalida", 400, "INVALID_INPUT");
 
   const evolucaoAtual = await obterEvolucaoPorId(evoId);
-  if (!evolucaoAtual) return Response.json({ error: "Evolucao nao encontrada" }, { status: 404 });
+  if (!evolucaoAtual) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
   const canAccess = await canAccessEvolucao(
     user,
@@ -114,10 +115,10 @@ export const DELETE = withErrorHandling(async (
     Number(evolucaoAtual.terapeuta_id)
   );
   if (!canAccess) {
-    return Response.json({ error: "Acesso negado" }, { status: 403 });
+    throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
   const ok = await excluirEvolucao(evoId, Number(user.id));
-  if (!ok) return Response.json({ error: "Evolucao nao encontrada" }, { status: 404 });
+  if (!ok) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
   return Response.json({ id: evoId, deleted: true });
 });

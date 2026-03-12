@@ -194,6 +194,8 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
       periodo_fim: atendimentos.periodoFim,
       presenca: atendimentos.presenca,
       realizado: atendimentos.realizado,
+      status_repasse: atendimentos.statusRepasse,
+      resumo_repasse: atendimentos.resumoRepasse,
       motivo: atendimentos.motivo,
       observacoes: atendimentos.observacoes,
       created_at: atendimentos.createdAt,
@@ -220,7 +222,9 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
     periodo_inicio: row.periodo_inicio,
     periodo_fim: row.periodo_fim,
     presenca: row.presenca,
-    realizado: row.realizado ? 1 : 0,
+    realizado: row.realizado,
+    status_repasse: row.status_repasse,
+    resumo_repasse: row.resumo_repasse,
     motivo: row.motivo,
     observacoes: row.observacoes,
     created_at: row.created_at,
@@ -236,20 +240,25 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
 }
 
 export async function softDeleteAtendimento(id: number, deletedByUserId?: number | null) {
-  const [row] = await db
-    .update(atendimentos)
-    .set({
-      deletedAt: sql`now()`,
-      deletedByUserId: deletedByUserId ?? null,
-      updatedAt: sql`now()`,
-    })
-    .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-    .returning({ id: atendimentos.id });
+  return runDbTransaction(
+    async (tx) => {
+      const [row] = await tx
+        .update(atendimentos)
+        .set({
+          deletedAt: sql`now()`,
+          deletedByUserId: deletedByUserId ?? null,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+        .returning({ id: atendimentos.id });
 
-  if (!row) {
-    throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
-  }
-  return row;
+      if (!row) {
+        throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+      }
+      return row;
+    },
+    { operation: "atendimentos.softDeleteAtendimento", mode: "required" }
+  );
 }
 
 export async function criarRecorrentes(payload: RecorrenteInput) {
@@ -338,15 +347,19 @@ export async function excluirDia(payload: ExcluirDiaInput, deletedByUserId?: num
   ];
   if (payload.terapeutaId) where.push(eq(atendimentos.terapeutaId, payload.terapeutaId));
 
-  const removed = await db
-    .update(atendimentos)
-    .set({
-      deletedAt: sql`now()`,
-      deletedByUserId: deletedByUserId ?? null,
-      updatedAt: sql`now()`,
-    })
-    .where(and(...where))
-    .returning({ id: atendimentos.id });
+  const removed = await runDbTransaction(
+    async (tx) =>
+      tx
+        .update(atendimentos)
+        .set({
+          deletedAt: sql`now()`,
+          deletedByUserId: deletedByUserId ?? null,
+          updatedAt: sql`now()`,
+        })
+        .where(and(...where))
+        .returning({ id: atendimentos.id }),
+    { operation: "atendimentos.excluirDia", mode: "required" }
+  );
 
   return { removidos: removed.length };
 }

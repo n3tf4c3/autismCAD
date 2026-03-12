@@ -112,11 +112,15 @@ export async function salvarTerapeuta(input: SaveTerapeutaInput, id?: number | n
   return runDbTransaction(
     async (tx) => {
       if (id) {
-        await tx
+        const [updated] = await tx
           .update(terapeutas)
           .set(payload)
-          .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)));
-        return id;
+          .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
+          .returning({ id: terapeutas.id });
+        if (!updated) {
+          throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+        }
+        return updated.id;
       }
 
       const [saved] = await tx
@@ -196,15 +200,20 @@ export async function deleteTerapeuta(id: number, deletedByUserId?: number | nul
 }
 
 export async function setTerapeutaAtivo(id: number, ativo: boolean) {
-  const [result] = await db
-    .update(terapeutas)
-    .set({ ativo, updatedAt: sql`now()` })
-    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
-    .returning({ id: terapeutas.id, ativo: terapeutas.ativo });
+  return runDbTransaction(
+    async (tx) => {
+      const [result] = await tx
+        .update(terapeutas)
+        .set({ ativo, updatedAt: sql`now()` })
+        .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
+        .returning({ id: terapeutas.id, ativo: terapeutas.ativo });
 
-  if (!result) {
-    throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
-  }
+      if (!result) {
+        throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+      }
 
-  return result;
+      return result;
+    },
+    { operation: "terapeutas.setTerapeutaAtivo", mode: "required" }
+  );
 }

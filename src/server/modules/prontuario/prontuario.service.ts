@@ -206,16 +206,20 @@ export async function criarEvolucao(
   }
 
   try {
-    const [saved] = await db
-      .insert(evolucoes)
-      .values({
-        pacienteId,
-        terapeutaId,
-        atendimentoId,
-        data: dataVal,
-        payload,
-      })
-      .returning({ id: evolucoes.id, data: evolucoes.data });
+    const [saved] = await runDbTransaction(
+      async (tx) =>
+        tx
+          .insert(evolucoes)
+          .values({
+            pacienteId,
+            terapeutaId,
+            atendimentoId,
+            data: dataVal,
+            payload,
+          })
+          .returning({ id: evolucoes.id, data: evolucoes.data }),
+      { operation: "prontuario.criarEvolucao", mode: "required" }
+    );
     return { id: saved.id, data: String(saved.data).slice(0, 10) };
   } catch (error) {
     if (isUniqueViolation(error)) {

@@ -281,20 +281,29 @@ export async function deleteUser(id: number, requesterUserId: number) {
   if (id === requesterUserId) {
     throw new AppError("Nao e possivel excluir o proprio usuario", 400, "SELF_DELETE");
   }
-  const [deleted] = await db
-    .update(users)
-    .set({
-      ativo: false,
-      deletedAt: sql`now()`,
-      deletedByUserId: requesterUserId,
-      updatedAt: sql`now()`,
-    })
-    .where(and(eq(users.id, id), isNull(users.deletedAt)))
-    .returning({ id: users.id });
-  if (!deleted) {
-    throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
-  }
-  return { ok: true, id: deleted.id };
+
+  return runDbTransaction(
+    async (tx) => {
+      await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
+
+      const [deleted] = await tx
+        .update(users)
+        .set({
+          ativo: false,
+          deletedAt: sql`now()`,
+          deletedByUserId: requesterUserId,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(users.id, id), isNull(users.deletedAt)))
+        .returning({ id: users.id });
+
+      if (!deleted) {
+        throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+      }
+      return { ok: true, id: deleted.id };
+    },
+    { operation: "users.deleteUser", mode: "required" }
+  );
 }
 
 export async function listPermissions() {
