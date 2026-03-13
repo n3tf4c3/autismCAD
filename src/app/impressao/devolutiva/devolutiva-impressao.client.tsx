@@ -810,7 +810,7 @@ export function DevolutivaImpressaoClient(props: {
                 <img
                   src="/girassois.svg"
                   alt="Clinica Girassois"
-                  className="h-14 w-auto object-contain sm:h-16"
+                  className="h-20 w-auto max-w-[180px] object-contain sm:h-24 sm:max-w-[220px]"
                 />
               </div>
             </div>
