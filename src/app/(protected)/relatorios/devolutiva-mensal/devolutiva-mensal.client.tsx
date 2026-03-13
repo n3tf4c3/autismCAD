@@ -45,7 +45,7 @@ type MensalReport = {
 };
 
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
-type PeriodPreset = "1m" | "3m" | "6m" | "12m" | "custom";
+type PeriodPreset = "1m" | "custom";
 
 function ymdFromLocalDate(d: Date): string {
   const y = d.getFullYear();
@@ -198,13 +198,7 @@ export function DevolutivaMensalClient(props: {
       if (!customFrom || !customTo || customFrom > customTo) return null;
       return { from: customFrom, to: customTo };
     }
-    const monthsByPreset: Record<Exclude<PeriodPreset, "custom">, number> = {
-      "1m": 1,
-      "3m": 3,
-      "6m": 6,
-      "12m": 12,
-    };
-    return presetRange(referenceMonth, monthsByPreset[periodPreset]);
+    return presetRange(referenceMonth, 1);
   }, [customFrom, customTo, periodPreset, referenceMonth]);
 
   const query = useMemo(() => {
@@ -392,7 +386,7 @@ export function DevolutivaMensalClient(props: {
           <div className="space-y-1">
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-600">Periodo</h2>
             <p className="hidden text-sm text-gray-700 sm:block">
-              Escolha um recorte de 1, 3, 6 ou 12 meses. Se precisar, use intervalo personalizado.
+              Escolha o mes de referencia ou use intervalo personalizado.
             </p>
           </div>
 
@@ -413,9 +407,6 @@ export function DevolutivaMensalClient(props: {
                   className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
                 >
                   <option value="1m">1 mes</option>
-                  <option value="3m">Trimestral</option>
-                  <option value="6m">Semestral</option>
-                  <option value="12m">Anual</option>
                   <option value="custom">Personalizado</option>
                 </select>
               </label>
