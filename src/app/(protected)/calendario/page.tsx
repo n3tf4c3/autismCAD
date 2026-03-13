@@ -137,10 +137,7 @@ export default function CalendarioPage() {
   const [reservaModo, setReservaModo] = useState<"dia" | "periodo">("dia");
   const [periodoInicio, setPeriodoInicio] = useState<string>(() => ymdLocal(new Date()));
   const [periodoFim, setPeriodoFim] = useState<string>(() => ymdLocal(new Date()));
-  const [diasSemana, setDiasSemana] = useState<Set<number>>(() => {
-    const today = new Date().getDay();
-    return new Set([today]);
-  });
+  const [diasSemana, setDiasSemana] = useState<Set<number>>(() => new Set());
   const [inicio, setInicio] = useState<string>("08:00");
   const [fim, setFim] = useState<string>("09:00");
   const [pacienteId, setPacienteId] = useState<string>("");
