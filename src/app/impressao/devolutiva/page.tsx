@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { toAppError } from "@/server/shared/errors";
@@ -12,9 +12,10 @@ import { DevolutivaImpressaoClient } from "@/app/impressao/devolutiva/devolutiva
 export default async function DevolutivaImpressaoPage(props: {
   searchParams: Promise<{ pacienteId?: string }>;
 }) {
-  const { user } = await requirePermission("relatorios_clinicos:view");
+  const { user, access } = await requirePermission("relatorios_clinicos:view");
   const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
   const isResponsavel = roleCanon === "RESPONSAVEL";
+  const canExportDocx = hasPermissionKey(access.permissions, "relatorios_clinicos:export");
   const { pacienteId } = await props.searchParams;
   const pacienteIdSelecionado = pacienteId ? Number(pacienteId) : null;
 
@@ -96,11 +97,12 @@ export default async function DevolutivaImpressaoPage(props: {
                   Relatorio devolutivo
                 </p>
                 <h1 className="mt-2 text-2xl font-bold text-[var(--marrom)]">
-                  Versao para impressao e PDF
+                  Versao para impressao, PDF e DOCX
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm text-gray-600">
                   Layout separado das devolutivas atuais, pensado para imprimir ou salvar em PDF e compartilhar com
-                  neuro, psiquiatra e responsaveis.
+                  neuro, psiquiatra e responsaveis. Quando houver permissao de exportacao, tambem sera possivel baixar
+                  em DOCX.
                 </p>
               </div>
 
@@ -129,7 +131,11 @@ export default async function DevolutivaImpressaoPage(props: {
             ) : null}
           </section>
 
-          <DevolutivaImpressaoClient pacienteId={pacienteAtivo.id} pacienteNome={pacienteAtivo.nome} />
+          <DevolutivaImpressaoClient
+            pacienteId={pacienteAtivo.id}
+            pacienteNome={pacienteAtivo.nome}
+            canExportDocx={canExportDocx}
+          />
         </div>
       ) : null}
     </main>

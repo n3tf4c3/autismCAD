@@ -495,12 +495,14 @@ function BehaviorHorizontalChart(props: {
 export function DevolutivaImpressaoClient(props: {
   pacienteId: number;
   pacienteNome: string;
+  canExportDocx?: boolean;
 }) {
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("1m");
   const [referenceMonth, setReferenceMonth] = useState(ymNow());
   const [customFrom, setCustomFrom] = useState(() => monthRange(ymNow())?.from ?? "");
   const [customTo, setCustomTo] = useState(() => monthRange(ymNow())?.to ?? "");
   const [loading, setLoading] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [report, setReport] = useState<ImpressaoReport | null>(null);
 
@@ -686,6 +688,38 @@ export function DevolutivaImpressaoClient(props: {
     }
   }
 
+  async function exportDocx() {
+    if (!query) {
+      setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
+      return;
+    }
+
+    setExportingDocx(true);
+    setMsg(null);
+
+    try {
+      const resp = await fetch(`/api/relatorios/evolutivo/docx?${query}`);
+      if (!resp.ok) {
+        const json = (await resp.json().catch(() => null)) as unknown;
+        throw new Error(readApiError(json) || "Falha ao gerar DOCX");
+      }
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-devolutivo-${props.pacienteId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    } catch (error) {
+      setMsg(normalizeApiError(error));
+    } finally {
+      setExportingDocx(false);
+    }
+  }
+
   useEffect(() => {
     void consultar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -699,11 +733,12 @@ export function DevolutivaImpressaoClient(props: {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Parametros do relatorio</p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--marrom)]">Recorte para impressao</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Selecione o periodo, gere a pagina e use o botao de impressao do navegador para salvar em PDF.
+              Selecione o periodo, gere a pagina e use os botoes de exportacao para imprimir, salvar em PDF ou baixar
+              o DOCX.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[220px_190px_190px_auto_auto]">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[220px_190px_190px_auto_auto_auto]">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de periodo</span>
               <select
@@ -776,6 +811,17 @@ export function DevolutivaImpressaoClient(props: {
             >
               Imprimir / Salvar PDF
             </button>
+
+            {props.canExportDocx ? (
+              <button
+                type="button"
+                onClick={() => void exportDocx()}
+                disabled={!query || exportingDocx}
+                className="min-h-11 rounded-xl border border-[#4d392a] bg-[#4d392a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3c2d21] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {exportingDocx ? "Gerando DOCX..." : "Salvar DOCX"}
+              </button>
+            ) : null}
           </div>
 
           {selectedRange ? (

@@ -21,6 +21,7 @@
     "@aws-sdk/s3-request-presigner": "^3.988.0",
     "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
+    "docx": "^9.6.1",
     "dotenv": "^17.2.4",
     "drizzle-orm": "^0.45.1",
     "next": "16.1.6",
