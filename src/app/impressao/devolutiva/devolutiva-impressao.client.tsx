@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 
-type PeriodPreset = "1m" | "3m" | "6m" | "12m" | "custom";
+type PeriodPreset = "1m" | "custom";
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
 
 type ImpressaoReport = {
@@ -511,13 +511,7 @@ export function DevolutivaImpressaoClient(props: {
       if (!customFrom || !customTo || customFrom > customTo) return null;
       return { from: customFrom, to: customTo };
     }
-    const monthsByPreset: Record<Exclude<PeriodPreset, "custom">, number> = {
-      "1m": 1,
-      "3m": 3,
-      "6m": 6,
-      "12m": 12,
-    };
-    return presetRange(referenceMonth, monthsByPreset[periodPreset]);
+    return presetRange(referenceMonth, 1);
   }, [customFrom, customTo, periodPreset, referenceMonth]);
 
   const query = useMemo(() => {
@@ -754,9 +748,6 @@ export function DevolutivaImpressaoClient(props: {
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
               >
                 <option value="1m">1 mes</option>
-                <option value="3m">Trimestral</option>
-                <option value="6m">Semestral</option>
-                <option value="12m">Anual</option>
                 <option value="custom">Personalizado</option>
               </select>
             </label>
