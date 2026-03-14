@@ -14,7 +14,8 @@
     "db:push": "drizzle-kit push --config drizzle.config.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "db:seed:admin": "tsx scripts/db/seed-superadmin.ts",
-    "db:cleanup:evolucao": "tsx scripts/db/cleanup-evolucao-payload.ts"
+    "db:cleanup:evolucao": "tsx scripts/db/cleanup-evolucao-payload.ts",
+    "db:cleanup:anamnese": "tsx scripts/db/cleanup-anamnese-payload.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.988.0",

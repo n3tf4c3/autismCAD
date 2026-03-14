@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type BoolTri = "" | "true" | "false";
 type AnamneseStatus = "Rascunho" | "Finalizada";
+type SchoolType = "" | "publica" | "privada";
 
 type Anamnese = Record<string, unknown> & {
   paciente_id: number;
@@ -30,33 +31,20 @@ type FormState = {
   diagnostico: string;
   laudoDiagnostico: string;
   medicoAcompanhante: string;
-  comorbidadesFamiliares: string;
-
-  quemPercebeu: string;
-  sinaisPercebidos: string;
-  idadeDiagnostico: string;
-  percepcaoFamilia: string;
 
   fezTerapia: BoolTri;
   terapias: string;
   frequencia: string;
-  atividadesExtras: string;
-
-  gravidezPlanejada: BoolTri;
-  intercorrenciasGestacionais: string;
-  usoMedicamentos: string;
-  tipoParto: string;
-  intercorrenciasParto: string;
 
   marcosMotores: string;
   linguagem: string;
   comunicacao: string;
 
-  escola: string;
+  escola: SchoolType;
   serie: string;
-  professor: string;
-  acompanhanteEscolar: string;
+  acompanhanteEscolar: boolean;
   observacoesEscolares: string;
+  encaminhamento: string;
 
   frustracoes: string;
   humor: string;
@@ -83,23 +71,10 @@ const DEFAULT_FORM: FormState = {
   diagnostico: "",
   laudoDiagnostico: "",
   medicoAcompanhante: "",
-  comorbidadesFamiliares: "",
-
-  quemPercebeu: "",
-  sinaisPercebidos: "",
-  idadeDiagnostico: "",
-  percepcaoFamilia: "",
 
   fezTerapia: "",
   terapias: "",
   frequencia: "",
-  atividadesExtras: "",
-
-  gravidezPlanejada: "",
-  intercorrenciasGestacionais: "",
-  usoMedicamentos: "",
-  tipoParto: "",
-  intercorrenciasParto: "",
 
   marcosMotores: "",
   linguagem: "",
@@ -107,9 +82,9 @@ const DEFAULT_FORM: FormState = {
 
   escola: "",
   serie: "",
-  professor: "",
-  acompanhanteEscolar: "",
+  acompanhanteEscolar: false,
   observacoesEscolares: "",
+  encaminhamento: "",
 
   frustracoes: "",
   humor: "",
@@ -175,6 +150,20 @@ function asBoolTri(value: unknown): BoolTri {
   return "";
 }
 
+function asCheckbox(value: unknown): boolean {
+  if (value === true) return true;
+  if (value === false || value === null || value === undefined) return false;
+  const raw = asText(value).trim().toLowerCase();
+  return ["1", "true", "sim", "yes", "on"].includes(raw);
+}
+
+function asSchoolType(value: unknown): SchoolType {
+  const raw = asText(value).trim().toLowerCase();
+  if (raw === "publica" || raw === "pública" || raw.includes("public")) return "publica";
+  if (raw === "privada" || raw.includes("privad")) return "privada";
+  return "";
+}
+
 function boolTriToJson(value: BoolTri): boolean | null {
   if (value === "true") return true;
   if (value === "false") return false;
@@ -191,10 +180,11 @@ function Input(props: {
   value: string;
   type?: "text" | "date";
   placeholder?: string;
+  className?: string;
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="text-sm">
+    <label className={`text-sm ${props.className ?? ""}`.trim()}>
       <span className="mb-1 block font-semibold text-[var(--marrom)]">{props.label}</span>
       <input
         type={props.type ?? "text"}
@@ -242,6 +232,45 @@ function BoolSelect(props: { label: string; value: BoolTri; onChange: (value: Bo
         <option value="false">Nao</option>
       </select>
     </label>
+  );
+}
+
+function Checkbox(props: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex min-h-[42px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
+      <input
+        type="checkbox"
+        className="h-4 w-4 rounded border-gray-300 text-[var(--laranja)] focus:ring-[var(--laranja)]"
+        checked={props.checked}
+        onChange={(e) => props.onChange(e.target.checked)}
+      />
+      <span className="font-semibold text-[var(--marrom)]">{props.label}</span>
+    </label>
+  );
+}
+
+function SchoolTypeField(props: {
+  value: SchoolType;
+  onChange: (value: SchoolType) => void;
+  extra?: React.ReactNode;
+}) {
+  return (
+    <div className="text-sm md:col-span-2">
+      <span className="mb-1 block font-semibold text-[var(--marrom)]">Escola</span>
+      <div className="flex flex-wrap gap-3">
+        <Checkbox
+          label="Escola Publica"
+          checked={props.value === "publica"}
+          onChange={() => props.onChange(props.value === "publica" ? "" : "publica")}
+        />
+        <Checkbox
+          label="Escola Privada"
+          checked={props.value === "privada"}
+          onChange={() => props.onChange(props.value === "privada" ? "" : "privada")}
+        />
+        {props.extra}
+      </div>
+    </div>
   );
 }
 
@@ -295,33 +324,20 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
       diagnostico: asText(readKey(data, "diagnostico", "diagnostico")),
       laudoDiagnostico: asText(readKey(data, "laudoDiagnostico", "laudo_diagnostico")),
       medicoAcompanhante: asText(readKey(data, "medicoAcompanhante", "medico_acompanhante")),
-      comorbidadesFamiliares: asText(readKey(data, "comorbidadesFamiliares", "comorbidades_familiares")),
-
-      quemPercebeu: asText(readKey(data, "quemPercebeu", "quem_percebeu")),
-      sinaisPercebidos: asText(readKey(data, "sinaisPercebidos", "sinais_percebidos")),
-      idadeDiagnostico: asText(readKey(data, "idadeDiagnostico", "idade_diagnostico")),
-      percepcaoFamilia: asText(readKey(data, "percepcaoFamilia", "percepcao_familia")),
 
       fezTerapia: asBoolTri(readKey(data, "fezTerapia", "fez_terapia")),
       terapias: asText(readKey(data, "terapias", "terapias")),
       frequencia: asText(readKey(data, "frequencia", "frequencia")),
-      atividadesExtras: asText(readKey(data, "atividadesExtras", "atividades_extras")),
-
-      gravidezPlanejada: asBoolTri(readKey(data, "gravidezPlanejada", "gravidez_planejada")),
-      intercorrenciasGestacionais: asText(readKey(data, "intercorrenciasGestacionais", "intercorrencias_gestacionais")),
-      usoMedicamentos: asText(readKey(data, "usoMedicamentos", "uso_medicamentos")),
-      tipoParto: asText(readKey(data, "tipoParto", "tipo_parto")),
-      intercorrenciasParto: asText(readKey(data, "intercorrenciasParto", "intercorrencias_parto")),
 
       marcosMotores: asText(readKey(data, "marcosMotores", "marcos_motores")),
       linguagem: asText(readKey(data, "linguagem", "linguagem")),
       comunicacao: asText(readKey(data, "comunicacao", "comunicacao")),
 
-      escola: asText(readKey(data, "escola", "escola")),
+      escola: asSchoolType(readKey(data, "escola", "escola")),
       serie: asText(readKey(data, "serie", "serie")),
-      professor: asText(readKey(data, "professor", "professor")),
-      acompanhanteEscolar: asText(readKey(data, "acompanhanteEscolar", "acompanhante_escolar")),
+      acompanhanteEscolar: asCheckbox(readKey(data, "acompanhanteEscolar", "acompanhante_escolar")),
       observacoesEscolares: asText(readKey(data, "observacoesEscolares", "observacoes_escolares")),
+      encaminhamento: asText(readKey(data, "encaminhamento", "encaminhamento")),
 
       frustracoes: asText(readKey(data, "frustracoes", "frustracoes")),
       humor: asText(readKey(data, "humor", "humor")),
@@ -385,33 +401,20 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
         diagnostico: textToJson(form.diagnostico),
         laudoDiagnostico: textToJson(form.laudoDiagnostico),
         medicoAcompanhante: textToJson(form.medicoAcompanhante),
-        comorbidadesFamiliares: textToJson(form.comorbidadesFamiliares),
-
-        quemPercebeu: textToJson(form.quemPercebeu),
-        sinaisPercebidos: textToJson(form.sinaisPercebidos),
-        idadeDiagnostico: textToJson(form.idadeDiagnostico),
-        percepcaoFamilia: textToJson(form.percepcaoFamilia),
 
         fezTerapia: boolTriToJson(form.fezTerapia),
         terapias: textToJson(form.terapias),
         frequencia: textToJson(form.frequencia),
-        atividadesExtras: textToJson(form.atividadesExtras),
-
-        gravidezPlanejada: boolTriToJson(form.gravidezPlanejada),
-        intercorrenciasGestacionais: textToJson(form.intercorrenciasGestacionais),
-        usoMedicamentos: textToJson(form.usoMedicamentos),
-        tipoParto: textToJson(form.tipoParto),
-        intercorrenciasParto: textToJson(form.intercorrenciasParto),
 
         marcosMotores: textToJson(form.marcosMotores),
         linguagem: textToJson(form.linguagem),
         comunicacao: textToJson(form.comunicacao),
 
-        escola: textToJson(form.escola),
+        escola: form.escola || null,
         serie: textToJson(form.serie),
-        professor: textToJson(form.professor),
-        acompanhanteEscolar: textToJson(form.acompanhanteEscolar),
+        acompanhanteEscolar: form.acompanhanteEscolar,
         observacoesEscolares: textToJson(form.observacoesEscolares),
+        encaminhamento: textToJson(form.encaminhamento),
 
         frustracoes: textToJson(form.frustracoes),
         humor: textToJson(form.humor),
@@ -586,35 +589,12 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
               <Textarea label="Laudo (resumo, numero ou profissional)" value={form.laudoDiagnostico} rows={3} onChange={(v) => setField("laudoDiagnostico", v)} />
             </div>
             <Input label="Medico acompanhante" value={form.medicoAcompanhante} onChange={(v) => setField("medicoAcompanhante", v)} />
-            <Textarea label="Comorbidades familiares" value={form.comorbidadesFamiliares} rows={3} onChange={(v) => setField("comorbidadesFamiliares", v)} />
-          </Section>
-
-          <Section title="Processo Diagnostico">
-            <Input label="Quem percebeu os sinais" value={form.quemPercebeu} onChange={(v) => setField("quemPercebeu", v)} />
-            <div className="md:col-span-2">
-              <Textarea label="O que foi percebido" value={form.sinaisPercebidos} rows={3} onChange={(v) => setField("sinaisPercebidos", v)} />
-            </div>
-            <Input label="Idade do fechamento do diagnostico" value={form.idadeDiagnostico} onChange={(v) => setField("idadeDiagnostico", v)} />
-            <div className="md:col-span-2">
-              <Textarea label="Percepcao da familia" value={form.percepcaoFamilia} rows={3} onChange={(v) => setField("percepcaoFamilia", v)} />
-            </div>
           </Section>
 
           <Section title="Acompanhamentos">
             <BoolSelect label="Ja fez terapia antes?" value={form.fezTerapia} onChange={(v) => setField("fezTerapia", v)} />
             <Input label="Terapias" value={form.terapias} onChange={(v) => setField("terapias", v)} />
             <Input label="Frequencia" value={form.frequencia} onChange={(v) => setField("frequencia", v)} />
-            <Textarea label="Atividades extras" value={form.atividadesExtras} rows={3} onChange={(v) => setField("atividadesExtras", v)} />
-          </Section>
-
-          <Section title="Gestacao e Parto">
-            <BoolSelect label="Gravidez planejada?" value={form.gravidezPlanejada} onChange={(v) => setField("gravidezPlanejada", v)} />
-            <Textarea label="Intercorrencias gestacionais" value={form.intercorrenciasGestacionais} rows={3} onChange={(v) => setField("intercorrenciasGestacionais", v)} />
-            <Textarea label="Uso de medicamentos (gestacao)" value={form.usoMedicamentos} rows={3} onChange={(v) => setField("usoMedicamentos", v)} />
-            <Input label="Tipo de parto" value={form.tipoParto} onChange={(v) => setField("tipoParto", v)} />
-            <div className="md:col-span-2">
-              <Textarea label="Intercorrencias no parto" value={form.intercorrenciasParto} rows={3} onChange={(v) => setField("intercorrenciasParto", v)} />
-            </div>
           </Section>
 
           <Section title="Desenvolvimento">
@@ -626,12 +606,29 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
           </Section>
 
           <Section title="Escola">
-            <Input label="Escola" value={form.escola} onChange={(v) => setField("escola", v)} />
-            <Input label="Serie" value={form.serie} onChange={(v) => setField("serie", v)} />
-            <Input label="Professor" value={form.professor} onChange={(v) => setField("professor", v)} />
-            <Input label="Acompanhante escolar" value={form.acompanhanteEscolar} onChange={(v) => setField("acompanhanteEscolar", v)} />
+            <SchoolTypeField
+              value={form.escola}
+              onChange={(v) => setField("escola", v)}
+              extra={
+                <div className="ml-4 flex flex-wrap items-end gap-4 md:ml-10 md:gap-6">
+                  <Checkbox label="Possui Acompanhante?" checked={form.acompanhanteEscolar} onChange={(v) => setField("acompanhanteEscolar", v)} />
+                  <Input
+                    label="Serie"
+                    value={form.serie}
+                    onChange={(v) => setField("serie", v)}
+                    className="min-w-[220px] flex-1 md:ml-6 md:w-[280px] md:flex-none"
+                  />
+                </div>
+              }
+            />
             <div className="md:col-span-2">
               <Textarea label="Observacoes escolares" value={form.observacoesEscolares} rows={3} onChange={(v) => setField("observacoesEscolares", v)} />
+            </div>
+          </Section>
+
+          <Section title="Encaminhamento">
+            <div className="md:col-span-2">
+              <Textarea label="Encaminhamento" value={form.encaminhamento} rows={4} onChange={(v) => setField("encaminhamento", v)} />
             </div>
           </Section>
 

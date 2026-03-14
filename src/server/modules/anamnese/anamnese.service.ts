@@ -1,54 +1,13 @@
 import "server-only";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { sanitizeAnamnesePayload } from "@/lib/anamnese/sanitize-anamnese-payload";
 import { runDbTransaction } from "@/server/db/transaction";
 import { anamnese, anamneseVersions, pacientes } from "@/server/db/schema";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 type AnyRecord = Record<string, unknown>;
-
-const ANAMNESE_FIELDS = [
-  "entrevistaPor",
-  "dataEntrevista",
-  "possuiDiagnostico",
-  "diagnostico",
-  "laudoDiagnostico",
-  "medicoAcompanhante",
-  "comorbidadesFamiliares",
-  "quemPercebeu",
-  "sinaisPercebidos",
-  "idadeDiagnostico",
-  "percepcaoFamilia",
-  "fezTerapia",
-  "terapias",
-  "frequencia",
-  "atividadesExtras",
-  "gravidezPlanejada",
-  "intercorrenciasGestacionais",
-  "usoMedicamentos",
-  "tipoParto",
-  "intercorrenciasParto",
-  "marcosMotores",
-  "linguagem",
-  "comunicacao",
-  "escola",
-  "serie",
-  "professor",
-  "acompanhanteEscolar",
-  "observacoesEscolares",
-  "frustracoes",
-  "humor",
-  "estereotipias",
-  "autoagressao",
-  "heteroagressao",
-  "seletividadeAlimentar",
-  "rotinaSono",
-  "medicamentosUsoAnterior",
-  "medicamentosUsoAtual",
-  "dificuldadesFamilia",
-  "expectativasTerapia",
-] as const;
 
 function readValue(body: AnyRecord, camel: string, snake: string) {
   if (body[camel] !== undefined) return body[camel];
@@ -79,7 +38,7 @@ function asBoolOrNull(value: unknown): boolean | null {
 }
 
 export function buildAnamnesePayload(pacienteId: number, body: AnyRecord) {
-  const payload: AnyRecord = { paciente_id: pacienteId };
+  const payload: AnyRecord = {};
 
   payload.entrevistaPor = asTrimmedOrNull(readValue(body, "entrevistaPor", "entrevista_por"));
   payload.dataEntrevista = asDateOnlyOrNull(readValue(body, "dataEntrevista", "data_entrevista"));
@@ -87,28 +46,17 @@ export function buildAnamnesePayload(pacienteId: number, body: AnyRecord) {
   payload.diagnostico = asTrimmedOrNull(readValue(body, "diagnostico", "diagnostico"));
   payload.laudoDiagnostico = asTrimmedOrNull(readValue(body, "laudoDiagnostico", "laudo_diagnostico"));
   payload.medicoAcompanhante = asTrimmedOrNull(readValue(body, "medicoAcompanhante", "medico_acompanhante"));
-  payload.comorbidadesFamiliares = asTrimmedOrNull(readValue(body, "comorbidadesFamiliares", "comorbidades_familiares"));
-  payload.quemPercebeu = asTrimmedOrNull(readValue(body, "quemPercebeu", "quem_percebeu"));
-  payload.sinaisPercebidos = asTrimmedOrNull(readValue(body, "sinaisPercebidos", "sinais_percebidos"));
-  payload.idadeDiagnostico = asTrimmedOrNull(readValue(body, "idadeDiagnostico", "idade_diagnostico"));
-  payload.percepcaoFamilia = asTrimmedOrNull(readValue(body, "percepcaoFamilia", "percepcao_familia"));
   payload.fezTerapia = asBoolOrNull(readValue(body, "fezTerapia", "fez_terapia"));
   payload.terapias = asTrimmedOrNull(readValue(body, "terapias", "terapias"));
   payload.frequencia = asTrimmedOrNull(readValue(body, "frequencia", "frequencia"));
-  payload.atividadesExtras = asTrimmedOrNull(readValue(body, "atividadesExtras", "atividades_extras"));
-  payload.gravidezPlanejada = asBoolOrNull(readValue(body, "gravidezPlanejada", "gravidez_planejada"));
-  payload.intercorrenciasGestacionais = asTrimmedOrNull(readValue(body, "intercorrenciasGestacionais", "intercorrencias_gestacionais"));
-  payload.usoMedicamentos = asTrimmedOrNull(readValue(body, "usoMedicamentos", "uso_medicamentos"));
-  payload.tipoParto = asTrimmedOrNull(readValue(body, "tipoParto", "tipo_parto"));
-  payload.intercorrenciasParto = asTrimmedOrNull(readValue(body, "intercorrenciasParto", "intercorrencias_parto"));
   payload.marcosMotores = asTrimmedOrNull(readValue(body, "marcosMotores", "marcos_motores"));
   payload.linguagem = asTrimmedOrNull(readValue(body, "linguagem", "linguagem"));
   payload.comunicacao = asTrimmedOrNull(readValue(body, "comunicacao", "comunicacao"));
   payload.escola = asTrimmedOrNull(readValue(body, "escola", "escola"));
   payload.serie = asTrimmedOrNull(readValue(body, "serie", "serie"));
-  payload.professor = asTrimmedOrNull(readValue(body, "professor", "professor"));
-  payload.acompanhanteEscolar = asTrimmedOrNull(readValue(body, "acompanhanteEscolar", "acompanhante_escolar"));
+  payload.acompanhanteEscolar = asBoolOrNull(readValue(body, "acompanhanteEscolar", "acompanhante_escolar"));
   payload.observacoesEscolares = asTrimmedOrNull(readValue(body, "observacoesEscolares", "observacoes_escolares"));
+  payload.encaminhamento = asTrimmedOrNull(readValue(body, "encaminhamento", "encaminhamento"));
   payload.frustracoes = asTrimmedOrNull(readValue(body, "frustracoes", "frustracoes"));
   payload.humor = asTrimmedOrNull(readValue(body, "humor", "humor"));
   payload.estereotipias = asTrimmedOrNull(readValue(body, "estereotipias", "estereotipias"));
@@ -121,16 +69,7 @@ export function buildAnamnesePayload(pacienteId: number, body: AnyRecord) {
   payload.dificuldadesFamilia = asTrimmedOrNull(readValue(body, "dificuldadesFamilia", "dificuldades_familia"));
   payload.expectativasTerapia = asTrimmedOrNull(readValue(body, "expectativasTerapia", "expectativas_terapia"));
 
-  // Ensure we don't accidentally keep extra keys when we persist base payload.
-  // Versions may still store additional computed metadata.
-  for (const key of Object.keys(payload)) {
-    if (key === "paciente_id") continue;
-    if (!(ANAMNESE_FIELDS as readonly string[]).includes(key)) {
-      delete payload[key];
-    }
-  }
-
-  return payload;
+  return sanitizeAnamnesePayload(payload).payload;
 }
 
 export async function assertPacienteExists(pacienteId: number) {
