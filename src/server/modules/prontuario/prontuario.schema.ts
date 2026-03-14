@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export const DOC_TYPES = ["ANAMNESE", "PLANO_TERAPEUTICO", "RELATORIO_MULTIPROFISSIONAL", "OUTRO"] as const;
+export const DOC_TYPES = [
+  "ANAMNESE",
+  "PLANO_TERAPEUTICO",
+  "PLANO_ENSINO",
+  "RELATORIO_MULTIPROFISSIONAL",
+  "OUTRO",
+] as const;
 export type DocTipo = (typeof DOC_TYPES)[number];
 
 export const DOC_STATUS = ["Rascunho", "Finalizado"] as const;

@@ -5,6 +5,7 @@ import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { DocFormClient } from "@/app/(protected)/prontuario/[pacienteId]/novo-documento/doc-form.client";
+import { PlanoEnsinoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client";
 import { toAppError } from "@/server/shared/errors";
 
 export default async function NovoDocumentoPage(props: {
@@ -69,7 +70,11 @@ export default async function NovoDocumentoPage(props: {
         </div>
       </section>
 
-      <DocFormClient pacienteId={paciente.id} defaultTipo={defaultTipo} />
+      {defaultTipo === "PLANO_ENSINO" ? (
+        <PlanoEnsinoFormClient pacienteId={paciente.id} />
+      ) : (
+        <DocFormClient pacienteId={paciente.id} defaultTipo={defaultTipo} />
+      )}
     </main>
   );
 }

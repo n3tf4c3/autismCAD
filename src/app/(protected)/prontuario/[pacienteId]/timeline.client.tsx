@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateBr, toLocalDateKey } from "@/lib/date-only";
+import { getDocumentoNovoHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 
 export type TimelineItem =
   | {
@@ -118,7 +119,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                   <div className="flex flex-wrap items-center gap-2 text-gray-600">
                     <span>{tipoLabel}</span>
                     <span className="rounded bg-amber-50 px-2 py-1 text-xs text-[var(--marrom)]">
-                      {item.tipo}
+                      {isDoc ? getDocumentoTipoLabel(item.tipo) : item.tipo}
                     </span>
                     {item.status ? (
                       <span className="rounded bg-amber-100 px-2 py-1 text-xs text-[var(--marrom)]">
@@ -148,9 +149,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                       </Link>
                       <Link
                         className="text-sm font-semibold text-[var(--laranja)]"
-                        href={`/prontuario/${props.pacienteId}/novo-documento?tipo=${encodeURIComponent(
-                          item.tipo
-                        )}`}
+                        href={getDocumentoNovoHref(props.pacienteId, item.tipo)}
                       >
                         Criar nova versao
                       </Link>

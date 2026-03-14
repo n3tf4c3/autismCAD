@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   atendimentos,
@@ -22,6 +23,7 @@ import {
   DOC_TYPES,
   SalvarDocumentoInput,
 } from "@/server/modules/prontuario/prontuario.schema";
+import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 
 function toIsoDate(value: string): string {
@@ -109,8 +111,17 @@ export async function salvarDocumento(
     ? (input.status ?? "Rascunho")
     : "Rascunho";
 
-  const titulo = (input.titulo ?? tipo).toString().trim() || tipo;
-  const payload = input.payload ?? {};
+  let payload = input.payload ?? {};
+  if (tipo === "PLANO_ENSINO") {
+    payload = sanitizePlanoEnsinoPayload(payload);
+  }
+
+  const tituloInformado = (input.titulo ?? "").toString().trim();
+  const titulo =
+    tituloInformado ||
+    (tipo === "PLANO_ENSINO"
+      ? getPlanoEnsinoTitulo(payload as ReturnType<typeof sanitizePlanoEnsinoPayload>)
+      : getDocumentoTipoLabel(tipo));
 
   const userId = user?.id ? Number(user.id) : null;
   const userRole = user?.role ?? null;
