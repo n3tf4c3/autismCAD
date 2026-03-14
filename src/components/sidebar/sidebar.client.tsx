@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -121,7 +121,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "pacientes",
           label: "Pacientes",
-          icon: "👥",
+          icon: "👦",
           href: "/pacientes",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/pacientes", p),
