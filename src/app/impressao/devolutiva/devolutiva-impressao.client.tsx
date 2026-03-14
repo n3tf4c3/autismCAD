@@ -976,7 +976,7 @@ export function DevolutivaImpressaoClient(props: {
 
             <DocumentSection title="Comportamentos observados">
               {behaviorRows.length ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <DocumentField
                       label="Total consolidado"
@@ -1002,6 +1002,31 @@ export function DevolutivaImpressaoClient(props: {
                       value: row.value,
                     }))}
                   />
+
+                  <div className="overflow-x-auto">
+                    <table className="document-table min-w-full border-collapse text-sm text-slate-700">
+                      <thead>
+                        <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
+                          <th className="px-3 py-3">Comportamento</th>
+                          <th className="px-3 py-3">Registros</th>
+                          <th className="px-3 py-3">Positivos</th>
+                          <th className="px-3 py-3">Negativos</th>
+                          <th className="px-3 py-3">Participacao</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ece2d8]">
+                        {behaviorRows.map((row) => (
+                          <tr key={row.key}>
+                            <td className="px-3 py-3 font-medium">{row.label}</td>
+                            <td className="px-3 py-3">{row.value}</td>
+                            <td className="px-3 py-3">{row.positivo}</td>
+                            <td className="px-3 py-3">{row.negativo}</td>
+                            <td className="px-3 py-3">{row.pct}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm leading-7 text-slate-700">Nao ha comportamentos estruturados suficientes para consolidacao neste periodo.</p>
