@@ -1,12 +1,34 @@
 import Link from "next/link";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { db } from "@/db";
 import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
+import { pacientes, terapeutas } from "@/server/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
+
+type BirthdayItem = {
+  id: number;
+  nome: string;
+  dataNascimento: string;
+  dia: number;
+  tipo: "Paciente" | "Terapeuta";
+  destaque: string | null;
+};
+
+function monthFromYmd(ymd: string): number {
+  return Number(String(ymd).slice(5, 7));
+}
+
+function formatBirthdayMonth(value: string): string {
+  const raw = String(value || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "--";
+  return raw.slice(5, 7);
+}
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -17,12 +39,8 @@ export default async function DashboardPage() {
     redirect("/relatorios");
   }
   assertHasPermission(access, ["consultas:view", "atendimentos:view"]);
-  const isAdmin = access.roles.some((role) =>
-    ADMIN_ROLES.has(canonicalRoleName(role) ?? role)
-  );
-  const isTerapeuta = access.roles.some(
-    (role) => (canonicalRoleName(role) ?? role) === "TERAPEUTA"
-  );
+  const isAdmin = access.roles.some((role) => ADMIN_ROLES.has(canonicalRoleName(role) ?? role));
+  const isTerapeuta = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "TERAPEUTA");
 
   let terapeutaId: number | null = null;
   if (!isAdmin && isTerapeuta) {
@@ -30,9 +48,7 @@ export default async function DashboardPage() {
     if (!terapeuta) {
       return (
         <main className="rounded-2xl bg-white p-6 shadow-sm">
-          <p className="text-sm text-red-600">
-            Perfil sem vinculo de terapeuta. Contate o administrador.
-          </p>
+          <p className="text-sm text-red-600">Perfil sem vinculo de terapeuta. Contate o administrador.</p>
         </main>
       );
     }
@@ -41,11 +57,68 @@ export default async function DashboardPage() {
 
   const today = ymdNowInClinicTz();
   const ym = ymNowInClinicTz();
-  const { pendentes, monthAtendimentos } = await loadDashboardAgenda({
-    terapeutaId,
-    today,
-    ym,
-  });
+  const birthdayMonth = monthFromYmd(today);
+
+  const [agenda, pacientesAniversariantes, terapeutasAniversariantes] = await Promise.all([
+    loadDashboardAgenda({
+      terapeutaId,
+      today,
+      ym,
+    }),
+    db
+      .select({
+        id: pacientes.id,
+        nome: pacientes.nome,
+        dataNascimento: pacientes.dataNascimento,
+        dia: sql<number>`extract(day from ${pacientes.dataNascimento})::int`,
+      })
+      .from(pacientes)
+      .where(
+        and(
+          isNull(pacientes.deletedAt),
+          eq(pacientes.ativo, true),
+          sql`extract(month from ${pacientes.dataNascimento}) = ${birthdayMonth}`
+        )
+      )
+      .orderBy(asc(sql`extract(day from ${pacientes.dataNascimento})`), asc(pacientes.nome)),
+    db
+      .select({
+        id: terapeutas.id,
+        nome: terapeutas.nome,
+        dataNascimento: terapeutas.dataNascimento,
+        dia: sql<number>`extract(day from ${terapeutas.dataNascimento})::int`,
+        destaque: terapeutas.especialidade,
+      })
+      .from(terapeutas)
+      .where(
+        and(
+          isNull(terapeutas.deletedAt),
+          eq(terapeutas.ativo, true),
+          sql`extract(month from ${terapeutas.dataNascimento}) = ${birthdayMonth}`
+        )
+      )
+      .orderBy(asc(sql`extract(day from ${terapeutas.dataNascimento})`), asc(terapeutas.nome)),
+  ]);
+
+  const { pendentes, monthAtendimentos } = agenda;
+  const aniversariantes: BirthdayItem[] = [
+    ...pacientesAniversariantes.map((item) => ({
+      id: Number(item.id),
+      nome: item.nome,
+      dataNascimento: String(item.dataNascimento ?? "").slice(0, 10),
+      dia: Number(item.dia),
+      tipo: "Paciente" as const,
+      destaque: null,
+    })),
+    ...terapeutasAniversariantes.map((item) => ({
+      id: Number(item.id),
+      nome: item.nome,
+      dataNascimento: String(item.dataNascimento ?? "").slice(0, 10),
+      dia: Number(item.dia),
+      tipo: "Terapeuta" as const,
+      destaque: item.destaque ?? null,
+    })),
+  ].sort((a, b) => a.dia - b.dia || a.nome.localeCompare(b.nome, "pt-BR"));
 
   const pendentesAll = pendentes.filter((a) => {
     const cancelado = String(a.presenca ?? "").toLowerCase() === "ausente";
@@ -69,35 +142,27 @@ export default async function DashboardPage() {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">🏠</div>
+          <div className="text-3xl">🔎</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
-            <p className="text-sm text-gray-600">
-              Registre novos pacientes, contatos e perfis terapêuticos.
-            </p>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
+            <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
           </div>
         </div>
-        <Link
-          className={ctaButtonClass}
-          href="/pacientes/novo"
-        >
-          Abrir cadastro
+        <Link className={ctaButtonClass} href="/pacientes">
+          Abrir consulta
         </Link>
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">🔎</div>
+          <div className="text-3xl">👦</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
-            <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes já cadastrados.</p>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
+            <p className="text-sm text-gray-600">Registre novos pacientes, contatos e perfis terapeuticos.</p>
           </div>
         </div>
-        <Link
-          className={ctaButtonClass}
-          href="/pacientes"
-        >
-          Abrir consulta
+        <Link className={ctaButtonClass} href="/pacientes/novo">
+          Abrir cadastro
         </Link>
       </section>
 
@@ -109,10 +174,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-gray-600">Cadastre profissionais, especialidades e agendas.</p>
           </div>
         </div>
-        <Link
-          className={ctaButtonClass}
-          href="/terapeutas"
-        >
+        <Link className={ctaButtonClass} href="/terapeutas">
           Ver equipe
         </Link>
       </section>
@@ -121,19 +183,15 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">📅</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessões</h3>
-            <p className="text-sm text-gray-600">
-              Organize sessões, confirme presença e acompanhe evoluções.
-            </p>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessoes</h3>
+            <p className="text-sm text-gray-600">Organize sessoes, confirme presenca e acompanhe evolucoes.</p>
           </div>
         </div>
 
         <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3 text-sm text-[var(--marrom)]">
           <div className="mb-2 flex items-center justify-between">
             <p className="font-semibold">Pendentes de hoje</p>
-            <span className="text-xs text-gray-600">
-              {pendentesAll.length ? `${pendentesAll.length} restante(s)` : ""}
-            </span>
+            <span className="text-xs text-gray-600">{pendentesAll.length ? `${pendentesAll.length} restante(s)` : ""}</span>
           </div>
           <ul className="max-h-40 space-y-2 overflow-auto pr-1">
             {pendentesHoje.map((a) => {
@@ -142,11 +200,11 @@ export default async function DashboardPage() {
               const faixa = ini && fim ? `${ini} - ${fim}` : "";
 
               return (
-                <li key={a.id} className="p-2 rounded-md bg-white border border-amber-100 shadow-sm">
+                <li key={a.id} className="rounded-md border border-amber-100 bg-white p-2 shadow-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-[var(--marrom)] text-sm">{a.pacienteNome || "Paciente"}</p>
+                    <p className="text-sm font-semibold text-[var(--marrom)]">{a.pacienteNome || "Paciente"}</p>
                     {faixa ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-[var(--marrom)] font-semibold">
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-[var(--marrom)]">
                         {faixa}
                       </span>
                     ) : null}
@@ -155,29 +213,24 @@ export default async function DashboardPage() {
                 </li>
               );
             })}
-            {!pendentesAll.length ? (
-              <li className="text-xs text-gray-600">Nenhuma consulta pendente hoje.</li>
-            ) : null}
+            {!pendentesAll.length ? <li className="text-xs text-gray-600">Nenhuma consulta pendente hoje.</li> : null}
             {pendentesAll.length > pendentesHoje.length ? (
               <li className="text-xs text-gray-600">+{pendentesAll.length - pendentesHoje.length} consulta(s)</li>
             ) : null}
           </ul>
         </div>
 
-        <Link
-          href="/consultas"
-          className={ctaButtonClass}
-        >
+        <Link href="/consultas" className={ctaButtonClass}>
           Agenda do dia
         </Link>
       </section>
 
       <section className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">📅</div>
+          <div className="text-3xl">📆</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendário rápido</h3>
-            <p className="text-sm text-gray-600">Visão mensal com sessões marcadas.</p>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendario rapido</h3>
+            <p className="text-sm text-gray-600">Visao mensal com sessoes marcadas.</p>
           </div>
         </div>
 
@@ -186,34 +239,74 @@ export default async function DashboardPage() {
 
           <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-600">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--verde)]" />
-            <span>Sessão marcada</span>
+            <span>Sessao marcada</span>
           </div>
         </div>
 
-        <Link
-          className={ctaButtonClass}
-          href="/calendario"
-        >
-          Abrir Calendário completo
+        <Link className={ctaButtonClass} href="/calendario">
+          Abrir Calendario completo
         </Link>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="text-3xl">📈</div>
-          <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Relatórios</h3>
-            <p className="text-sm text-gray-600">
-              Indicadores de progresso, assiduidade e evolução clínica.
-            </p>
+      <section className="birthday-board relative overflow-hidden rounded-[28px] p-[1px] shadow-sm">
+        <div className="birthday-board__surface relative flex h-full min-h-[320px] flex-col rounded-[27px] border border-white/40 bg-[radial-gradient(circle_at_top,#fff8ee_0%,#fff1d8_38%,#ffe0a0_100%)] p-5">
+          <div className="birthday-confetti birthday-confetti--one" />
+          <div className="birthday-confetti birthday-confetti--two" />
+          <div className="birthday-confetti birthday-confetti--three" />
+          <div className="birthday-ribbon" />
+
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="birthday-badge flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg">
+                B-DAY
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#b97316]">Mural do mes</p>
+                <h3 className="text-2xl font-bold text-[#9b5c00]">Aniversariantes</h3>
+              </div>
+            </div>
+            <div className="rounded-full border border-[#f2c66f] bg-white/70 px-3 py-1 text-xs font-semibold text-[#9b5c00] backdrop-blur">
+              {aniversariantes.length} no mes
+            </div>
+          </div>
+
+          <div className="relative z-10 mt-5 flex-1 space-y-3">
+            {aniversariantes.length ? (
+              aniversariantes.map((item, index) => (
+                <article
+                  key={`${item.tipo}-${item.id}`}
+                  className="birthday-card flex items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/72 px-4 py-3 backdrop-blur"
+                  style={{ animationDelay: `${index * 90}ms` }}
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-bold text-[#6b4400]">{item.nome}</p>
+                      <span
+                        className={
+                          "rounded-full px-2 py-0.5 text-[11px] font-semibold " +
+                          (item.tipo === "Paciente"
+                            ? "bg-[#fff1d6] text-[#a46300]"
+                            : "bg-[#e6f5ff] text-[#0b6aa4]")
+                        }
+                      >
+                        {item.tipo}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#8a6a2f]">{item.destaque || "Aniversariante do mes"}</p>
+                  </div>
+                  <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#fff7e8] text-[#9b5c00] shadow-inner">
+                    <span className="text-lg font-black leading-none">{String(item.dia).padStart(2, "0")}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide">{formatBirthdayMonth(item.dataNascimento)}</span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="flex h-full min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-[#f0c980] bg-white/55 px-6 text-center text-sm font-medium text-[#8a6a2f]">
+                Nenhum paciente ou terapeuta faz aniversario neste mes.
+              </div>
+            )}
           </div>
         </div>
-        <Link
-          href="/relatorios"
-          className={ctaButtonClass}
-        >
-          Ver Relatórios
-        </Link>
       </section>
     </div>
   );
