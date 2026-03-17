@@ -19,19 +19,10 @@ export function getDocumentoTipoLabel(tipo: string): string {
   }
 }
 
-export function getDocumentoNovoHref(pacienteId: number | string, tipo: string): string {
-  const normalized = normalizeTipo(tipo);
-  if (normalized === "PLANO_ENSINO") {
-    return `/prontuario/${pacienteId}/plano-ensino`;
-  }
-  const safeTipo = normalized || "ANAMNESE";
-  return `/prontuario/${pacienteId}/novo-documento?tipo=${encodeURIComponent(safeTipo)}`;
-}
-
 export function getDocumentoEditarHref(pacienteId: number | string, tipo: string, documentoId: number | string): string {
   const normalized = normalizeTipo(tipo);
   if (normalized === "PLANO_ENSINO") {
     return `/prontuario/${pacienteId}/plano-ensino?documentoId=${encodeURIComponent(String(documentoId))}`;
   }
-  return getDocumentoNovoHref(pacienteId, tipo);
+  return `/prontuario/${pacienteId}`;
 }

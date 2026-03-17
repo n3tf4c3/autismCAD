@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDateBr } from "@/lib/date-only";
-import { getDocumentoEditarHref, getDocumentoNovoHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
+import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
@@ -137,19 +137,21 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
 
         <div className="mt-4 flex flex-wrap justify-end gap-3">
           {doc.tipo === "PLANO_ENSINO" ? (
-            <Link
-              href={getDocumentoEditarHref(doc.paciente_id, doc.tipo, doc.id)}
-              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
-            >
-              Editar
-            </Link>
+            <>
+              <Link
+                href={getDocumentoEditarHref(doc.paciente_id, doc.tipo, doc.id)}
+                className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+              >
+                Editar
+              </Link>
+              <Link
+                href={`/prontuario/${doc.paciente_id}/plano-ensino`}
+                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              >
+                Criar nova versao
+              </Link>
+            </>
           ) : null}
-          <Link
-            href={getDocumentoNovoHref(doc.paciente_id, doc.tipo)}
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-          >
-            Criar nova versao
-          </Link>
         </div>
       </section>
     </main>

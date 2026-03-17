@@ -80,12 +80,6 @@ export default async function ProntuarioPacientePage(props: {
             >
               Plano de Ensino
             </Link>
-            <Link
-              href={`/prontuario/${paciente.id}/novo-documento?tipo=ANAMNESE`}
-              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
-            >
-              Novo Documento
-            </Link>
           </div>
         </div>
       </section>

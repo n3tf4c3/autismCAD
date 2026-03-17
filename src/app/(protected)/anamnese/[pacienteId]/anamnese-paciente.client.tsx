@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type BoolTri = "" | "true" | "false";
 type AnamneseStatus = "Rascunho" | "Finalizada";
 type SchoolType = "" | "publica" | "privada";
+type SchoolPeriod = "" | "matutino" | "vespertino";
 
 type Anamnese = Record<string, unknown> & {
   paciente_id: number;
@@ -42,7 +43,8 @@ type FormState = {
 
   escola: SchoolType;
   serie: string;
-  acompanhanteEscolar: boolean;
+  periodoEscolar: SchoolPeriod;
+  acompanhanteEscolar: BoolTri;
   observacoesEscolares: string;
   encaminhamento: string;
 
@@ -82,7 +84,8 @@ const DEFAULT_FORM: FormState = {
 
   escola: "",
   serie: "",
-  acompanhanteEscolar: false,
+  periodoEscolar: "",
+  acompanhanteEscolar: "",
   observacoesEscolares: "",
   encaminhamento: "",
 
@@ -150,11 +153,11 @@ function asBoolTri(value: unknown): BoolTri {
   return "";
 }
 
-function asCheckbox(value: unknown): boolean {
-  if (value === true) return true;
-  if (value === false || value === null || value === undefined) return false;
+function asSchoolPeriod(value: unknown): SchoolPeriod {
   const raw = asText(value).trim().toLowerCase();
-  return ["1", "true", "sim", "yes", "on"].includes(raw);
+  if (raw === "matutino") return "matutino";
+  if (raw === "vespertino") return "vespertino";
+  return "";
 }
 
 function asSchoolType(value: unknown): SchoolType {
@@ -249,6 +252,30 @@ function Checkbox(props: { label: string; checked: boolean; onChange: (checked: 
   );
 }
 
+function ChoiceCheckboxGroup<T extends string>(props: {
+  label: string;
+  value: T | "";
+  options: readonly { value: T; label: string }[];
+  onChange: (value: T | "") => void;
+  className?: string;
+}) {
+  return (
+    <div className={`text-sm ${props.className ?? ""}`.trim()}>
+      <span className="mb-1 block font-semibold text-[var(--marrom)]">{props.label}</span>
+      <div className="flex flex-wrap gap-3">
+        {props.options.map((option) => (
+          <Checkbox
+            key={option.value}
+            label={option.label}
+            checked={props.value === option.value}
+            onChange={() => props.onChange(props.value === option.value ? "" : option.value)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SchoolTypeField(props: {
   value: SchoolType;
   onChange: (value: SchoolType) => void;
@@ -259,7 +286,7 @@ function SchoolTypeField(props: {
       <span className="mb-1 block font-semibold text-[var(--marrom)]">Escola</span>
       <div className="flex flex-wrap gap-3">
         <Checkbox
-          label="Escola Publica"
+          label="Escola Pública"
           checked={props.value === "publica"}
           onChange={() => props.onChange(props.value === "publica" ? "" : "publica")}
         />
@@ -335,7 +362,8 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
 
       escola: asSchoolType(readKey(data, "escola", "escola")),
       serie: asText(readKey(data, "serie", "serie")),
-      acompanhanteEscolar: asCheckbox(readKey(data, "acompanhanteEscolar", "acompanhante_escolar")),
+      periodoEscolar: asSchoolPeriod(readKey(data, "periodoEscolar", "periodo_escolar")),
+      acompanhanteEscolar: asBoolTri(readKey(data, "acompanhanteEscolar", "acompanhante_escolar")),
       observacoesEscolares: asText(readKey(data, "observacoesEscolares", "observacoes_escolares")),
       encaminhamento: asText(readKey(data, "encaminhamento", "encaminhamento")),
 
@@ -412,7 +440,8 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
 
         escola: form.escola || null,
         serie: textToJson(form.serie),
-        acompanhanteEscolar: form.acompanhanteEscolar,
+        periodoEscolar: form.periodoEscolar || null,
+        acompanhanteEscolar: boolTriToJson(form.acompanhanteEscolar),
         observacoesEscolares: textToJson(form.observacoesEscolares),
         encaminhamento: textToJson(form.encaminhamento),
 
@@ -610,13 +639,30 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
               value={form.escola}
               onChange={(v) => setField("escola", v)}
               extra={
-                <div className="ml-4 flex flex-wrap items-end gap-4 md:ml-10 md:gap-6">
-                  <Checkbox label="Possui Acompanhante?" checked={form.acompanhanteEscolar} onChange={(v) => setField("acompanhanteEscolar", v)} />
+                <div className="flex flex-wrap items-end gap-4 md:ml-4 md:gap-6">
                   <Input
-                    label="Serie"
+                    label="Série"
                     value={form.serie}
                     onChange={(v) => setField("serie", v)}
-                    className="min-w-[220px] flex-1 md:ml-6 md:w-[280px] md:flex-none"
+                    className="w-full md:w-[180px]"
+                  />
+                  <ChoiceCheckboxGroup
+                    label="Período"
+                    value={form.periodoEscolar}
+                    options={[
+                      { value: "matutino", label: "Matutino" },
+                      { value: "vespertino", label: "Vespertino" },
+                    ]}
+                    onChange={(v) => setField("periodoEscolar", v as SchoolPeriod)}
+                  />
+                  <ChoiceCheckboxGroup
+                    label="Possui acompanhante?"
+                    value={form.acompanhanteEscolar}
+                    options={[
+                      { value: "true", label: "Sim" },
+                      { value: "false", label: "Não" },
+                    ]}
+                    onChange={(v) => setField("acompanhanteEscolar", v as BoolTri)}
                   />
                 </div>
               }
