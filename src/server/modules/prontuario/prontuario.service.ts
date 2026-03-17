@@ -34,6 +34,20 @@ function toIsoDate(value: string): string {
   return normalized;
 }
 
+const documentoSelectBase = {
+  id: prontuarioDocumentos.id,
+  paciente_id: prontuarioDocumentos.pacienteId,
+  tipo: prontuarioDocumentos.tipo,
+  version: prontuarioDocumentos.version,
+  status: prontuarioDocumentos.status,
+  titulo: prontuarioDocumentos.titulo,
+  payload: prontuarioDocumentos.payload,
+  created_by_user_id: prontuarioDocumentos.createdByUserId,
+  created_by_role: prontuarioDocumentos.createdByRole,
+  created_at: prontuarioDocumentos.createdAt,
+  updated_at: prontuarioDocumentos.updatedAt,
+} as const;
+
 async function obterTerapeutaIdDoAtendimento(pacienteId: number, atendimentoId: number): Promise<number | null> {
   const [row] = await db
     .select({ pacienteId: atendimentos.pacienteId, terapeutaId: atendimentos.terapeutaId })
@@ -54,48 +68,53 @@ export async function listarDocumentos(pacienteId: number, tipo?: string | null)
   const where = [eq(prontuarioDocumentos.pacienteId, pacienteId), isNull(prontuarioDocumentos.deletedAt)];
   if (tipo) where.push(eq(prontuarioDocumentos.tipo, tipo));
 
-  return db
-    .select({
-      id: prontuarioDocumentos.id,
-      paciente_id: prontuarioDocumentos.pacienteId,
-      tipo: prontuarioDocumentos.tipo,
-      version: prontuarioDocumentos.version,
-      status: prontuarioDocumentos.status,
-      titulo: prontuarioDocumentos.titulo,
-      payload: prontuarioDocumentos.payload,
-      created_by_user_id: prontuarioDocumentos.createdByUserId,
-      created_by_role: prontuarioDocumentos.createdByRole,
-      created_at: prontuarioDocumentos.createdAt,
-      updated_at: prontuarioDocumentos.updatedAt,
-      autor_nome: users.nome,
-    })
-    .from(prontuarioDocumentos)
-    .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
-    .where(and(...where))
-    .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
+  try {
+    return await db
+      .select({
+        ...documentoSelectBase,
+        autor_nome: users.nome,
+      })
+      .from(prontuarioDocumentos)
+      .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
+      .where(and(...where))
+      .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
+  } catch (error) {
+    console.warn("[prontuario] fallback sem join de autor em listarDocumentos", error);
+    return db
+      .select({
+        ...documentoSelectBase,
+        autor_nome: sql<string | null>`null`,
+      })
+      .from(prontuarioDocumentos)
+      .where(and(...where))
+      .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
+  }
 }
 
 export async function obterDocumento(id: number) {
-  const [row] = await db
-    .select({
-      id: prontuarioDocumentos.id,
-      paciente_id: prontuarioDocumentos.pacienteId,
-      tipo: prontuarioDocumentos.tipo,
-      version: prontuarioDocumentos.version,
-      status: prontuarioDocumentos.status,
-      titulo: prontuarioDocumentos.titulo,
-      payload: prontuarioDocumentos.payload,
-      created_by_user_id: prontuarioDocumentos.createdByUserId,
-      created_by_role: prontuarioDocumentos.createdByRole,
-      created_at: prontuarioDocumentos.createdAt,
-      updated_at: prontuarioDocumentos.updatedAt,
-      autor_nome: users.nome,
-    })
-    .from(prontuarioDocumentos)
-    .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
-    .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
-    .limit(1);
-  return row ?? null;
+  try {
+    const [row] = await db
+      .select({
+        ...documentoSelectBase,
+        autor_nome: users.nome,
+      })
+      .from(prontuarioDocumentos)
+      .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
+      .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
+      .limit(1);
+    return row ?? null;
+  } catch (error) {
+    console.warn("[prontuario] fallback sem join de autor em obterDocumento", error);
+    const [row] = await db
+      .select({
+        ...documentoSelectBase,
+        autor_nome: sql<string | null>`null`,
+      })
+      .from(prontuarioDocumentos)
+      .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
+      .limit(1);
+    return row ?? null;
+  }
 }
 
 export async function salvarDocumento(
