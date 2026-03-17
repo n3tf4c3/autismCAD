@@ -1,13 +1,7 @@
 import { z } from "zod";
+import { ESPECIALIDADES_TERAPEUTA_SET } from "@/lib/terapeutas/especialidades";
 
-export const especialidadesPermitidas = new Set([
-  "Psicologia",
-  "Terapia Ocupacional",
-  "Fonoaudiologia",
-  "Fisioterapia",
-  "Psicopedagogia",
-  "Acompanhante Terapeutico (AT)",
-]);
+export const especialidadesPermitidas = ESPECIALIDADES_TERAPEUTA_SET;
 
 const nullableTrimmed = z.string().trim().max(255).optional().nullable();
 const nullableDate = z.string().trim().optional().nullable();

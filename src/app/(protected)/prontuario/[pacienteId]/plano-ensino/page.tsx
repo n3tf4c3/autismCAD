@@ -5,12 +5,19 @@ import { PlanoEnsinoFormClient } from "@/app/(protected)/prontuario/[pacienteId]
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
+import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
+import { obterDocumento } from "@/server/modules/prontuario/prontuario.service";
 import { toAppError } from "@/server/shared/errors";
 
-export default async function PlanoEnsinoPage(props: { params: Promise<{ pacienteId: string }> }) {
+export default async function PlanoEnsinoPage(props: {
+  params: Promise<{ pacienteId: string }>;
+  searchParams: Promise<{ documentoId?: string }>;
+}) {
   const { user } = await requirePermission("prontuario:create");
   const { pacienteId } = await props.params;
+  const { documentoId } = await props.searchParams;
   const id = Number(pacienteId);
+  const sourceDocumentId = documentoId ? Number(documentoId) : null;
   if (!id) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
@@ -44,12 +51,37 @@ export default async function PlanoEnsinoPage(props: { params: Promise<{ pacient
     );
   }
 
+  const sourceDoc = sourceDocumentId ? await obterDocumento(sourceDocumentId) : null;
+  if (sourceDocumentId && !sourceDoc) {
+    return (
+      <main className="rounded-2xl bg-white p-6 shadow-sm">
+        <p className="text-sm text-red-600">Documento de origem nao encontrado.</p>
+      </main>
+    );
+  }
+
+  if (sourceDoc && (Number(sourceDoc.paciente_id) !== id || sourceDoc.tipo !== "PLANO_ENSINO")) {
+    return (
+      <main className="rounded-2xl bg-white p-6 shadow-sm">
+        <p className="text-sm text-red-600">Documento informado nao pode ser usado para editar este plano.</p>
+      </main>
+    );
+  }
+
+  const initialData = sourceDoc
+    ? {
+        ...sanitizePlanoEnsinoPayload(sourceDoc.payload),
+        sourceDocumentId: sourceDoc.id,
+        sourceVersion: sourceDoc.version,
+      }
+    : null;
+
   return (
     <main className="space-y-4">
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gray-500">Novo plano de ensino</p>
+            <p className="text-sm text-gray-500">{sourceDoc ? "Editar plano de ensino" : "Novo plano de ensino"}</p>
             <h1 className="text-2xl font-bold text-[var(--marrom)]">
               {paciente.nome} <span className="text-gray-500">#{paciente.id}</span>
             </h1>
@@ -60,7 +92,7 @@ export default async function PlanoEnsinoPage(props: { params: Promise<{ pacient
         </div>
       </section>
 
-      <PlanoEnsinoFormClient pacienteId={paciente.id} />
+      <PlanoEnsinoFormClient pacienteId={paciente.id} initialData={initialData} />
     </main>
   );
 }

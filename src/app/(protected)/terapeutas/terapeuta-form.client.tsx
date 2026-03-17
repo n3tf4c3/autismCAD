@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ESPECIALIDADES_TERAPEUTA } from "@/lib/terapeutas/especialidades";
 
 type TerapeutaFormInitial = {
   id?: number | null;
@@ -25,16 +26,6 @@ type ViaCepResp = {
   bairro?: string;
   localidade?: string;
 };
-
-const ESPECIALIDADES = [
-  "Psicologia",
-  "Terapia Ocupacional",
-  "Fonoaudiologia",
-  "Fisioterapia",
-  "Psicopedagogia",
-  "Acompanhante Terapeutico (AT)",
-  "Outro",
-] as const;
 
 function digitsOnly(value: string): string {
   return (value || "").replace(/\D/g, "");
@@ -439,10 +430,10 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 required
                 value={especialidade}
                 onChange={(e) => setEspecialidade(e.target.value)}
-                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[var(--texto)] outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
               >
                 <option value="">Selecione</option>
-                {ESPECIALIDADES.map((opt) => (
+                {ESPECIALIDADES_TERAPEUTA.map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
                   </option>

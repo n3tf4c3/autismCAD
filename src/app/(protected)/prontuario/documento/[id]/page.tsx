@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { formatDateBr } from "@/lib/date-only";
-import { getDocumentoNovoHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
+import { getDocumentoEditarHref, getDocumentoNovoHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import { obterDocumento } from "@/server/modules/prontuario/prontuario.service";
 import { toAppError } from "@/server/shared/errors";
+
+function ReadonlyField(props: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{props.label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm font-semibold text-[var(--texto)]">{props.value || "-"}</p>
+    </div>
+  );
+}
 
 export default async function VisualizarDocumentoPage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requirePermission("prontuario:view");
@@ -99,39 +108,17 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
                 planoEnsino.blocos.map((bloco, index) => (
                   <section key={`${doc.id}-bloco-${index + 1}`} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                     <h3 className="text-lg font-bold text-[var(--marrom)]">Bloco {index + 1}</h3>
-                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Habilidade</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.habilidade || "-"}</p>
+                    <div className="mt-4 space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <ReadonlyField label="Habilidade" value={bloco.habilidade} />
+                        <ReadonlyField label="Ensino" value={bloco.ensino} />
                       </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ensino</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.ensino || "-"}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Objetivo de Ensino</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.objetivoEnsino || "-"}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recursos</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.recursos || "-"}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Procedimento</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.procedimento || "-"}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Suportes</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.suportes || "-"}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Objetivo Especifico</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.objetivoEspecifico || "-"}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Criterio de Sucesso</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{bloco.criterioSucesso || "-"}</p>
-                      </div>
+                      <ReadonlyField label="Objetivo de Ensino" value={bloco.objetivoEnsino} />
+                      <ReadonlyField label="Procedimento" value={bloco.procedimento} />
+                      <ReadonlyField label="Recursos" value={bloco.recursos} />
+                      <ReadonlyField label="Suportes" value={bloco.suportes} />
+                      <ReadonlyField label="Objetivo Especifico" value={bloco.objetivoEspecifico} />
+                      <ReadonlyField label="Criterio de Sucesso" value={bloco.criterioSucesso} />
                     </div>
                   </section>
                 ))
@@ -148,7 +135,15 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
           </pre>
         )}
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-wrap justify-end gap-3">
+          {doc.tipo === "PLANO_ENSINO" ? (
+            <Link
+              href={getDocumentoEditarHref(doc.paciente_id, doc.tipo, doc.id)}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+            >
+              Editar
+            </Link>
+          ) : null}
           <Link
             href={getDocumentoNovoHref(doc.paciente_id, doc.tipo)}
             className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"

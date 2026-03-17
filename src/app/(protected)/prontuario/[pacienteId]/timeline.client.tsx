@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateBr, toLocalDateKey } from "@/lib/date-only";
-import { getDocumentoNovoHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
+import { getDocumentoEditarHref, getDocumentoNovoHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 
 export type TimelineItem =
   | {
@@ -147,6 +147,14 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                       >
                         Visualizar
                       </Link>
+                      {item.tipo === "PLANO_ENSINO" ? (
+                        <Link
+                          className="text-sm font-semibold text-[var(--laranja)]"
+                          href={getDocumentoEditarHref(props.pacienteId, item.tipo, item.id)}
+                        >
+                          Editar
+                        </Link>
+                      ) : null}
                       <Link
                         className="text-sm font-semibold text-[var(--laranja)]"
                         href={getDocumentoNovoHref(props.pacienteId, item.tipo)}
