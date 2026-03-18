@@ -132,12 +132,46 @@
     color: #dce3f0 !important;
   }
 
+  .dashboard-pendencias-list {
+    scrollbar-color: #7f8aa2 transparent;
+  }
+
+  .dashboard-pendencias-list::-webkit-scrollbar-thumb {
+    background: #7f8aa2;
+  }
+
+  .dashboard-pendencias-list::-webkit-scrollbar-thumb:hover {
+    background: #98a4bd;
+  }
+
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+.dashboard-pendencias-list {
+  scrollbar-width: thin;
+  scrollbar-color: #d5b27a transparent;
+}
+
+.dashboard-pendencias-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-pendencias-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-pendencias-list::-webkit-scrollbar-thumb {
+  background: #d5b27a;
+  border-radius: 999px;
+}
+
+.dashboard-pendencias-list::-webkit-scrollbar-thumb:hover {
+  background: #c69f63;
 }
 
 .birthday-board {

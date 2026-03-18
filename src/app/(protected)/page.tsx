@@ -193,7 +193,7 @@ export default async function DashboardPage() {
             <p className="font-semibold">Pendentes de hoje</p>
             <span className="text-xs text-gray-600">{pendentesAll.length ? `${pendentesAll.length} restante(s)` : ""}</span>
           </div>
-          <ul className="max-h-40 space-y-2 overflow-auto pr-1">
+          <ul className="dashboard-pendencias-list max-h-[296px] space-y-2 overflow-y-auto pr-1.5">
             {pendentesHoje.map((a) => {
               const ini = String(a.hora_inicio ?? "").slice(0, 5);
               const fim = String(a.hora_fim ?? "").slice(0, 5);
