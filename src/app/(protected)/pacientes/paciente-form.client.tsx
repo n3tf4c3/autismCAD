@@ -25,6 +25,10 @@ const terapiaOptions: Array<{ key: TerapiaKey; label: string }> = [
   { key: "Intercambio", label: "Intercambio" },
 ];
 
+const terapiaCanonicalByNormalized = new Map<string, TerapiaKey>(
+  terapiaOptions.map((option) => [normalizeTextForMatch(option.key), option.key])
+);
+
 export type PacienteFormInitial = {
   id?: number | null;
   nome?: string | null;
@@ -82,6 +86,27 @@ function ymd(value?: string | null): string {
   return d.toISOString().slice(0, 10);
 }
 
+function normalizeTextForMatch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeTerapias(values: Array<string | null | undefined> | null | undefined): TerapiaKey[] {
+  const seen = new Set<TerapiaKey>();
+  const normalized: TerapiaKey[] = [];
+  for (const raw of values ?? []) {
+    if (typeof raw !== "string") continue;
+    const canonical = terapiaCanonicalByNormalized.get(normalizeTextForMatch(raw));
+    if (!canonical || seen.has(canonical)) continue;
+    seen.add(canonical);
+    normalized.push(canonical);
+  }
+  return normalized;
+}
+
 function buildFormValues(initial?: PacienteFormInitial): PacienteFormValues {
   const ativo = initial?.ativo;
   return {
@@ -98,7 +123,7 @@ function buildFormValues(initial?: PacienteFormInitial): PacienteFormValues {
     email: String(initial?.email ?? ""),
     dataInicio: ymd(initial?.dataInicio ?? null),
     ativo: ativo === 0 || ativo === "0" || ativo === false ? "0" : "1",
-    terapias: initial?.terapias ?? [],
+    terapias: normalizeTerapias(initial?.terapias),
     fotoAtual: initial?.foto ?? null,
     laudoAtual: initial?.laudo ?? null,
     documentoAtual: initial?.documento ?? null,
@@ -201,7 +226,6 @@ export function PacienteFormClient(props: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const terapias = watch("terapias") ?? [];
   const fotoAtual = watch("fotoAtual");
   const laudoAtual = watch("laudoAtual");
   const documentoAtual = watch("documentoAtual");
@@ -263,7 +287,7 @@ export function PacienteFormClient(props: {
           sexo: typeof values.sexo === "string" ? values.sexo : "",
           dataInicio: typeof values.dataInicio === "string" ? values.dataInicio : null,
           ativo: values.ativo === "0" ? 0 : 1,
-          terapias,
+          terapias: normalizeTerapias(values.terapias),
           fotoAtual,
           laudoAtual,
           documentoAtual,
@@ -525,28 +549,35 @@ export function PacienteFormClient(props: {
 
           <div className="flex flex-col gap-3">
             <p className="text-sm font-semibold text-[var(--marrom)]">Tipo de terapia</p>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {terapiaOptions.map((t) => {
-                const checked = terapias.includes(t.key);
+            <Controller
+              name="terapias"
+              control={control}
+              render={({ field }) => {
+                const selected = normalizeTerapias(field.value);
                 return (
-                  <label key={t.key} className="cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="peer hidden"
-                      checked={checked}
-                      onChange={(e) =>
-                        setValue("terapias", toggleArrayValue(terapias, t.key, e.target.checked), {
-                          shouldDirty: true,
-                        })
-                      }
-                    />
-                    <span className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 peer-checked:border-[var(--laranja)] peer-checked:bg-white peer-checked:text-[var(--marrom)]">
-                      {t.label}
-                    </span>
-                  </label>
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {terapiaOptions.map((t) => {
+                      const checked = selected.includes(t.key);
+                      return (
+                        <button
+                          key={t.key}
+                          type="button"
+                          aria-pressed={checked}
+                          onClick={() => field.onChange(toggleArrayValue(selected, t.key, !checked))}
+                          className={`flex w-full items-center rounded-lg border px-3 py-2 text-sm transition ${
+                            checked
+                              ? "border-[var(--laranja)] bg-[var(--laranja)]/10 text-[var(--marrom)]"
+                              : "border-gray-200 bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          <span>{t.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 );
-              })}
-            </div>
+              }}
+            />
           </div>
         </div>
 

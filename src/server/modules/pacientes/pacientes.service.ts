@@ -45,9 +45,35 @@ export type PacienteDetalhe = {
   terapias: string[];
 };
 
+const terapiaCanonicalByNormalized = new Map<string, string>([
+  ["convencional", "Convencional"],
+  ["intensiva", "Intensiva"],
+  ["especial", "Especial"],
+  ["intercambio", "Intercambio"],
+]);
+
+function normalizeTextForMatch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 function normalizeTerapias(input: SavePacienteInput): string[] {
   const fromTerapias = Array.isArray(input.terapias) ? input.terapias : [];
-  return Array.from(new Set(fromTerapias.map((item) => item.trim()).filter(Boolean)));
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+  for (const item of fromTerapias) {
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    const canonical = terapiaCanonicalByNormalized.get(normalizeTextForMatch(trimmed)) ?? trimmed;
+    const dedupeKey = normalizeTextForMatch(canonical);
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    normalized.push(canonical);
+  }
+  return normalized;
 }
 
 export async function listarPacientes(filters: PacientesQueryInput) {
