@@ -1,95 +1,87 @@
 # Transaction Migration Plan (Neon)
 
 ## Goal
+Garantir consistencia de escrita nos fluxos criticos, com uso previsivel de transacoes e configuracao de driver adequada para producao.
 
-Guarantee atomic writes in critical flows by migrating from `neon-http` fallback behavior to a transaction-capable driver.
-
-## Current Controls
+## Current Controls (estado atual)
 
 - `DATABASE_DRIVER`:
-  - `neon-http` (default, compatibility mode)
-  - `neon-serverless` (supports transactions)
+  - `neon-serverless` (default atual no codigo)
+  - `neon-http` (modo de compatibilidade/fallback)
 - `REQUIRE_DB_TRANSACTIONS`:
-  - `0` (default): allows non-transaction fallback when driver does not support transactions
-  - `1`: blocks fallback and fails with `TRANSACTION_UNSUPPORTED`
+  - default dinamico:
+    - `1` em `production`
+    - `0` em `development`/`test`
+  - valor explicito no ambiente sobrescreve esse default
 
-## When To Use `runDbTransaction`
+Referencias:
+- `src/lib/env.ts`
+- `src/server/db/transaction.ts`
 
-- Use `runDbTransaction` only when a write flow spans multiple SQL statements and requires all-or-nothing behavior.
-- Do not add `runDbTransaction` around a single `INSERT`, `UPDATE`, or `DELETE` just for stylistic consistency. A single SQL statement is already atomic at the database level.
-- Prefer `mode: "required"` for flows where partial persistence would be a bug.
-- If a flow is currently one statement but is likely to gain pre-checks or secondary writes soon, document that intent before adding a transaction wrapper.
-- With `DATABASE_DRIVER=neon-http`, `mode: "required"` will fail with `TRANSACTION_UNSUPPORTED`, so unnecessary wrappers increase operational risk without adding correctness.
+## Semantica atual de `runDbTransaction`
 
-## Intentional Non-Issues
+- `mode` default: `"required"`.
+- Em `DATABASE_DRIVER=neon-http`, operacoes em modo `"required"` falham com `TRANSACTION_UNSUPPORTED`.
+- Em modo `"allow-fallback"`, o sistema permite executar sem transacao no `neon-http` e registra warning.
 
-- Single-statement flows such as `prontuario.criarEvolucao`, `atendimentos.excluirDia`, `terapeutas.setTerapeutaAtivo`, `pacientes.setPacienteAtivo`, `pacientes.softDeletePaciente`, `atendimentos.softDeleteAtendimento`, and `users.deleteUser` do not require `runDbTransaction` only for stylistic parity.
-- These operations should only move to `runDbTransaction` if they gain additional writes, lock acquisition, or dependent reads that must commit atomically with the final mutation.
+## Politica atual no codigo
 
-## Rollout Steps
+- A maior parte das mutacoes de dominio esta com `mode: "required"`, inclusive:
+  - pacientes, terapeutas, atendimentos, anamnese, prontuario, users.
+- Excecao intencional:
+  - `accessLogs.recordLoginAttemptAccess` usa `mode: "allow-fallback"` para nao bloquear login por indisponibilidade de transacao.
 
-1. Staging config:
-   - `DATABASE_DRIVER=neon-serverless`
-   - `REQUIRE_DB_TRANSACTIONS=1`
-2. Deploy and run smoke tests for critical flows.
-3. Monitor API 5xx and logs for `TRANSACTION_UNSUPPORTED`.
-4. Production canary:
-   - Apply same env values to a subset of traffic.
-5. Full production rollout.
-6. After stable period, remove fallback path from `runDbTransaction`.
-
-## Critical Flow Validation
+## Fluxos criticos para validacao
 
 ### 1) `pacientes.salvarPaciente`
-
 - Path: `src/server/modules/pacientes/pacientes.service.ts`
-- Scenario:
-  - Save patient with multiple therapies.
-  - Force failure after patient update/insert (e.g. invalid therapy insertion payload).
-- Expected:
-  - No partial patient/therapy state is persisted.
+- Esperado: sem persistencia parcial de paciente/terapias em caso de falha intermediaria.
 
 ### 2) `prontuario.salvarDocumento`
-
 - Path: `src/server/modules/prontuario/prontuario.service.ts`
-- Scenario:
-  - Concurrent creates for same patient/type.
-- Expected:
-  - Version increments atomically, no duplicate active version write.
+- Esperado: versao/documento consistente sob concorrencia.
 
 ### 3) `anamnese.salvarAnamneseCompleta`
-
 - Path: `src/server/modules/anamnese/anamnese.service.ts`
-- Scenario:
-  - Save base record + version in one operation under concurrent requests.
-- Expected:
-  - Base and version remain consistent (no orphan/incomplete versioning).
+- Esperado: base + versao consistentes sem orfaos.
 
 ### 4) `terapeutas.deleteTerapeuta`
-
 - Path: `src/server/modules/terapeutas/terapeutas.service.ts`
-- Scenario:
-  - Nullify linked `atendimentos.terapeuta_id` and delete therapist.
-  - Force failure between steps.
-- Expected:
-  - No half-applied state (both operations commit or rollback).
+- Esperado: operacoes encadeadas (desvinculo + delete logico/fisico conforme regra) sem estado parcial.
 
-### 5) `pacientes.arquivos.commit`
+### 5) `pacientes.arquivos.commit.action`
+- Path: `src/app/(protected)/pacientes/paciente.actions.ts`
+- Esperado: troca de chave de arquivo com leitura/escrita consistente e sem ponteiro invalido.
 
-- Path: `src/app/api/pacientes/[id]/arquivos/commit/route.ts`
-- Scenario:
-  - Update patient file key while reading previous key in same transaction.
-  - Force update failure.
-- Expected:
-  - No invalid pointer persisted; previous key stays unchanged.
+## Rollout recomendado de ambiente
 
-## Operational Checks
+1. Staging:
+   - `DATABASE_DRIVER=neon-serverless`
+   - `REQUIRE_DB_TRANSACTIONS=1`
+   - preferir `DATABASE_URL_UNPOOLED` quando aplicavel
+2. Executar smoke dos fluxos criticos.
+3. Monitorar 5xx e ocorrencias de `TRANSACTION_UNSUPPORTED`.
+4. Produzir canary em producao com mesma configuracao.
+5. Rollout completo apos estabilidade.
 
-- `npm run lint`
-- `npm run typecheck`
-- API smoke test for:
-  - `POST /api/pacientes`
-  - `POST /api/prontuario/documento/:id`
-  - `POST /api/anamnese`
-  - `DELETE /api/terapeutas/:id`
-  - `POST /api/pacientes/:id/arquivos/commit`
+## Operacional checks
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+## Smoke checks funcionais
+
+Como varios fluxos sao Server Actions (e nao `route.ts` publico), validar por fluxo de UI autenticada:
+- Salvar/editar paciente
+- Salvar documento e evolucao de prontuario
+- Salvar/excluir anamnese
+- Excluir terapeuta
+- Commit de arquivo de paciente
+
+## Notas de manutencao
+
+- Se um fluxo hoje em um unico statement crescer para multiplos passos, manter `mode: "required"` e documentar o motivo no service.
+- Se um fluxo precisar resiliencia a falha de transacao por requisito de disponibilidade (caso raro), justificar explicitamente o uso de `"allow-fallback"`.
