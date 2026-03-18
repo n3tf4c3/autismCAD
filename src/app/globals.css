@@ -64,6 +64,28 @@
     background-color: #202836 !important;
   }
 
+  select {
+    color-scheme: dark;
+    background-color: #0f1726 !important;
+    color: #e8edf6 !important;
+    border-color: #46506a !important;
+  }
+
+  select option,
+  select optgroup {
+    background-color: #0f1726 !important;
+    color: #e8edf6 !important;
+  }
+
+  select option:checked {
+    background-color: #273248 !important;
+    color: #f4f8ff !important;
+  }
+
+  select option[disabled] {
+    color: #9eabc2 !important;
+  }
+
   .calendar-reserva-card {
     background-color: #1a2230 !important;
     border-color: #384255 !important;
