@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/auth";
 import { loadUserAccess } from "@/server/auth/access";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
+import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/report.client";
 
 export default async function RelatorioEvolutivoPage(props: {
@@ -34,6 +36,17 @@ export default async function RelatorioEvolutivoPage(props: {
 
   const canChooseTerapeuta = !isResponsavel && roleCanon !== "TERAPEUTA";
   const canChoosePaciente = !isResponsavel;
+  let terapeutas: Array<{ id: number; nome: string }> = [];
+
+  if (canChooseTerapeuta) {
+    try {
+      await requirePermission("terapeutas:view");
+      const terapeutasRows = await listarTerapeutas({});
+      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+    } catch {
+      terapeutas = [];
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -68,6 +81,7 @@ export default async function RelatorioEvolutivoPage(props: {
         canChooseTerapeuta={canChooseTerapeuta}
         canChoosePaciente={canChoosePaciente}
         canExportPdf={canExportPdf}
+        initialTerapeutas={terapeutas}
       />
     </div>
   );

@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createUserAction,
+  deleteUserAction,
+  getRolePermissionsAction,
+  listPacientesForConfigAction,
+  listPermissionsAction,
+  listRolesAction,
+  listUsersAction,
+  updateRolePermissionsAction,
+  updateUserAction,
+  type ActionResult,
+} from "@/app/(protected)/configuracoes/permissoes.actions";
 
 type RoleRow = { nome: string };
 type PermissionRow = { id: number; resource: string; action: string };
-type RolePermissionsResponse = {
-  role: { nome: string };
-  permissions: PermissionRow[];
-};
 
 type UserRow = {
   id: number;
@@ -16,7 +24,7 @@ type UserRow = {
   role: string | null;
   pacienteIdVinculado?: number | null;
   pacienteNomeVinculado?: string | null;
-  created_at?: string | null;
+  created_at?: string | Date | null;
 };
 
 type PacienteOption = {
@@ -50,12 +58,6 @@ function normalizeApiError(error: unknown): string {
   return "Erro inesperado";
 }
 
-function readApiError(json: unknown): string | null {
-  if (!json || typeof json !== "object") return null;
-  const record = json as Record<string, unknown>;
-  return typeof record.error === "string" ? record.error : null;
-}
-
 function isAllowedRole(value: string): value is AllowedRole {
   return (ALLOWED_ROLES as readonly string[]).includes(value);
 }
@@ -71,40 +73,11 @@ function groupPermissions(perms: PermissionRow[]) {
   return map;
 }
 
-async function apiGet<T>(url: string): Promise<T> {
-  const resp = await fetch(url, { cache: "no-store" });
-  const json = (await resp.json().catch(() => null)) as unknown;
-  if (!resp.ok) throw new Error(readApiError(json) || `Erro ${resp.status}`);
-  return json as T;
-}
-
-async function apiPost<T>(url: string, body: unknown): Promise<T> {
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await resp.json().catch(() => null)) as unknown;
-  if (!resp.ok) throw new Error(readApiError(json) || `Erro ${resp.status}`);
-  return json as T;
-}
-
-async function apiPut<T>(url: string, body: unknown): Promise<T> {
-  const resp = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await resp.json().catch(() => null)) as unknown;
-  if (!resp.ok) throw new Error(readApiError(json) || `Erro ${resp.status}`);
-  return json as T;
-}
-
-async function apiDelete<T>(url: string): Promise<T> {
-  const resp = await fetch(url, { method: "DELETE" });
-  const json = (await resp.json().catch(() => null)) as unknown;
-  if (!resp.ok) throw new Error(readApiError(json) || `Erro ${resp.status}`);
-  return json as T;
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) {
+    throw new Error(result.error || "Erro inesperado");
+  }
+  return result.data;
 }
 
 export function ConfiguracoesPermissoesClient() {
@@ -150,7 +123,7 @@ export function ConfiguracoesPermissoesClient() {
     setUserListMsg("Carregando usuarios...");
     setUserListTone("neutral");
     try {
-      const data = await apiGet<UserRow[]>("/api/users");
+      const data = unwrapAction(await listUsersAction());
       setUsers(Array.isArray(data) ? data : []);
       setUserListMsg("");
     } catch (err) {
@@ -166,7 +139,7 @@ export function ConfiguracoesPermissoesClient() {
     setPacientesLoading(true);
     setPacientesError("");
     try {
-      const data = await apiGet<PacienteOption[]>("/api/pacientes");
+      const data = unwrapAction(await listPacientesForConfigAction());
       setPacientes(Array.isArray(data) ? data : []);
       setPacientesLoaded(true);
     } catch (err) {
@@ -184,9 +157,7 @@ export function ConfiguracoesPermissoesClient() {
       return;
     }
     try {
-      const data = await apiGet<RolePermissionsResponse>(
-        `/api/roles/${encodeURIComponent(roleName)}/permissions`
-      );
+      const data = unwrapAction(await getRolePermissionsAction(roleName));
       const ids = new Set<number>((data.permissions || []).map((p) => p.id));
       setRolePermIds(ids);
     } catch (err) {
@@ -201,12 +172,12 @@ export function ConfiguracoesPermissoesClient() {
     (async () => {
       try {
         const [rolesResp, permsResp] = await Promise.all([
-          apiGet<RoleRow[]>("/api/roles"),
-          apiGet<PermissionRow[]>("/api/permissions"),
+          listRolesAction(),
+          listPermissionsAction(),
         ]);
         if (cancelled) return;
-        const roleList = Array.isArray(rolesResp) ? rolesResp : [];
-        const permList = Array.isArray(permsResp) ? permsResp : [];
+        const roleList = unwrapAction(rolesResp);
+        const permList = unwrapAction(permsResp);
         setRoles(roleList);
         setPermissions(permList);
 
@@ -258,9 +229,11 @@ export function ConfiguracoesPermissoesClient() {
     setStatusMsg("Salvando...");
     setStatusTone("neutral");
     try {
-      await apiPost(`/api/roles/${encodeURIComponent(roleSelected)}/permissions`, {
-        permissions: Array.from(rolePermIds.values()),
-      });
+      unwrapAction(
+        await updateRolePermissionsAction(roleSelected, {
+          permissions: Array.from(rolePermIds.values()),
+        })
+      );
       await refreshRolePermissions(roleSelected);
       setStatusMsg("Permissoes salvas com sucesso.");
       setStatusTone("success");
@@ -301,7 +274,7 @@ export function ConfiguracoesPermissoesClient() {
     setCreateMsg("Criando usuario...");
     setCreateTone("neutral");
     try {
-      await apiPost("/api/users", { nome, email, senha, role, pacienteIdVinculado });
+      unwrapAction(await createUserAction({ nome, email, senha, role, pacienteIdVinculado }));
       setCreateMsg("Usuario criado/atualizado com sucesso.");
       setCreateTone("success");
       setCreateNome("");
@@ -347,13 +320,15 @@ export function ConfiguracoesPermissoesClient() {
     setUserListMsg("Salvando usuario...");
     setUserListTone("neutral");
     try {
-      await apiPut(`/api/users/${userId}`, {
-        nome,
-        email,
-        role,
-        senha: senha.trim() ? senha : undefined,
-        pacienteIdVinculado,
-      });
+      unwrapAction(
+        await updateUserAction(userId, {
+          nome,
+          email,
+          role,
+          senha: senha.trim() ? senha : undefined,
+          pacienteIdVinculado,
+        })
+      );
       setUserListMsg("Usuario atualizado.");
       setUserListTone("success");
       await refreshUsers();
@@ -375,7 +350,7 @@ export function ConfiguracoesPermissoesClient() {
     setUserListMsg("Excluindo usuario...");
     setUserListTone("neutral");
     try {
-      await apiDelete(`/api/users/${userId}`);
+      unwrapAction(await deleteUserAction(userId));
       setUserListMsg("Usuario excluido.");
       setUserListTone("success");
       await refreshUsers();

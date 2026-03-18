@@ -1,10 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { savePacienteSchema } from "@/server/modules/pacientes/pacientes.schema";
+import {
+  commitArquivoPacienteAction,
+  obterArquivoPacienteReadUrlAction,
+  prepararUploadArquivoPacienteAction,
+  salvarPacienteAction,
+} from "@/app/(protected)/pacientes/paciente.actions";
 
 type TerapiaKey = "Convencional" | "Intensiva" | "Especial" | "Intercambio";
 type Kind = "foto" | "laudo" | "documento";
+
+type PacienteFormValues = z.input<typeof savePacienteSchema>;
+
+const terapiaOptions: Array<{ key: TerapiaKey; label: string }> = [
+  { key: "Convencional", label: "Convencional" },
+  { key: "Intensiva", label: "Intensiva" },
+  { key: "Especial", label: "Especial" },
+  { key: "Intercambio", label: "Intercambio" },
+];
 
 export type PacienteFormInitial = {
   id?: number | null;
@@ -63,94 +82,83 @@ function ymd(value?: string | null): string {
   return d.toISOString().slice(0, 10);
 }
 
+function buildFormValues(initial?: PacienteFormInitial): PacienteFormValues {
+  const ativo = initial?.ativo;
+  return {
+    nome: String(initial?.nome ?? ""),
+    cpf: formatCpf(String(initial?.cpf ?? "")),
+    sexo: String(initial?.sexo ?? ""),
+    nascimento: ymd(initial?.nascimento ?? null),
+    convenio: String(initial?.convenio ?? "Particular"),
+    nomeMae: String(initial?.nomeMae ?? ""),
+    nomePai: String(initial?.nomePai ?? ""),
+    nomeResponsavel: String(initial?.nomeResponsavel ?? ""),
+    telefone: formatTelefone(String(initial?.telefone ?? "")),
+    telefone2: formatTelefone(String(initial?.telefone2 ?? "")),
+    email: String(initial?.email ?? ""),
+    dataInicio: ymd(initial?.dataInicio ?? null),
+    ativo: ativo === 0 || ativo === "0" || ativo === false ? "0" : "1",
+    terapias: initial?.terapias ?? [],
+    fotoAtual: initial?.foto ?? null,
+    laudoAtual: initial?.laudo ?? null,
+    documentoAtual: initial?.documento ?? null,
+  };
+}
+
+function buildResetValues(currentFiles: Pick<PacienteFormValues, "fotoAtual" | "laudoAtual" | "documentoAtual">): PacienteFormValues {
+  return {
+    ...buildFormValues(),
+    ...currentFiles,
+  };
+}
+
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Erro ao salvar paciente";
 }
 
-function corsHintForR2(origin: string): string {
-  const origins = Array.from(new Set([origin, "http://localhost:3000"].filter(Boolean)));
-  return (
-    `O navegador bloqueou o upload para o R2 (CORS).\n` +
-    `Configure o CORS do bucket no Cloudflare R2 para permitir PUT/GET/HEAD da origem: ${origin}\n` +
-    `Dica rapida (dev): AllowedOrigins [${origins.map((o) => JSON.stringify(o)).join(", ")}] e AllowedHeaders [\"*\"]`
-  );
+function uploadNetworkErrorMessage(kind: Kind): string {
+  return `Falha ao enviar ${labelForKind(kind)}. Tente novamente em instantes.`;
 }
 
-async function readJson(resp: Response): Promise<unknown> {
-  return resp.json().catch(() => null);
+function uploadRejectedMessage(kind: Kind): string {
+  return `Falha ao enviar ${labelForKind(kind)}. O armazenamento recusou a requisicao.`;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object") return null;
-  return value as Record<string, unknown>;
+function readFieldError(message: unknown): string | null {
+  return typeof message === "string" && message.trim() ? message : null;
 }
 
-function readError(value: unknown): string | null {
-  const rec = asRecord(value);
-  if (!rec) return null;
-  const err = rec.error;
-  return typeof err === "string" ? err : null;
-}
-
-function readNumber(value: unknown, key: string): number | null {
-  const rec = asRecord(value);
-  if (!rec) return null;
-  const v = rec[key];
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
-}
-
-function readBoolean(value: unknown, key: string): boolean | null {
-  const rec = asRecord(value);
-  if (!rec) return null;
-  const v = rec[key];
-  return typeof v === "boolean" ? v : null;
-}
-
-function readString(value: unknown, key: string): string | null {
-  const rec = asRecord(value);
-  if (!rec) return null;
-  const v = rec[key];
-  return typeof v === "string" ? v : null;
+function unwrapAction<T>(
+  result: { ok: true; data: T } | { ok: false; error: string }
+): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao processar arquivo");
+  return result.data;
 }
 
 async function openSignedUrl(pacienteId: number, kind: Kind) {
-  const resp = await fetch(`/api/pacientes/${pacienteId}/arquivos/read-url?kind=${kind}`, {
-    cache: "no-store",
-  });
-  const data = await readJson(resp);
-  if (!resp.ok) throw new Error(readError(data) || "Erro ao abrir arquivo");
-  const url = readString(data, "url");
+  const data = unwrapAction(await obterArquivoPacienteReadUrlAction(pacienteId, kind));
+  const url = data.url;
   if (!url) throw new Error("Arquivo nao encontrado");
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
 async function presignUpload(pacienteId: number, kind: Kind, file: File) {
-  const resp = await fetch(`/api/pacientes/${pacienteId}/arquivos/presign`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  const data = unwrapAction(
+    await prepararUploadArquivoPacienteAction(pacienteId, {
       kind,
       filename: file.name,
       contentType: file.type || "application/octet-stream",
-    }),
-  });
-  const data = await readJson(resp);
-  if (!resp.ok) throw new Error(readError(data) || "Erro ao preparar upload");
-  const key = readString(data, "key");
-  const url = readString(data, "url");
+    })
+  );
+  const key = data.key;
+  const url = data.url;
   if (!key || !url) throw new Error("Resposta invalida ao preparar upload");
   return { key, url };
 }
 
 async function commitKey(pacienteId: number, kind: Kind, key: string | null) {
-  const resp = await fetch(`/api/pacientes/${pacienteId}/arquivos/commit`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ kind, key }),
-  });
-  const data = await readJson(resp);
-  if (!resp.ok) throw new Error(readError(data) || "Erro ao salvar referencia do arquivo");
+  unwrapAction(await commitArquivoPacienteAction(pacienteId, { kind, key }));
 }
 
 function toggleArrayValue(current: string[], value: string, checked: boolean): string[] {
@@ -171,55 +179,43 @@ export function PacienteFormClient(props: {
   initial?: PacienteFormInitial;
 }) {
   const router = useRouter();
-
   const initialId = props.initial?.id ?? null;
-  const [nome, setNome] = useState(String(props.initial?.nome ?? ""));
-  const [cpf, setCpf] = useState(formatCpf(String(props.initial?.cpf ?? "")));
-  const [sexo, setSexo] = useState(String(props.initial?.sexo ?? ""));
-  const [nascimento, setNascimento] = useState(ymd(props.initial?.nascimento ?? null));
-  const [convenio, setConvenio] = useState(String(props.initial?.convenio ?? "Particular"));
-  const [nomeMae, setNomeMae] = useState(String(props.initial?.nomeMae ?? ""));
-  const [nomePai, setNomePai] = useState(String(props.initial?.nomePai ?? ""));
-  const [nomeResponsavel, setNomeResponsavel] = useState(String(props.initial?.nomeResponsavel ?? ""));
-  const [telefone, setTelefone] = useState(formatTelefone(String(props.initial?.telefone ?? "")));
-  const [telefone2, setTelefone2] = useState(formatTelefone(String(props.initial?.telefone2 ?? "")));
-  const [email, setEmail] = useState(String(props.initial?.email ?? ""));
-  const [dataInicio, setDataInicio] = useState(ymd(props.initial?.dataInicio ?? null));
-  const [ativo, setAtivo] = useState(() => {
-    const raw = props.initial?.ativo;
-    if (raw === 0 || raw === "0" || raw === false) return "0";
-    return "1";
+
+  const {
+    control,
+    getValues,
+    handleSubmit,
+    register,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<PacienteFormValues>({
+    resolver: zodResolver(savePacienteSchema),
+    defaultValues: buildFormValues(props.initial),
   });
-
-  const [terapias, setTerapias] = useState<string[]>(() => props.initial?.terapias ?? []);
-
-  const [fotoAtual, setFotoAtual] = useState<string | null>(props.initial?.foto ?? null);
-  const [laudoAtual, setLaudoAtual] = useState<string | null>(props.initial?.laudo ?? null);
-  const [documentoAtual, setDocumentoAtual] = useState<string | null>(props.initial?.documento ?? null);
 
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [laudoFile, setLaudoFile] = useState<File | null>(null);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
-
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const terapiaOptions: Array<{ key: TerapiaKey; label: string }> = useMemo(
-    () => [
-      { key: "Convencional", label: "Convencional" },
-      { key: "Intensiva", label: "Intensiva" },
-      { key: "Especial", label: "Especial" },
-      { key: "Intercambio", label: "Intercambio" },
-    ],
-    []
-  );
+  const terapias = watch("terapias") ?? [];
+  const fotoAtual = watch("fotoAtual");
+  const laudoAtual = watch("laudoAtual");
+  const documentoAtual = watch("documentoAtual");
 
   async function uploadIfSelected(pacienteId: number) {
-    const items: Array<{ kind: Kind; file: File; setCurrent: (key: string) => void }> = [];
-    if (fotoFile) items.push({ kind: "foto", file: fotoFile, setCurrent: setFotoAtual });
-    if (laudoFile) items.push({ kind: "laudo", file: laudoFile, setCurrent: setLaudoAtual });
+    const items: Array<{ kind: Kind; file: File; setCurrent: (key: string | null) => void }> = [];
+    if (fotoFile) items.push({ kind: "foto", file: fotoFile, setCurrent: (key) => setValue("fotoAtual", key) });
+    if (laudoFile) items.push({ kind: "laudo", file: laudoFile, setCurrent: (key) => setValue("laudoAtual", key) });
     if (documentoFile) {
-      items.push({ kind: "documento", file: documentoFile, setCurrent: setDocumentoAtual });
+      items.push({
+        kind: "documento",
+        file: documentoFile,
+        setCurrent: (key) => setValue("documentoAtual", key),
+      });
     }
 
     for (const item of items) {
@@ -231,20 +227,11 @@ export function PacienteFormClient(props: {
           headers: { "content-type": item.file.type || "application/octet-stream" },
           body: item.file,
         });
-      } catch (err) {
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
-        throw new Error(origin ? corsHintForR2(origin) : normalizeApiError(err));
+      } catch {
+        throw new Error(uploadNetworkErrorMessage(item.kind));
       }
       if (!put.ok) {
-        const bodyText = await put
-          .text()
-          .catch(() => "")
-          .then((t) => t.replace(/\s+/g, " ").trim().slice(0, 220));
-        throw new Error(
-          `Falha no upload de ${labelForKind(item.kind)} (HTTP ${put.status}).` +
-            (bodyText ? ` Resposta: ${bodyText}` : "") +
-            ` Verifique o CORS do R2.`
-        );
+        throw new Error(uploadRejectedMessage(item.kind));
       }
       await commitKey(pacienteId, item.kind, key);
       item.setCurrent(key);
@@ -255,67 +242,61 @@ export function PacienteFormClient(props: {
     setDocumentoFile(null);
   }
 
-  async function submit() {
-    setBusy(true);
-    setMsg(null);
-    try {
-      const payload = {
-        nome: nome.trim(),
-        cpf: digitsOnly(cpf).slice(0, 11),
-        nascimento: nascimento || null,
-        convenio: convenio || "Particular",
-        email: email.trim() || null,
-        nomeResponsavel: nomeResponsavel.trim() || null,
-        telefone: telefone.trim() || null,
-        telefone2: telefone2.trim() || null,
-        nomeMae: nomeMae.trim() || null,
-        nomePai: nomePai.trim() || null,
-        sexo: sexo || null,
-        dataInicio: dataInicio || null,
-        ativo: ativo === "0" ? 0 : 1,
-        terapias,
-        fotoAtual,
-        laudoAtual,
-        documentoAtual,
-      };
+  const submit = handleSubmit(
+    async (values) => {
+      setBusy(true);
+      setMsg(null);
+      try {
+        const payload = {
+          ...values,
+          nome: typeof values.nome === "string" ? values.nome.trim() : "",
+          cpf: digitsOnly(String(values.cpf ?? "")).slice(0, 11),
+          nascimento: typeof values.nascimento === "string" ? values.nascimento : null,
+          convenio: typeof values.convenio === "string" && values.convenio ? values.convenio : "Particular",
+          email: typeof values.email === "string" ? values.email.trim() || null : null,
+          nomeResponsavel:
+            typeof values.nomeResponsavel === "string" ? values.nomeResponsavel.trim() : "",
+          telefone: typeof values.telefone === "string" ? values.telefone.trim() : "",
+          telefone2: typeof values.telefone2 === "string" ? values.telefone2.trim() || null : null,
+          nomeMae: typeof values.nomeMae === "string" ? values.nomeMae.trim() || null : null,
+          nomePai: typeof values.nomePai === "string" ? values.nomePai.trim() || null : null,
+          sexo: typeof values.sexo === "string" ? values.sexo : "",
+          dataInicio: typeof values.dataInicio === "string" ? values.dataInicio : null,
+          ativo: values.ativo === "0" ? 0 : 1,
+          terapias,
+          fotoAtual,
+          laudoAtual,
+          documentoAtual,
+        };
 
-      if (!payload.nome) throw new Error("Informe o nome do paciente.");
-      if (!payload.cpf || payload.cpf.length !== 11) throw new Error("CPF invalido.");
-      if (!payload.nomeResponsavel) throw new Error("Informe o nome do responsavel.");
-      if (!payload.telefone) throw new Error("Informe o telefone do responsavel.");
-      if (!payload.sexo) throw new Error("Selecione o sexo.");
-      if (!payload.nascimento) throw new Error("Informe a data de nascimento.");
-      if (!payload.dataInicio) throw new Error("Informe a data de inicio.");
+        const isEdit = props.mode === "edit" && !!initialId;
+        const result = await salvarPacienteAction(payload, isEdit ? initialId : null);
+        if (!result.ok) throw new Error(result.error || "Erro ao salvar paciente");
 
-      const isEdit = props.mode === "edit" && !!initialId;
-      const resp = await fetch(isEdit ? `/api/pacientes/${initialId}` : "/api/pacientes", {
-        method: isEdit ? "PUT" : "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await readJson(resp);
-      if (!resp.ok) throw new Error(readError(data) || "Erro ao salvar paciente");
+        const id = result.data.id;
+        if (!id) throw new Error("Resposta invalida: id ausente");
 
-      const id = isEdit ? initialId : readNumber(data, "id");
-      if (!id) throw new Error("Resposta invalida: id ausente");
+        const reaproveitado = !isEdit ? result.data.reaproveitado : null;
+        if (reaproveitado) {
+          setMsg("Paciente ja existia (CPF ativo). Cadastro foi atualizado.");
+        }
 
-      const reaproveitado = !isEdit ? readBoolean(data, "reaproveitado") : null;
-      if (reaproveitado) {
-        setMsg("Paciente ja existia (CPF ativo). Cadastro foi atualizado.");
+        if (fotoFile || laudoFile || documentoFile) {
+          await uploadIfSelected(id);
+        }
+
+        setMsg("Paciente salvo com sucesso.");
+        setTimeout(() => router.push(`/pacientes/${id}`), 500);
+      } catch (err) {
+        setMsg(normalizeApiError(err));
+      } finally {
+        setBusy(false);
       }
-
-      if (fotoFile || laudoFile || documentoFile) {
-        await uploadIfSelected(id);
-      }
-
-      setMsg("Paciente salvo com sucesso.");
-      setTimeout(() => router.push(`/pacientes/${id}`), 500);
-    } catch (err) {
-      setMsg(normalizeApiError(err));
-    } finally {
-      setBusy(false);
+    },
+    () => {
+      setMsg("Confira os campos obrigatorios.");
     }
-  }
+  );
 
   async function openCurrent(kind: Kind) {
     if (!initialId) return;
@@ -331,20 +312,13 @@ export function PacienteFormClient(props: {
   }
 
   function resetForm() {
-    setNome("");
-    setCpf("");
-    setSexo("");
-    setNascimento("");
-    setConvenio("Particular");
-    setNomeMae("");
-    setNomePai("");
-    setNomeResponsavel("");
-    setTelefone("");
-    setTelefone2("");
-    setEmail("");
-    setDataInicio("");
-    setAtivo("1");
-    setTerapias([]);
+    reset(
+      buildResetValues({
+        fotoAtual: getValues("fotoAtual") ?? null,
+        laudoAtual: getValues("laudoAtual") ?? null,
+        documentoAtual: getValues("documentoAtual") ?? null,
+      })
+    );
     setFotoFile(null);
     setLaudoFile(null);
     setDocumentoFile(null);
@@ -364,34 +338,44 @@ export function PacienteFormClient(props: {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={submit}>
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Nome completo</span>
           <input
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
+            {...register("nome")}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
             placeholder="Nome e sobrenome"
           />
+          {readFieldError(errors.nome?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.nome?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">CPF</span>
-          <input
-            value={cpf}
-            onChange={(e) => setCpf(formatCpf(e.target.value))}
-            inputMode="numeric"
-            maxLength={14}
-            className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-            placeholder="000.000.000-00"
+          <Controller
+            name="cpf"
+            control={control}
+            render={({ field }) => (
+              <input
+                value={field.value ?? ""}
+                onChange={(e) => field.onChange(formatCpf(e.target.value))}
+                inputMode="numeric"
+                maxLength={14}
+                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                placeholder="000.000.000-00"
+              />
+            )}
           />
+          {readFieldError(errors.cpf?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.cpf?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Sexo</span>
           <select
-            value={sexo}
-            onChange={(e) => setSexo(e.target.value)}
+            {...register("sexo")}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
           >
             <option value="">Selecione</option>
@@ -399,23 +383,27 @@ export function PacienteFormClient(props: {
             <option value="Masculino">Masculino</option>
             <option value="Outro">Outro</option>
           </select>
+          {readFieldError(errors.sexo?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.sexo?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Data de nascimento</span>
           <input
             type="date"
-            value={nascimento}
-            onChange={(e) => setNascimento(e.target.value)}
+            {...register("nascimento")}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
           />
+          {readFieldError(errors.nascimento?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.nascimento?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Convenio do paciente</span>
           <select
-            value={convenio}
-            onChange={(e) => setConvenio(e.target.value)}
+            {...register("convenio")}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
           >
             <option value="Particular">Particular</option>
@@ -428,8 +416,9 @@ export function PacienteFormClient(props: {
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Nome da mae</span>
           <input
-            value={nomeMae}
-            onChange={(e) => setNomeMae(e.target.value)}
+            {...register("nomeMae", {
+              setValueAs: (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+            })}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
             placeholder="Responsavel materno"
           />
@@ -438,8 +427,9 @@ export function PacienteFormClient(props: {
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Nome do pai</span>
           <input
-            value={nomePai}
-            onChange={(e) => setNomePai(e.target.value)}
+            {...register("nomePai", {
+              setValueAs: (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+            })}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
             placeholder="Responsavel paterno"
           />
@@ -448,32 +438,49 @@ export function PacienteFormClient(props: {
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Nome do responsavel</span>
           <input
-            value={nomeResponsavel}
-            onChange={(e) => setNomeResponsavel(e.target.value)}
+            {...register("nomeResponsavel")}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
             placeholder="Quem sera contatado"
           />
+          {readFieldError(errors.nomeResponsavel?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.nomeResponsavel?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Telefone do responsavel</span>
-          <input
-            value={telefone}
-            onChange={(e) => setTelefone(formatTelefone(e.target.value))}
-            maxLength={15}
-            className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-            placeholder="(00) 00000-0000"
+          <Controller
+            name="telefone"
+            control={control}
+            render={({ field }) => (
+              <input
+                value={field.value ?? ""}
+                onChange={(e) => field.onChange(formatTelefone(e.target.value))}
+                maxLength={15}
+                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                placeholder="(00) 00000-0000"
+              />
+            )}
           />
+          {readFieldError(errors.telefone?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.telefone?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Telefone do responsavel (2)</span>
-          <input
-            value={telefone2}
-            onChange={(e) => setTelefone2(formatTelefone(e.target.value))}
-            maxLength={15}
-            className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-            placeholder="(00) 00000-0000"
+          <Controller
+            name="telefone2"
+            control={control}
+            render={({ field }) => (
+              <input
+                value={typeof field.value === "string" ? field.value : ""}
+                onChange={(e) => field.onChange(formatTelefone(e.target.value))}
+                maxLength={15}
+                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                placeholder="(00) 00000-0000"
+              />
+            )}
           />
         </label>
 
@@ -481,29 +488,34 @@ export function PacienteFormClient(props: {
           <span className="text-sm font-semibold text-[var(--marrom)]">Email do responsavel</span>
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            {...register("email", {
+              setValueAs: (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+            })}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
             placeholder="contato@exemplo.com"
           />
+          {readFieldError(errors.email?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.email?.message)}</p>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-semibold text-[var(--marrom)]">Data de inicio</span>
           <input
             type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
+            {...register("dataInicio")}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
           />
+          {readFieldError(errors.dataInicio?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.dataInicio?.message)}</p>
+          ) : null}
         </label>
 
         <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
           <label className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-[var(--marrom)]">Status do paciente</span>
             <select
-              value={ativo}
-              onChange={(e) => setAtivo(e.target.value)}
+              {...register("ativo")}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
             >
               <option value="1">Ativo</option>
@@ -523,7 +535,9 @@ export function PacienteFormClient(props: {
                       className="peer hidden"
                       checked={checked}
                       onChange={(e) =>
-                        setTerapias((cur) => toggleArrayValue(cur, t.key, e.target.checked))
+                        setValue("terapias", toggleArrayValue(terapias, t.key, e.target.checked), {
+                          shouldDirty: true,
+                        })
                       }
                     />
                     <span className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 peer-checked:border-[var(--laranja)] peer-checked:bg-white peer-checked:text-[var(--marrom)]">
@@ -616,15 +630,14 @@ export function PacienteFormClient(props: {
             Limpar
           </button>
           <button
-            type="button"
-            onClick={() => void submit()}
+            type="submit"
             disabled={busy}
             className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
           >
             {busy ? "Salvando..." : submitLabel}
           </button>
         </div>
-      </div>
+      </form>
 
       {msg ? <p className="mt-4 text-sm text-gray-700">{msg}</p> : null}
     </section>

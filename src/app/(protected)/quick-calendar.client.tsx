@@ -3,6 +3,10 @@
 import type { MouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  listarAtendimentosAction,
+  type ActionResult,
+} from "@/app/(protected)/consultas/consultas.actions";
 
 type MiniAtendimento = {
   id: number;
@@ -11,7 +15,7 @@ type MiniAtendimento = {
   hora_fim: string;
   pacienteNome: string;
   terapeutaNome: string | null;
-  realizado: number;
+  realizado: boolean | number;
   presenca?: string | null;
 };
 
@@ -58,6 +62,11 @@ function getMonthRange(ym: string) {
   return { dataIni: ymdLocal(first), dataFim: ymdLocal(last) };
 }
 
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao carregar atendimentos");
+  return result.data;
+}
+
 type TooltipState = {
   open: boolean;
   x: number;
@@ -100,13 +109,8 @@ export function QuickCalendarClient(props: {
       setLoading(true);
       try {
         const { dataIni, dataFim } = getMonthRange(ym);
-        const params = new URLSearchParams();
-        params.set("dataIni", dataIni);
-        params.set("dataFim", dataFim);
-        const resp = await fetch(`/api/atendimentos?${params.toString()}`, { cache: "no-store" });
-        const json = await resp.json();
-        if (!resp.ok) throw new Error(json?.error || "Erro ao carregar atendimentos");
-        const next = Array.isArray(json) ? (json as MiniAtendimento[]) : [];
+        const data = unwrapAction(await listarAtendimentosAction({ dataIni, dataFim }));
+        const next = Array.isArray(data.items) ? (data.items as MiniAtendimento[]) : [];
         cacheRef.current.set(ym, next);
         setItems(next);
       } catch {

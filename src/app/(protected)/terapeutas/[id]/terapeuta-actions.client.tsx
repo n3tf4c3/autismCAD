@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  deleteTerapeutaAction,
+  setTerapeutaAtivoAction,
+} from "@/app/(protected)/terapeutas/terapeuta.actions";
 
 type Props = {
   terapeutaId: number;
@@ -10,20 +14,6 @@ type Props = {
   canArchive: boolean;
   canDelete: boolean;
 };
-
-function readApiError(json: unknown): string | null {
-  if (!json || typeof json !== "object") return null;
-  const rec = json as Record<string, unknown>;
-  return typeof rec.error === "string" ? rec.error : null;
-}
-
-async function safeJson(resp: Response): Promise<unknown> {
-  try {
-    return await resp.json();
-  } catch {
-    return {};
-  }
-}
 
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -56,14 +46,8 @@ export function TerapeutaActionsClient({
     setBusyAction("archive");
     setMsg(null);
     try {
-      const resp = await fetch(`/api/terapeutas/${terapeutaId}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ ativo: vaiArquivar ? 0 : 1 }),
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(readApiError(json) || "Erro ao atualizar status");
+      const result = await setTerapeutaAtivoAction(terapeutaId, !vaiArquivar);
+      if (!result.ok) throw new Error(result.error || "Erro ao atualizar status");
       setMsg(null);
       router.refresh();
     } catch (error) {
@@ -86,12 +70,8 @@ export function TerapeutaActionsClient({
     setBusyAction("delete");
     setMsg(null);
     try {
-      const resp = await fetch(`/api/terapeutas/${terapeutaId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(readApiError(json) || "Erro ao excluir terapeuta");
+      const result = await deleteTerapeutaAction(terapeutaId);
+      if (!result.ok) throw new Error(result.error || "Erro ao excluir terapeuta");
 
       router.push("/terapeutas");
       router.refresh();

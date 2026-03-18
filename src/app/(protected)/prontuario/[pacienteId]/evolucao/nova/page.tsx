@@ -5,6 +5,7 @@ import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { canonicalRoleName } from "@/server/auth/permissions";
+import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
 
@@ -46,6 +47,16 @@ export default async function NovaEvolucaoPage(props: { params: Promise<{ pacien
   }
 
   const isTerapeuta = (canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA";
+  let terapeutas: Array<{ id: number; nome: string }> = [];
+  if (!isTerapeuta) {
+    try {
+      await requirePermission("terapeutas:view");
+      const terapeutasRows = await listarTerapeutas({});
+      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+    } catch {
+      terapeutas = [];
+    }
+  }
 
   return (
     <main className="space-y-4">
@@ -66,7 +77,11 @@ export default async function NovaEvolucaoPage(props: { params: Promise<{ pacien
         </div>
       </section>
 
-      <EvolucaoFormClient pacienteId={paciente.id} isTerapeuta={isTerapeuta} />
+      <EvolucaoFormClient
+        pacienteId={paciente.id}
+        isTerapeuta={isTerapeuta}
+        initialTerapeutas={terapeutas}
+      />
     </main>
   );
 }

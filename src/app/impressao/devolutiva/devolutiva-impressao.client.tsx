@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
+import {
+  gerarRelatorioEvolutivoAction,
+  type ActionResult,
+} from "@/app/(protected)/relatorios/relatorios.actions";
 
 type PeriodPreset = "1m" | "custom";
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
@@ -121,6 +125,11 @@ function fmtNowPtBr(): string {
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Erro ao carregar relatorio de impressao";
+}
+
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao carregar relatorio de impressao");
+  return result.data;
 }
 
 function readApiError(json: unknown): string | null {
@@ -663,17 +672,21 @@ export function DevolutivaImpressaoClient(props: {
   }, [comportamentoResumo, desempenhoResumo, report]);
 
   async function consultar() {
-    if (!query) {
+    if (!selectedRange) {
       setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
       return;
     }
     setLoading(true);
     setMsg(null);
     try {
-      const resp = await fetch(`/api/relatorios/evolutivo?${query}`, { cache: "no-store" });
-      const json = (await resp.json().catch(() => null)) as unknown;
-      if (!resp.ok) throw new Error(readApiError(json) || "Falha ao carregar relatorio");
-      setReport(json as ImpressaoReport);
+      const data = unwrapAction(
+        await gerarRelatorioEvolutivoAction({
+          pacienteId: props.pacienteId,
+          from: selectedRange.from,
+          to: selectedRange.to,
+        })
+      );
+      setReport(data.report as ImpressaoReport);
     } catch (error) {
       setReport(null);
       setMsg(normalizeApiError(error));

@@ -15,7 +15,12 @@ export const terapeutasQuerySchema = z.object({
 
 export const saveTerapeutaSchema = z.object({
   nome: z.string().trim().min(1).max(120),
-  cpf: z.string().trim().min(11).max(20),
+  cpf: z
+    .string()
+    .trim()
+    .min(11)
+    .max(20)
+    .refine((value) => value.replace(/\D/g, "").length === 11, "CPF invalido."),
   nascimento: nullableDate,
   email: z.string().trim().email().max(120).optional().nullable(),
   telefone: z.string().trim().max(20).optional().nullable(),

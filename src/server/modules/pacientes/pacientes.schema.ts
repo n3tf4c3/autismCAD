@@ -8,7 +8,7 @@ export const conveniosPermitidos = new Set([
 ]);
 
 const nullableTrimmed = z.string().trim().max(255).optional().nullable();
-const nullableDate = z.string().trim().optional().nullable();
+const requiredDate = (message: string) => z.string().trim().min(1, message);
 
 export const pacientesQuerySchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -17,18 +17,23 @@ export const pacientesQuerySchema = z.object({
 });
 
 export const savePacienteSchema = z.object({
-  nome: z.string().trim().min(1).max(120),
-  cpf: z.string().trim().min(11).max(20),
-  nascimento: nullableDate,
+  nome: z.string().trim().min(1, "Informe o nome do paciente.").max(120),
+  cpf: z
+    .string()
+    .trim()
+    .min(1, "CPF invalido.")
+    .max(20)
+    .refine((value) => value.replace(/\D/g, "").length === 11, "CPF invalido."),
+  nascimento: requiredDate("Informe a data de nascimento."),
   convenio: z.string().trim().optional().nullable(),
   email: z.string().trim().email().max(120).optional().nullable(),
-  nomeResponsavel: nullableTrimmed,
-  telefone: z.string().trim().max(20).optional().nullable(),
+  nomeResponsavel: z.string().trim().min(1, "Informe o nome do responsavel.").max(255),
+  telefone: z.string().trim().min(1, "Informe o telefone do responsavel.").max(20),
   telefone2: z.string().trim().max(20).optional().nullable(),
   nomeMae: nullableTrimmed,
   nomePai: nullableTrimmed,
-  sexo: z.string().trim().max(20).optional().nullable(),
-  dataInicio: nullableDate,
+  sexo: z.string().trim().min(1, "Selecione o sexo.").max(20),
+  dataInicio: requiredDate("Informe a data de inicio."),
   fotoAtual: z.string().trim().max(255).optional().nullable(),
   laudoAtual: z.string().trim().max(255).optional().nullable(),
   documentoAtual: z.string().trim().max(255).optional().nullable(),

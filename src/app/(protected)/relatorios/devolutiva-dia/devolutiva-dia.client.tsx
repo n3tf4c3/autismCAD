@@ -7,6 +7,10 @@ import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
+import {
+  gerarRelatorioEvolutivoAction,
+  type ActionResult,
+} from "@/app/(protected)/relatorios/relatorios.actions";
 
 type DiaReport = {
   paciente: { id: number; nome: string };
@@ -66,10 +70,9 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao consultar devolutiva do dia";
 }
 
-function readApiError(json: unknown): string | null {
-  if (!json || typeof json !== "object") return null;
-  const rec = json as Record<string, unknown>;
-  return typeof rec.error === "string" ? rec.error : null;
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao consultar devolutiva do dia");
+  return result.data;
 }
 
 type ComportamentoLado = "negativo" | "positivo";
@@ -140,14 +143,6 @@ export function DevolutivaDiaClient(props: {
   const [msg, setMsg] = useState<string | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [report, setReport] = useState<DiaReport | null>(null);
-
-  const query = useMemo(() => {
-    const qs = new URLSearchParams();
-    qs.set("pacienteId", String(props.pacienteId));
-    qs.set("from", dataRef);
-    qs.set("to", dataRef);
-    return qs.toString();
-  }, [dataRef, props.pacienteId]);
 
   const resumoDia = useMemo(() => {
     if (!report) return "";
@@ -345,10 +340,13 @@ export function DevolutivaDiaClient(props: {
     setMsg(null);
     setCopyMsg(null);
     try {
-      const resp = await fetch(`/api/relatorios/evolutivo?${query}`, { cache: "no-store" });
-      const json = (await resp.json().catch(() => null)) as unknown;
-      if (!resp.ok) throw new Error(readApiError(json) || "Falha ao carregar devolutiva");
-      setReport(json as DiaReport);
+      const filters = {
+        pacienteId: props.pacienteId,
+        from: dataRef,
+        to: dataRef,
+      };
+      const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
+      setReport(data.report as DiaReport);
     } catch (err) {
       setReport(null);
       setMsg(normalizeApiError(err));

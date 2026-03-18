@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ESPECIALIDADES_TERAPEUTA } from "@/lib/terapeutas/especialidades";
+import { salvarDocumentoProntuarioAction } from "@/app/(protected)/prontuario/prontuario.actions";
 
 type BlocoForm = {
   id: string;
@@ -133,6 +134,13 @@ function getInitialBlocos(initialData?: PlanoEnsinoInitialData | null): BlocoFor
   }));
 }
 
+function unwrapAction<T>(
+  result: { ok: true; data: T } | { ok: false; error: string }
+): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao salvar plano de ensino");
+  return result.data;
+}
+
 export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?: PlanoEnsinoInitialData | null }) {
   const router = useRouter();
   const [especialidade, setEspecialidade] = useState(() => props.initialData?.especialidade ?? "");
@@ -180,13 +188,7 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
         },
       };
 
-      const resp = await fetch(`/api/prontuario/documento/${props.pacienteId}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await resp.json().catch(() => ({}))) as { error?: string; id?: number; version?: number };
-      if (!resp.ok) throw new Error(data.error || "Erro ao salvar plano de ensino");
+      const data = unwrapAction(await salvarDocumentoProntuarioAction(props.pacienteId, payload));
       setMsg(`Plano de ensino salvo. Versao ${data.version ?? "-"}.`);
       if (data.id) {
         setTimeout(() => router.push(`/prontuario/documento/${data.id}`), 650);

@@ -24,6 +24,27 @@ import {
   normalizeOptionalText,
 } from "@/server/shared/normalize";
 
+export type PacienteDetalhe = {
+  id: number;
+  nome: string;
+  cpf: string;
+  convenio: string | null;
+  dataNascimento: string | null;
+  dataInicio: string | null;
+  email: string | null;
+  telefone: string | null;
+  telefone2: string | null;
+  nomeResponsavel: string | null;
+  nomeMae: string | null;
+  nomePai: string | null;
+  sexo: string | null;
+  ativo: boolean | number | string | null;
+  foto: string | null;
+  laudo: string | null;
+  documento: string | null;
+  terapias: string[];
+};
+
 function normalizeTerapias(input: SavePacienteInput): string[] {
   const fromTerapias = Array.isArray(input.terapias) ? input.terapias : [];
   return Array.from(new Set(fromTerapias.map((item) => item.trim()).filter(Boolean)));
@@ -105,6 +126,48 @@ export async function findPacienteByCpfAtivo(cpf: string) {
     .where(and(eq(pacientes.cpf, normalizedCpf), isNull(pacientes.deletedAt)))
     .limit(1);
   return row ?? null;
+}
+
+export async function obterPacienteDetalhe(id: number): Promise<PacienteDetalhe | null> {
+  const [paciente] = await db
+    .select({
+      id: pacientes.id,
+      nome: pacientes.nome,
+      cpf: pacientes.cpf,
+      convenio: pacientes.convenio,
+      dataNascimento: pacientes.dataNascimento,
+      dataInicio: pacientes.dataInicio,
+      email: pacientes.email,
+      telefone: pacientes.telefone,
+      telefone2: pacientes.telefone2,
+      nomeResponsavel: pacientes.nomeResponsavel,
+      nomeMae: pacientes.nomeMae,
+      nomePai: pacientes.nomePai,
+      sexo: pacientes.sexo,
+      ativo: pacientes.ativo,
+      foto: pacientes.foto,
+      laudo: pacientes.laudo,
+      documento: pacientes.documento,
+    })
+    .from(pacientes)
+    .where(and(eq(pacientes.id, id), isNull(pacientes.deletedAt)))
+    .limit(1);
+
+  if (!paciente) return null;
+
+  const terapiaRows = await db
+    .select({ nome: terapias.nome })
+    .from(pacienteTerapia)
+    .innerJoin(terapias, eq(terapias.id, pacienteTerapia.terapiaId))
+    .where(eq(pacienteTerapia.pacienteId, paciente.id));
+
+  return {
+    ...paciente,
+    terapias: terapiaRows
+      .map((row) => row.nome)
+      .filter(Boolean)
+      .sort((a, b) => String(a).localeCompare(String(b))),
+  };
 }
 
 export async function salvarPaciente(input: SavePacienteInput, id?: number | null) {

@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { and, eq, isNull } from "drizzle-orm";
-import { db } from "@/db";
-import { pacienteTerapia, pacientes, terapias } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { loadUserAccess } from "@/server/auth/access";
 import { hasPermissionKey } from "@/server/auth/permissions";
+import { obterPacienteDetalhe } from "@/server/modules/pacientes/pacientes.service";
 import { toAppError } from "@/server/shared/errors";
 import { createSignedReadUrl } from "@/server/storage/r2";
 import { PacienteActionsClient } from "@/app/(protected)/pacientes/[id]/paciente-actions.client";
@@ -96,29 +94,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
     );
   }
 
-  const [paciente] = await db
-    .select({
-      id: pacientes.id,
-      nome: pacientes.nome,
-      cpf: pacientes.cpf,
-      convenio: pacientes.convenio,
-      dataNascimento: pacientes.dataNascimento,
-      dataInicio: pacientes.dataInicio,
-      email: pacientes.email,
-      telefone: pacientes.telefone,
-      telefone2: pacientes.telefone2,
-      nomeResponsavel: pacientes.nomeResponsavel,
-      nomeMae: pacientes.nomeMae,
-      nomePai: pacientes.nomePai,
-      sexo: pacientes.sexo,
-      ativo: pacientes.ativo,
-      foto: pacientes.foto,
-      laudo: pacientes.laudo,
-      documento: pacientes.documento,
-    })
-    .from(pacientes)
-    .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
-    .limit(1);
+  const paciente = await obterPacienteDetalhe(pacienteId);
 
   if (!paciente) {
     return (
@@ -127,16 +103,6 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
       </main>
     );
   }
-
-  const terapiaRows = await db
-    .select({ nome: terapias.nome })
-    .from(pacienteTerapia)
-    .innerJoin(terapias, eq(terapias.id, pacienteTerapia.terapiaId))
-    .where(eq(pacienteTerapia.pacienteId, paciente.id));
-  const terapiaNomes = terapiaRows
-    .map((r) => r.nome)
-    .filter(Boolean)
-    .sort((a, b) => String(a).localeCompare(String(b)));
 
   const [fotoUrl, laudoUrl, docUrl] = await Promise.all([
     maybeSignedUrl(paciente.foto),
@@ -326,7 +292,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Terapias</p>
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">
-                {terapiaNomes.length ? terapiaNomes.join(", ") : "-"}
+                {paciente.terapias.length ? paciente.terapias.join(", ") : "-"}
               </p>
             </div>
           </div>

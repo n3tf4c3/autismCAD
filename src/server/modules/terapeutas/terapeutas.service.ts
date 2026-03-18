@@ -86,6 +86,11 @@ export async function listarTerapeutas(filters: TerapeutasQueryInput) {
   }));
 }
 
+export async function obterTerapeutaDetalhe(id: number) {
+  const rows = await listarTerapeutas({ id });
+  return rows[0] ?? null;
+}
+
 export async function salvarTerapeuta(input: SaveTerapeutaInput, id?: number | null) {
   const nome = input.nome.trim();
   const cpf = normalizeCpf(input.cpf);

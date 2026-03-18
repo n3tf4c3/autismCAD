@@ -3,6 +3,8 @@ import { ConfiguracoesPermissoesClient } from "@/app/(protected)/configuracoes/p
 import Link from "next/link";
 import { toAppError } from "@/server/shared/errors";
 
+export const dynamic = "force-dynamic";
+
 export default async function ConfiguracoesPage() {
   // Protege a tela e mantem compatibilidade com os endpoints (admin-geral only).
   try {

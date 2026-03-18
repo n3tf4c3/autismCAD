@@ -1,0 +1,156 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requirePermission } from "@/server/auth/auth";
+import { assertPacienteAccess } from "@/server/auth/paciente-access";
+import { canonicalRoleName } from "@/server/auth/permissions";
+import {
+  atualizarEvolucao,
+  criarEvolucao,
+  excluirEvolucao,
+  obterEvolucaoPorId,
+  salvarDocumento,
+} from "@/server/modules/prontuario/prontuario.service";
+import {
+  atualizarEvolucaoSchema,
+  criarEvolucaoSchema,
+  salvarDocumentoSchema,
+} from "@/server/modules/prontuario/prontuario.schema";
+import { AppError, toAppError } from "@/server/shared/errors";
+
+type ActionError = {
+  ok: false;
+  error: string;
+  code: string;
+  status: number;
+};
+
+type ActionOk<T> = {
+  ok: true;
+  data: T;
+};
+
+export type ActionResult<T> = ActionOk<T> | ActionError;
+
+function actionErrorResult(error: unknown): ActionError {
+  const appError = toAppError(error);
+  return {
+    ok: false,
+    error: appError.message,
+    code: appError.code,
+    status: appError.status,
+  };
+}
+
+function parsePositiveInt(value: number, label: string, code: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new AppError(`${label} invalido`, 400, code);
+  }
+  return parsed;
+}
+
+async function canAccessEvolucao(
+  user: { role?: string | null; id: string | number },
+  pacienteId: number,
+  terapeutaId: number | null
+): Promise<boolean> {
+  const access = await assertPacienteAccess(user, pacienteId);
+  if ((canonicalRoleName(user.role ?? null) ?? user.role ?? null) !== "TERAPEUTA") {
+    return true;
+  }
+  return !!access.terapeutaId && access.terapeutaId === terapeutaId;
+}
+
+export async function criarEvolucaoAction(
+  pacienteId: number,
+  input: unknown
+): Promise<ActionResult<Awaited<ReturnType<typeof criarEvolucao>>>> {
+  try {
+    const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
+    const { user } = await requirePermission("evolucoes:create");
+    await assertPacienteAccess(user, parsedPacienteId);
+    const parsedInput = criarEvolucaoSchema.parse(input ?? {});
+    const saved = await criarEvolucao(parsedPacienteId, parsedInput, user);
+    revalidatePath(`/prontuario/${parsedPacienteId}`);
+    revalidatePath(`/prontuario/${parsedPacienteId}/evolucao/nova`);
+    return { ok: true, data: saved };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function atualizarEvolucaoAction(
+  evolucaoId: number,
+  input: unknown
+): Promise<ActionResult<Awaited<ReturnType<typeof atualizarEvolucao>>>> {
+  try {
+    const parsedEvolucaoId = parsePositiveInt(evolucaoId, "Evolucao", "INVALID_INPUT");
+    const { user } = await requirePermission("evolucoes:edit");
+    const evolucaoAtual = await obterEvolucaoPorId(parsedEvolucaoId);
+    if (!evolucaoAtual) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
+
+    const canAccess = await canAccessEvolucao(
+      user,
+      Number(evolucaoAtual.paciente_id),
+      Number(evolucaoAtual.terapeuta_id)
+    );
+    if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
+
+    const parsedInput = atualizarEvolucaoSchema.parse(input ?? {});
+    const updated = await atualizarEvolucao(parsedEvolucaoId, parsedInput, user, evolucaoAtual);
+    const pacienteId = Number(evolucaoAtual.paciente_id);
+    revalidatePath(`/prontuario/${pacienteId}`);
+    revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);
+    return { ok: true, data: updated };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function excluirEvolucaoAction(
+  evolucaoId: number
+): Promise<ActionResult<{ id: number; deleted: true }>> {
+  try {
+    const parsedEvolucaoId = parsePositiveInt(evolucaoId, "Evolucao", "INVALID_INPUT");
+    const { user } = await requirePermission("evolucoes:delete");
+    const evolucaoAtual = await obterEvolucaoPorId(parsedEvolucaoId);
+    if (!evolucaoAtual) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
+
+    const canAccess = await canAccessEvolucao(
+      user,
+      Number(evolucaoAtual.paciente_id),
+      Number(evolucaoAtual.terapeuta_id)
+    );
+    if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
+
+    const ok = await excluirEvolucao(parsedEvolucaoId, Number(user.id));
+    if (!ok) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
+
+    const pacienteId = Number(evolucaoAtual.paciente_id);
+    revalidatePath(`/prontuario/${pacienteId}`);
+    revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);
+    return { ok: true, data: { id: parsedEvolucaoId, deleted: true } };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function salvarDocumentoProntuarioAction(
+  pacienteId: number,
+  input: unknown
+): Promise<ActionResult<Awaited<ReturnType<typeof salvarDocumento>>>> {
+  try {
+    const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
+    const { user } = await requirePermission("prontuario:create");
+    await assertPacienteAccess(user, parsedPacienteId);
+    const parsedInput = salvarDocumentoSchema.parse(input ?? {});
+    const saved = await salvarDocumento(parsedPacienteId, parsedInput, user);
+    revalidatePath(`/prontuario/${parsedPacienteId}`);
+    revalidatePath(`/prontuario/${parsedPacienteId}/plano-ensino`);
+    revalidatePath(`/prontuario/documento/${saved.id}`);
+    return { ok: true, data: saved };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}

@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateBr, toLocalDateKey } from "@/lib/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
+import { excluirEvolucaoAction } from "@/app/(protected)/prontuario/prontuario.actions";
 
 export type TimelineItem =
   | {
@@ -49,12 +50,20 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
     });
   }, [fim, ini, localItems, tipo]);
 
+  function unwrapAction<T>(
+    result: { ok: true; data: T } | { ok: false; error: string }
+  ): T {
+    if (!result.ok) throw new Error(result.error || "Erro ao excluir evolucao");
+    return result.data;
+  }
+
   async function deleteEvolucao(id: number) {
     if (!confirm("Deseja excluir esta evolucao?")) return;
-    const resp = await fetch(`/api/prontuario/evolucao/${id}`, { method: "DELETE" });
-    const data = (await resp.json().catch(() => ({}))) as { error?: string };
-    if (!resp.ok) {
-      alert(data.error || "Erro ao excluir evolucao");
+    try {
+      unwrapAction(await excluirEvolucaoAction(id));
+    } catch (error) {
+      const err = error as { message?: string };
+      alert(err.message || "Erro ao excluir evolucao");
       return;
     }
     setLocalItems((current) => current.filter((i) => !(i.kind === "evolucao" && i.id === id)));

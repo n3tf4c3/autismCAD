@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  commitArquivoPacienteAction,
+  obterArquivoPacienteReadUrlAction,
+  prepararUploadArquivoPacienteAction,
+} from "@/app/(protected)/pacientes/paciente.actions";
 
 type Kind = "foto" | "laudo" | "documento";
 
@@ -22,75 +27,44 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao processar arquivo";
 }
 
-function corsHintForR2(origin: string): string {
-  const origins = Array.from(new Set([origin, "http://localhost:3000"].filter(Boolean)));
-  return (
-    `O navegador bloqueou o upload para o R2 (CORS).\n` +
-    `Configure o CORS do bucket no Cloudflare R2 para permitir PUT/GET/HEAD da origem: ${origin}\n` +
-    `Dica rapida (dev): AllowedOrigins [${origins.map((o) => JSON.stringify(o)).join(", ")}] e AllowedHeaders [\"*\"]`
-  );
+function uploadNetworkErrorMessage(kind: Kind): string {
+  return `Falha ao enviar ${labelForKind(kind)}. Tente novamente em instantes.`;
 }
 
-async function readJson(resp: Response): Promise<unknown> {
-  return resp.json().catch(() => null);
+function uploadRejectedMessage(kind: Kind): string {
+  return `Falha ao enviar ${labelForKind(kind)}. O armazenamento recusou a requisicao.`;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object") return null;
-  return value as Record<string, unknown>;
-}
-
-function readError(value: unknown): string | null {
-  const rec = asRecord(value);
-  if (!rec) return null;
-  const err = rec.error;
-  return typeof err === "string" ? err : null;
-}
-
-function readString(value: unknown, key: string): string | null {
-  const rec = asRecord(value);
-  if (!rec) return null;
-  const v = rec[key];
-  return typeof v === "string" ? v : null;
+function unwrapAction<T>(
+  result: { ok: true; data: T } | { ok: false; error: string }
+): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao processar arquivo");
+  return result.data;
 }
 
 async function openSignedUrl(pacienteId: number, kind: Kind) {
-  const resp = await fetch(`/api/pacientes/${pacienteId}/arquivos/read-url?kind=${kind}`, {
-    cache: "no-store",
-  });
-  const data = await readJson(resp);
-  if (!resp.ok) throw new Error(readError(data) || "Erro ao abrir arquivo");
-  const url = readString(data, "url");
+  const data = unwrapAction(await obterArquivoPacienteReadUrlAction(pacienteId, kind));
+  const url = data.url;
   if (!url) throw new Error("Arquivo nao encontrado");
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
 async function presignUpload(pacienteId: number, kind: Kind, file: File) {
-  const resp = await fetch(`/api/pacientes/${pacienteId}/arquivos/presign`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  const data = unwrapAction(
+    await prepararUploadArquivoPacienteAction(pacienteId, {
       kind,
       filename: file.name,
       contentType: file.type || "application/octet-stream",
-    }),
-  });
-  const data = await readJson(resp);
-  if (!resp.ok) throw new Error(readError(data) || "Erro ao preparar upload");
-  const key = readString(data, "key");
-  const url = readString(data, "url");
+    })
+  );
+  const key = data.key;
+  const url = data.url;
   if (!key || !url) throw new Error("Resposta invalida ao preparar upload");
   return { key, url };
 }
 
 async function commitKey(pacienteId: number, kind: Kind, key: string | null) {
-  const resp = await fetch(`/api/pacientes/${pacienteId}/arquivos/commit`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ kind, key }),
-  });
-  const data = await readJson(resp);
-  if (!resp.ok) throw new Error(readError(data) || "Erro ao salvar referencia do arquivo");
+  unwrapAction(await commitArquivoPacienteAction(pacienteId, { kind, key }));
 }
 
 export function PacienteArquivosClient(props: { pacienteId: number; existing: Existing }) {
@@ -130,20 +104,11 @@ export function PacienteArquivosClient(props: { pacienteId: number; existing: Ex
           headers: { "content-type": file.type || "application/octet-stream" },
           body: file,
         });
-      } catch (err) {
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
-        throw new Error(origin ? corsHintForR2(origin) : normalizeApiError(err));
+      } catch {
+        throw new Error(uploadNetworkErrorMessage(kind));
       }
       if (!put.ok) {
-        const bodyText = await put
-          .text()
-          .catch(() => "")
-          .then((t) => t.replace(/\s+/g, " ").trim().slice(0, 220));
-        throw new Error(
-          `Falha no upload (HTTP ${put.status}).` +
-            (bodyText ? ` Resposta: ${bodyText}` : "") +
-            ` Verifique o CORS do R2 e tente novamente.`
-        );
+        throw new Error(uploadRejectedMessage(kind));
       }
       await commitKey(props.pacienteId, kind, key);
       setSelected((cur) => ({ ...cur, [kind]: null }));

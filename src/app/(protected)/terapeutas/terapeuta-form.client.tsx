@@ -1,8 +1,13 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { ESPECIALIDADES_TERAPEUTA } from "@/lib/terapeutas/especialidades";
+import { saveTerapeutaSchema } from "@/server/modules/terapeutas/terapeutas.schema";
+import { salvarTerapeutaAction } from "@/app/(protected)/terapeutas/terapeuta.actions";
 
 type TerapeutaFormInitial = {
   id?: number | null;
@@ -19,12 +24,28 @@ type TerapeutaFormInitial = {
   especialidade?: string | null;
 };
 
-type ApiError = { error?: string };
 type ViaCepResp = {
   erro?: boolean;
   logradouro?: string;
   bairro?: string;
   localidade?: string;
+};
+
+type TerapeutaFormValues = z.input<typeof saveTerapeutaSchema>;
+
+const EMPTY_FORM_VALUES: TerapeutaFormValues = {
+  nome: "",
+  cpf: "",
+  nascimento: "",
+  email: "",
+  telefone: "",
+  endereco: null,
+  logradouro: "",
+  numero: "",
+  bairro: "",
+  cidade: "",
+  cep: "",
+  especialidade: "",
 };
 
 function digitsOnly(value: string): string {
@@ -64,23 +85,9 @@ function formatCep(value: string): string {
 function ymd(value?: string | null): string {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
-}
-
-function normalizeApiError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Erro ao salvar terapeuta";
-}
-
-async function readJson(resp: Response): Promise<unknown> {
-  return resp.json().catch(() => null);
-}
-
-function readError(data: unknown): string | null {
-  const rec = data as ApiError | null;
-  return rec && typeof rec.error === "string" ? rec.error : null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
 }
 
 function joinEndereco(parts: {
@@ -89,32 +96,64 @@ function joinEndereco(parts: {
   bairro: string;
   cidade: string;
 }): string {
-  const out = [parts.logradouro, parts.numero, parts.bairro, parts.cidade].map((s) => s.trim()).filter(Boolean);
+  const out = [parts.logradouro, parts.numero, parts.bairro, parts.cidade]
+    .map((value) => value.trim())
+    .filter(Boolean);
   return out.join(", ");
+}
+
+function buildFormValues(initial?: TerapeutaFormInitial): TerapeutaFormValues {
+  return {
+    nome: String(initial?.nome ?? ""),
+    cpf: formatCpf(String(initial?.cpf ?? "")),
+    nascimento: ymd(initial?.nascimento ?? null),
+    email: String(initial?.email ?? ""),
+    telefone: formatTelefone(String(initial?.telefone ?? "")),
+    endereco: null,
+    logradouro: String(initial?.logradouro ?? ""),
+    numero: String(initial?.numero ?? ""),
+    bairro: String(initial?.bairro ?? ""),
+    cidade: String(initial?.cidade ?? ""),
+    cep: formatCep(String(initial?.cep ?? "")),
+    especialidade: String(initial?.especialidade ?? ""),
+  };
 }
 
 export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: TerapeutaFormInitial }) {
   const router = useRouter();
-
   const initialId = props.initial?.id ?? null;
-
-  const [nome, setNome] = useState(String(props.initial?.nome ?? ""));
-  const [cpf, setCpf] = useState(formatCpf(String(props.initial?.cpf ?? "")));
-  const [nascimento, setNascimento] = useState(ymd(props.initial?.nascimento ?? null));
-  const [telefone, setTelefone] = useState(formatTelefone(String(props.initial?.telefone ?? "")));
-  const [cep, setCep] = useState(formatCep(String(props.initial?.cep ?? "")));
-  const [logradouro, setLogradouro] = useState(String(props.initial?.logradouro ?? ""));
-  const [numero, setNumero] = useState(String(props.initial?.numero ?? ""));
-  const [bairro, setBairro] = useState(String(props.initial?.bairro ?? ""));
-  const [cidade, setCidade] = useState(String(props.initial?.cidade ?? ""));
-  const [email, setEmail] = useState(String(props.initial?.email ?? ""));
-  const [especialidade, setEspecialidade] = useState(String(props.initial?.especialidade ?? ""));
-
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [cepHint, setCepHint] = useState<string | null>(null);
-  const lastAutoRef = useRef<{ cepDigits: string; logradouro: string; bairro: string; cidade: string } | null>(null);
+  const lastAutoRef = useRef<{ cepDigits: string; logradouro: string; bairro: string; cidade: string } | null>(
+    null
+  );
+
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    register,
+    reset,
+    setValue,
+    watch,
+  } = useForm<TerapeutaFormValues>({
+    resolver: zodResolver(saveTerapeutaSchema),
+    defaultValues: buildFormValues(props.initial),
+  });
+
+  const nome = watch("nome") ?? "";
+  const cpf = watch("cpf") ?? "";
+  const nascimento = watch("nascimento") ?? "";
+  const telefone = watch("telefone") ?? "";
+  const cep = watch("cep") ?? "";
+  const logradouro = watch("logradouro") ?? "";
+  const numero = watch("numero") ?? "";
+  const bairro = watch("bairro") ?? "";
+  const cidade = watch("cidade") ?? "";
+  const email = watch("email") ?? "";
+  const especialidade = watch("especialidade") ?? "";
 
   const enderecoResumo = useMemo(
     () =>
@@ -124,7 +163,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
         bairro,
         cidade,
       }) || "-",
-    [logradouro, numero, bairro, cidade]
+    [bairro, cidade, logradouro, numero]
   );
 
   useEffect(() => {
@@ -136,14 +175,16 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
     }
     if (lastAutoRef.current?.cepDigits === cepDigits) return;
 
-    const ac = new AbortController();
+    const controller = new AbortController();
     setCepStatus("loading");
     setCepHint("Buscando CEP...");
 
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const resp = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, { signal: ac.signal });
+          const resp = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, {
+            signal: controller.signal,
+          });
           const data = (await resp.json().catch(() => null)) as ViaCepResp | null;
           if (!resp.ok) throw new Error("Falha ao consultar CEP");
           if (!data || data.erro) {
@@ -157,21 +198,27 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
           const viacepBairro = String(data.bairro ?? "").trim();
           const viacepCidade = String(data.localidade ?? "").trim();
 
-          const currLogradouro = (logradouro ?? "").trim();
-          const currBairro = (bairro ?? "").trim();
-          const currCidade = (cidade ?? "").trim();
+          const currLogradouro = String(logradouro ?? "").trim();
+          const currBairro = String(bairro ?? "").trim();
+          const currCidade = String(cidade ?? "").trim();
 
-          const canReplaceLogradouro = !currLogradouro || (prev && currLogradouro === prev.logradouro.trim());
-          const canReplaceBairro = !currBairro || (prev && currBairro === prev.bairro.trim());
-          const canReplaceCidade = !currCidade || (prev && currCidade === prev.cidade.trim());
+          const canReplaceLogradouro = !currLogradouro || Boolean(prev && currLogradouro === prev.logradouro.trim());
+          const canReplaceBairro = !currBairro || Boolean(prev && currBairro === prev.bairro.trim());
+          const canReplaceCidade = !currCidade || Boolean(prev && currCidade === prev.cidade.trim());
 
-          const nextLogradouro = canReplaceLogradouro ? (viacepLogradouro || currLogradouro) : currLogradouro;
-          const nextBairro = canReplaceBairro ? (viacepBairro || currBairro) : currBairro;
-          const nextCidade = canReplaceCidade ? (viacepCidade || currCidade) : currCidade;
+          const nextLogradouro = canReplaceLogradouro ? viacepLogradouro || currLogradouro : currLogradouro;
+          const nextBairro = canReplaceBairro ? viacepBairro || currBairro : currBairro;
+          const nextCidade = canReplaceCidade ? viacepCidade || currCidade : currCidade;
 
-          if (canReplaceLogradouro && viacepLogradouro) setLogradouro(viacepLogradouro);
-          if (canReplaceBairro && viacepBairro) setBairro(viacepBairro);
-          if (canReplaceCidade && viacepCidade) setCidade(viacepCidade);
+          if (canReplaceLogradouro && viacepLogradouro) {
+            setValue("logradouro", viacepLogradouro, { shouldDirty: true, shouldValidate: true });
+          }
+          if (canReplaceBairro && viacepBairro) {
+            setValue("bairro", viacepBairro, { shouldDirty: true, shouldValidate: true });
+          }
+          if (canReplaceCidade && viacepCidade) {
+            setValue("cidade", viacepCidade, { shouldDirty: true, shouldValidate: true });
+          }
 
           lastAutoRef.current = {
             cepDigits,
@@ -181,8 +228,8 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
           };
           setCepStatus("ok");
           setCepHint("Endereco preenchido pelo CEP.");
-        } catch (e) {
-          if ((e as { name?: string }).name === "AbortError") return;
+        } catch (error) {
+          if ((error as { name?: string }).name === "AbortError") return;
           setCepStatus("error");
           setCepHint("Nao foi possivel consultar o CEP.");
         }
@@ -191,102 +238,104 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
 
     return () => {
       clearTimeout(timer);
-      ac.abort();
+      controller.abort();
     };
-  }, [bairro, cep, cidade, logradouro]);
+  }, [bairro, cep, cidade, logradouro, setValue]);
 
-  async function submit() {
-    setBusy(true);
+  function clearForm() {
+    reset(EMPTY_FORM_VALUES);
     setMsg(null);
-    try {
-      const payload = {
-        nome: nome.trim(),
-        cpf: digitsOnly(cpf).slice(0, 11),
-        nascimento: nascimento || null,
-        telefone: digitsOnly(telefone) ? telefone : null,
-        cep: digitsOnly(cep) ? cep : null,
-        logradouro: logradouro.trim() || null,
-        numero: numero.trim() || null,
-        bairro: bairro.trim() || null,
-        cidade: cidade.trim() || null,
-        email: email.trim() || null,
-        especialidade: especialidade.trim(),
-        endereco: null,
-      };
-
-      const isEdit = props.mode === "edit";
-      const url = isEdit ? `/api/terapeutas/${initialId}` : "/api/terapeutas";
-      const method = isEdit ? "PUT" : "POST";
-
-      const resp = await fetch(url, {
-        method,
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await readJson(resp);
-      if (!resp.ok) throw new Error(readError(data) || "Erro ao salvar terapeuta");
-
-      router.push("/terapeutas");
-      router.refresh();
-    } catch (err) {
-      setMsg(normalizeApiError(err));
-    } finally {
-      setBusy(false);
-    }
+    setCepStatus("idle");
+    setCepHint(null);
+    lastAutoRef.current = null;
   }
+
+  const submit = handleSubmit(
+    async (values) => {
+      setBusy(true);
+      setMsg(null);
+      try {
+        const payload = {
+          nome: values.nome.trim(),
+          cpf: digitsOnly(values.cpf).slice(0, 11),
+          nascimento: values.nascimento || null,
+          telefone: digitsOnly(String(values.telefone ?? "")) ? String(values.telefone).trim() : null,
+          cep: digitsOnly(String(values.cep ?? "")).slice(0, 8) || null,
+          logradouro: String(values.logradouro ?? "").trim() || null,
+          numero: String(values.numero ?? "").trim() || null,
+          bairro: String(values.bairro ?? "").trim() || null,
+          cidade: String(values.cidade ?? "").trim() || null,
+          email: String(values.email ?? "").trim() || null,
+          especialidade: values.especialidade.trim(),
+          endereco: null,
+        };
+
+        const isEdit = props.mode === "edit";
+        const result = await salvarTerapeutaAction(payload, isEdit ? initialId : null);
+        if (!result.ok) {
+          setMsg(result.error || "Erro ao salvar terapeuta");
+          return;
+        }
+
+        router.push("/terapeutas");
+        router.refresh();
+      } catch (error) {
+        if (error instanceof Error) setMsg(error.message);
+        else setMsg("Erro ao salvar terapeuta");
+      } finally {
+        setBusy(false);
+      }
+    },
+    () => setMsg("Confira os campos obrigatorios.")
+  );
 
   return (
     <main className="p-4 md:p-8">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <section className="rounded-xl bg-white p-6 shadow-sm xl:col-span-2">
-          <div className="flex items-center gap-3">
-            <div className="text-3xl">🧑‍⚕️</div>
-            <div>
-              <h3 className="text-lg font-bold text-[var(--marrom)]">Dados do terapeuta</h3>
-              <p className="text-sm text-gray-600">Preencha as informacoes do profissional.</p>
-            </div>
+          <div>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Dados do terapeuta</h3>
+            <p className="text-sm text-gray-600">Preencha as informacoes do profissional.</p>
           </div>
 
-          <form
-            className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submit();
-            }}
-            autoComplete="off"
-          >
+          <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={submit} autoComplete="off">
             <div className="flex flex-col gap-2 md:col-span-2">
               <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="nome">
                 Nome completo
               </label>
               <input
                 id="nome"
-                name="nome"
                 type="text"
-                required
                 placeholder="Nome e sobrenome"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                {...register("nome")}
               />
+              {errors.nome ? <p className="text-xs text-red-600">{errors.nome.message}</p> : null}
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="cpf">
                 CPF
               </label>
-              <input
-                id="cpf"
+              <Controller
                 name="cpf"
-                type="text"
-                inputMode="numeric"
-                required
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChange={(e) => setCpf(formatCpf(e.target.value))}
-                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    id="cpf"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={field.value ?? ""}
+                    onChange={(event) => field.onChange(formatCpf(event.target.value))}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  />
+                )}
               />
+              {errors.cpf ? <p className="text-xs text-red-600">{errors.cpf.message}</p> : null}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -295,11 +344,9 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
               </label>
               <input
                 id="nascimento"
-                name="nascimento"
                 type="date"
-                value={nascimento}
-                onChange={(e) => setNascimento(e.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                {...register("nascimento")}
               />
             </div>
 
@@ -307,15 +354,24 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
               <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="telefone">
                 Telefone
               </label>
-              <input
-                id="telefone"
+              <Controller
                 name="telefone"
-                type="tel"
-                placeholder="(00) 00000-0000"
-                value={telefone}
-                onChange={(e) => setTelefone(formatTelefone(e.target.value))}
-                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    id="telefone"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={field.value ?? ""}
+                    onChange={(event) => field.onChange(formatTelefone(event.target.value))}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  />
+                )}
               />
+              {errors.telefone ? <p className="text-xs text-red-600">{errors.telefone.message}</p> : null}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-3">
@@ -323,14 +379,22 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="cep">
                   CEP
                 </label>
-                <input
-                  id="cep"
+                <Controller
                   name="cep"
-                  type="text"
-                  placeholder="00000-000"
-                  value={cep}
-                  onChange={(e) => setCep(formatCep(e.target.value))}
-                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      id="cep"
+                      type="text"
+                      placeholder="00000-000"
+                      value={field.value ?? ""}
+                      onChange={(event) => field.onChange(formatCep(event.target.value))}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                    />
+                  )}
                 />
                 {cepHint ? (
                   <p
@@ -342,6 +406,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                     {cepHint}
                   </p>
                 ) : null}
+                {errors.cep ? <p className="text-xs text-red-600">{errors.cep.message}</p> : null}
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
@@ -350,13 +415,12 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 </label>
                 <input
                   id="logradouro"
-                  name="logradouro"
                   type="text"
                   placeholder="Rua / Av."
-                  value={logradouro}
-                  onChange={(e) => setLogradouro(e.target.value)}
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  {...register("logradouro")}
                 />
+                {errors.logradouro ? <p className="text-xs text-red-600">{errors.logradouro.message}</p> : null}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -365,13 +429,12 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 </label>
                 <input
                   id="numero"
-                  name="numero"
                   type="text"
-                  placeholder="nº"
-                  value={numero}
-                  onChange={(e) => setNumero(e.target.value)}
+                  placeholder="No."
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  {...register("numero")}
                 />
+                {errors.numero ? <p className="text-xs text-red-600">{errors.numero.message}</p> : null}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -380,13 +443,12 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 </label>
                 <input
                   id="bairro"
-                  name="bairro"
                   type="text"
                   placeholder="Bairro"
-                  value={bairro}
-                  onChange={(e) => setBairro(e.target.value)}
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  {...register("bairro")}
                 />
+                {errors.bairro ? <p className="text-xs text-red-600">{errors.bairro.message}</p> : null}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -395,13 +457,12 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 </label>
                 <input
                   id="cidade"
-                  name="cidade"
                   type="text"
                   placeholder="Cidade"
-                  value={cidade}
-                  onChange={(e) => setCidade(e.target.value)}
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  {...register("cidade")}
                 />
+                {errors.cidade ? <p className="text-xs text-red-600">{errors.cidade.message}</p> : null}
               </div>
             </div>
 
@@ -411,13 +472,14 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
                 placeholder="profissional@exemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                {...register("email", {
+                  setValueAs: (value: string) => (value?.trim() ? value : null),
+                })}
               />
+              {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -426,44 +488,26 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
               </label>
               <select
                 id="especialidade"
-                name="especialidade"
-                required
-                value={especialidade}
-                onChange={(e) => setEspecialidade(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[var(--texto)] outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                {...register("especialidade")}
               >
                 <option value="">Selecione</option>
-                {ESPECIALIDADES_TERAPEUTA.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+                {ESPECIALIDADES_TERAPEUTA.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
                   </option>
                 ))}
               </select>
+              {errors.especialidade ? <p className="text-xs text-red-600">{errors.especialidade.message}</p> : null}
             </div>
 
-            <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 md:col-span-2">
               {msg ? <p className="text-sm text-red-600">{msg}</p> : <span />}
               <div className="flex items-center gap-3">
                 <button
-                  type="reset"
+                  type="button"
                   className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                  onClick={() => {
-                    setNome("");
-                    setCpf("");
-                    setNascimento("");
-                    setTelefone("");
-                    setCep("");
-                    setLogradouro("");
-                    setNumero("");
-                    setBairro("");
-                    setCidade("");
-                    setEmail("");
-                   setEspecialidade("");
-                    setMsg(null);
-                    setCepStatus("idle");
-                    setCepHint(null);
-                    lastAutoRef.current = null;
-                  }}
+                  onClick={clearForm}
                 >
                   Limpar
                 </button>
@@ -480,14 +524,9 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
         </section>
 
         <aside className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--laranja)] text-xl text-white">
-              📚
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">Resumo</p>
-              <h4 className="text-lg font-semibold text-[var(--marrom)]">Ficha do terapeuta</h4>
-            </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-500">Resumo</p>
+            <h4 className="text-lg font-semibold text-[var(--marrom)]">Ficha do terapeuta</h4>
           </div>
 
           <div className="mt-4 space-y-3 text-sm">
@@ -525,7 +564,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
             </div>
             <div className="flex flex-col border-b border-gray-100 pb-3">
               <span className="text-gray-500">Email</span>
-              <strong className="text-[var(--texto)]">{email.trim() || "-"}</strong>
+              <strong className="text-[var(--texto)]">{String(email ?? "").trim() || "-"}</strong>
             </div>
             <div className="rounded-lg border border-[#f1e1c7] bg-[#fff6e6] p-3 text-xs leading-relaxed text-[var(--marrom)]">
               Os dados sao salvos na base de terapeutas e podem ser consultados ou editados pela equipe.

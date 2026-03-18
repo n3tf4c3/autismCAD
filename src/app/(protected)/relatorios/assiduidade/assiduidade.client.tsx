@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import {
+  gerarRelatorioAssiduidadeAction,
+  type ActionResult,
+} from "@/app/(protected)/relatorios/relatorios.actions";
 
 type Terapeuta = { id: number; nome: string };
 
@@ -60,57 +64,41 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao gerar relatorio";
 }
 
-export function AssiduidadeClient(props: { canChooseTerapeuta: boolean }) {
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao gerar relatorio");
+  return result.data;
+}
+
+export function AssiduidadeClient(props: {
+  canChooseTerapeuta: boolean;
+  initialTerapeutas: Terapeuta[];
+}) {
   const [pacienteNome, setPacienteNome] = useState("");
   const [terapeutaId, setTerapeutaId] = useState("");
   const [from, setFrom] = useState(ymdMinusDays(29));
   const [to, setTo] = useState(ymdToday());
   const [presenca, setPresenca] = useState("");
 
-  const [terapeutas, setTerapeutas] = useState<Terapeuta[]>([]);
+  const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
-
-  const qs = useMemo(() => {
-    const p = new URLSearchParams();
-    if (pacienteNome.trim()) p.set("pacienteNome", pacienteNome.trim());
-    if (from) p.set("from", from);
-    if (to) p.set("to", to);
-    if (presenca) p.set("presenca", presenca);
-    if (props.canChooseTerapeuta && terapeutaId) p.set("terapeutaId", terapeutaId);
-    return p.toString();
-  }, [from, pacienteNome, presenca, props.canChooseTerapeuta, terapeutaId, to]);
-
-  useEffect(() => {
-    if (!props.canChooseTerapeuta) return;
-    let alive = true;
-    async function loadTerapeutas() {
-      try {
-        const resp = await fetch("/api/terapeutas", { cache: "no-store" });
-        const data = (await resp.json().catch(() => [])) as Terapeuta[];
-        if (!resp.ok) return;
-        if (!alive) return;
-        setTerapeutas(Array.isArray(data) ? data : []);
-      } catch {
-        // ignore
-      }
-    }
-    void loadTerapeutas();
-    return () => {
-      alive = false;
-    };
-  }, [props.canChooseTerapeuta]);
 
   async function gerar() {
     setLoading(true);
     setMsg(null);
     setReport(null);
     try {
-      const resp = await fetch(`/api/relatorios/assiduidade?${qs}`, { cache: "no-store" });
-      const data = (await resp.json().catch(() => ({}))) as Report & { error?: string };
-      if (!resp.ok) throw new Error(data.error || "Erro ao gerar relatorio");
-      setReport(data);
+      const filters = {
+        pacienteNome: pacienteNome.trim() || undefined,
+        terapeutaId:
+          props.canChooseTerapeuta && terapeutaId ? Number(terapeutaId) : undefined,
+        from: from || undefined,
+        to: to || undefined,
+        presenca: presenca || undefined,
+      };
+      const data = unwrapAction(await gerarRelatorioAssiduidadeAction(filters));
+      setReport(data.report as Report);
     } catch (err) {
       setMsg(normalizeApiError(err));
     } finally {

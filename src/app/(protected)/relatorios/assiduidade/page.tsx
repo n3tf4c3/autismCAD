@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { getAuthSession } from "@/server/auth/session";
+import { requirePermission } from "@/server/auth/auth";
+import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { AssiduidadeClient } from "@/app/(protected)/relatorios/assiduidade/assiduidade.client";
 
 export default async function RelatorioAssiduidadePage() {
   const session = await getAuthSession();
   const role = session?.user?.role ?? null;
   const canChooseTerapeuta = String(role || "").toUpperCase() !== "TERAPEUTA";
+  let terapeutas: Array<{ id: number; nome: string }> = [];
+
+  if (canChooseTerapeuta) {
+    try {
+      await requirePermission("terapeutas:view");
+      const terapeutasRows = await listarTerapeutas({});
+      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+    } catch {
+      terapeutas = [];
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -21,8 +34,10 @@ export default async function RelatorioAssiduidadePage() {
         </div>
       </section>
 
-      <AssiduidadeClient canChooseTerapeuta={canChooseTerapeuta} />
+      <AssiduidadeClient
+        canChooseTerapeuta={canChooseTerapeuta}
+        initialTerapeutas={terapeutas}
+      />
     </div>
   );
 }
-

@@ -6,6 +6,7 @@ import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { obterEvolucaoPorId } from "@/server/modules/prontuario/prontuario.service";
+import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
 
@@ -77,6 +78,16 @@ export default async function EditarEvolucaoPage(props: {
   }
 
   const isTerapeuta = (canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA";
+  let terapeutas: Array<{ id: number; nome: string }> = [];
+  if (!isTerapeuta) {
+    try {
+      await requirePermission("terapeutas:view");
+      const terapeutasRows = await listarTerapeutas({});
+      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+    } catch {
+      terapeutas = [];
+    }
+  }
 
   return (
     <main className="space-y-4">
@@ -101,6 +112,7 @@ export default async function EditarEvolucaoPage(props: {
         pacienteId={paciente.id}
         evolucaoId={evolucao.id}
         isTerapeuta={isTerapeuta}
+        initialTerapeutas={terapeutas}
         initial={{
           data: evolucao.data,
           atendimento_id: evolucao.atendimento_id ? Number(evolucao.atendimento_id) : null,

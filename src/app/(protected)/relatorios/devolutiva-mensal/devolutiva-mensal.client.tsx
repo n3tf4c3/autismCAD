@@ -7,6 +7,10 @@ import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
+import {
+  gerarRelatorioEvolutivoAction,
+  type ActionResult,
+} from "@/app/(protected)/relatorios/relatorios.actions";
 
 type MensalReport = {
   paciente: { id: number; nome: string };
@@ -118,10 +122,9 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao consultar devolutiva do periodo";
 }
 
-function readApiError(json: unknown): string | null {
-  if (!json || typeof json !== "object") return null;
-  const rec = json as Record<string, unknown>;
-  return typeof rec.error === "string" ? rec.error : null;
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao consultar devolutiva do periodo");
+  return result.data;
 }
 
 function normalizeComportamentoResultado(value: unknown): ComportamentoResultado | null {
@@ -200,15 +203,6 @@ export function DevolutivaMensalClient(props: {
     }
     return presetRange(referenceMonth, 1);
   }, [customFrom, customTo, periodPreset, referenceMonth]);
-
-  const query = useMemo(() => {
-    if (!selectedRange) return "";
-    const qs = new URLSearchParams();
-    qs.set("pacienteId", String(props.pacienteId));
-    qs.set("from", selectedRange.from);
-    qs.set("to", selectedRange.to);
-    return qs.toString();
-  }, [props.pacienteId, selectedRange]);
 
   const desempenhoMensal = useMemo(() => {
     return buildDesempenhoResumo(report?.evolucoes);
@@ -354,7 +348,7 @@ export function DevolutivaMensalClient(props: {
   }
 
   async function consultar() {
-    if (!query) {
+    if (!selectedRange) {
       setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
       return;
     }
@@ -362,10 +356,13 @@ export function DevolutivaMensalClient(props: {
     setMsg(null);
     setCopyMsg(null);
     try {
-      const resp = await fetch(`/api/relatorios/evolutivo?${query}`, { cache: "no-store" });
-      const json = (await resp.json().catch(() => null)) as unknown;
-      if (!resp.ok) throw new Error(readApiError(json) || "Falha ao carregar relatorio do periodo");
-      setReport(json as MensalReport);
+      const filters = {
+        pacienteId: props.pacienteId,
+        from: selectedRange.from,
+        to: selectedRange.to,
+      };
+      const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
+      setReport(data.report as MensalReport);
     } catch (err) {
       setReport(null);
       setMsg(normalizeApiError(err));

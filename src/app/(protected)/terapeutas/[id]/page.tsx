@@ -1,12 +1,12 @@
-import { db } from "@/db";
 import { idParamSchema } from "@/lib/zod/api";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
-import { terapeutas } from "@/server/db/schema";
-import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import {
+  obterTerapeutaDetalhe,
+  obterTerapeutaPorUsuario,
+} from "@/server/modules/terapeutas/terapeutas.service";
 import { AppError } from "@/server/shared/errors";
-import { and, eq, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { TerapeutaActionsClient } from "@/app/(protected)/terapeutas/[id]/terapeuta-actions.client";
 
@@ -65,36 +65,16 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
   if (!canView) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
   const { id } = idParamSchema.parse(await props.params);
-
-  const [row] = await db
-    .select({
-      id: terapeutas.id,
-      nome: terapeutas.nome,
-      cpf: terapeutas.cpf,
-      nascimento: terapeutas.dataNascimento,
-      telefone: terapeutas.telefone,
-      email: terapeutas.email,
-      especialidade: terapeutas.especialidade,
-      logradouro: terapeutas.logradouro,
-      numero: terapeutas.numero,
-      bairro: terapeutas.bairro,
-      cidade: terapeutas.cidade,
-      cep: terapeutas.cep,
-      ativo: terapeutas.ativo,
-    })
-    .from(terapeutas)
-    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
-    .limit(1);
+  const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
+  const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
+  const [row, self] = await Promise.all([
+    obterTerapeutaDetalhe(id),
+    canEditAny || !canEditSelf ? Promise.resolve(null) : obterTerapeutaPorUsuario(Number(user.id)),
+  ]);
 
   if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
 
-  const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
-  const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
-  let canEdit = canEditAny;
-  if (!canEdit && canEditSelf) {
-    const self = await obterTerapeutaPorUsuario(Number(user.id));
-    canEdit = Boolean(self && self.id === row.id);
-  }
+  const canEdit = canEditAny || Boolean(self && self.id === row.id);
 
   const nascimentoBr = formatDateBr(row.nascimento);
   const age = calcAge(row.nascimento);

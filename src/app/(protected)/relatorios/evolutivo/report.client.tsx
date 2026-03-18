@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import {
+  gerarRelatorioEvolutivoAction,
+  type ActionResult,
+} from "@/app/(protected)/relatorios/relatorios.actions";
 
 type Terapeuta = { id: number; nome: string };
 
@@ -65,59 +69,50 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao gerar relatorio";
 }
 
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro ao gerar relatorio");
+  return result.data;
+}
+
 export function EvolutivoReportClient(props: {
   initialPacienteId?: number | null;
   canChooseTerapeuta: boolean;
   canChoosePaciente: boolean;
   canExportPdf: boolean;
+  initialTerapeutas: Terapeuta[];
 }) {
   const [pacienteId, setPacienteId] = useState<string>(props.initialPacienteId ? String(props.initialPacienteId) : "");
   const [from, setFrom] = useState<string>(ymdMinusDays(29));
   const [to, setTo] = useState<string>(ymdToday());
   const [terapeutaId, setTerapeutaId] = useState<string>("");
-  const [terapeutas, setTerapeutas] = useState<Terapeuta[]>([]);
+  const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
   const [report, setReport] = useState<EvolutivoReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const qs = useMemo(() => {
+  function buildQueryString(): string {
     const p = new URLSearchParams();
     if (pacienteId) p.set("pacienteId", pacienteId);
     if (from) p.set("from", from);
     if (to) p.set("to", to);
     if (props.canChooseTerapeuta && terapeutaId) p.set("terapeutaId", terapeutaId);
     return p.toString();
-  }, [from, pacienteId, props.canChooseTerapeuta, terapeutaId, to]);
-
-  useEffect(() => {
-    if (!props.canChooseTerapeuta) return;
-    let alive = true;
-    async function loadTerapeutas() {
-      try {
-        const resp = await fetch("/api/terapeutas", { cache: "no-store" });
-        const data = (await resp.json().catch(() => [])) as Terapeuta[];
-        if (!resp.ok) return;
-        if (!alive) return;
-        setTerapeutas(Array.isArray(data) ? data : []);
-      } catch {
-        // ignore
-      }
-    }
-    void loadTerapeutas();
-    return () => {
-      alive = false;
-    };
-  }, [props.canChooseTerapeuta]);
+  }
 
   async function gerar() {
     setMsg(null);
     setLoading(true);
     setReport(null);
     try {
-      const resp = await fetch(`/api/relatorios/evolutivo?${qs}`, { cache: "no-store" });
-      const data = (await resp.json().catch(() => ({}))) as EvolutivoReport & { error?: string };
-      if (!resp.ok) throw new Error(data.error || "Erro ao gerar relatorio");
-      setReport(data);
+      const filters = {
+        pacienteId: pacienteId || undefined,
+        from: from || undefined,
+        to: to || undefined,
+        terapeutaId:
+          props.canChooseTerapeuta && terapeutaId ? Number(terapeutaId) : undefined,
+      };
+      const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
+      setReport(data.report as EvolutivoReport);
     } catch (err) {
       setMsg(normalizeApiError(err));
     } finally {
@@ -128,6 +123,7 @@ export function EvolutivoReportClient(props: {
   async function exportPdf() {
     setMsg(null);
     try {
+      const qs = buildQueryString();
       const resp = await fetch(`/api/relatorios/evolutivo/pdf?${qs}`);
       if (!resp.ok) {
         const data = (await resp.json().catch(() => ({}))) as { error?: string };

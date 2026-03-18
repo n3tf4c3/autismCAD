@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  carregarAnamneseAction,
+  carregarAnamneseVersaoAction,
+  excluirAnamneseAction,
+  excluirAnamneseVersaoAction,
+  salvarAnamneseAction,
+  type ActionResult,
+} from "./anamnese.actions";
 
 type BoolTri = "" | "true" | "false";
 type AnamneseStatus = "Rascunho" | "Finalizada";
@@ -11,14 +19,15 @@ type Anamnese = Record<string, unknown> & {
   paciente_id: number;
   version?: number;
   status?: string;
-  created_at?: string;
+  created_at?: string | Date;
+  updated_at?: string | Date;
 };
 
 type VersionItem = {
   id: number;
   version: number;
   status: string;
-  created_at: string;
+  created_at: string | Date;
   payload: Record<string, unknown>;
 };
 
@@ -109,21 +118,9 @@ function normalizeApiError(error: unknown): string {
   return "Erro na requisicao";
 }
 
-function getApiErrorMessage(json: unknown): string | null {
-  if (!json || typeof json !== "object") return null;
-  const rec = json as Record<string, unknown>;
-  const value = rec.error;
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-async function safeJson(resp: Response): Promise<unknown> {
-  try {
-    return await resp.json();
-  } catch {
-    return {};
-  }
+function unwrapAction<T>(result: ActionResult<T>): T {
+  if (!result.ok) throw new Error(result.error || "Erro na requisicao");
+  return result.data;
 }
 
 function readKey(data: Record<string, unknown> | null | undefined, camel: string, snake: string) {
@@ -387,23 +384,10 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
     setLoading(true);
     setError(null);
     try {
-      const [aResp, vResp] = await Promise.all([
-        fetch(`/api/anamnese/${pacienteId}`, { cache: "no-store", credentials: "include" }),
-        fetch(`/api/anamnese/${pacienteId}/versions`, { cache: "no-store", credentials: "include" }),
-      ]);
-
-      const [aJson, vJson] = await Promise.all([safeJson(aResp), safeJson(vResp)]);
-
-      if (!aResp.ok && aResp.status !== 404) {
-        throw new Error(getApiErrorMessage(aJson) || "Erro ao carregar anamnese");
-      }
-      if (!vResp.ok) {
-        throw new Error(getApiErrorMessage(vJson) || "Erro ao carregar versoes");
-      }
-
-      const a = aResp.status === 404 ? null : (aJson as Anamnese);
+      const data = unwrapAction(await carregarAnamneseAction(pacienteId));
+      const a = (data.anamnese ?? null) as Anamnese | null;
       setAnamnese(a);
-      setVersions(Array.isArray(vJson) ? (vJson as VersionItem[]) : []);
+      setVersions(Array.isArray(data.versions) ? (data.versions as VersionItem[]) : []);
       fillFormFrom(a);
     } catch (err) {
       setError(normalizeApiError(err));
@@ -460,15 +444,8 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
         expectativasTerapia: textToJson(form.expectativasTerapia),
       };
 
-      const resp = await fetch(`/api/anamnese/${pacienteId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao salvar");
-      setAnamnese(json as Anamnese);
+      const data = unwrapAction(await salvarAnamneseAction(pacienteId, body));
+      setAnamnese(data.anamnese as Anamnese);
       await loadAll();
     } catch (err) {
       setError(normalizeApiError(err));
@@ -480,13 +457,8 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
   async function loadVersion(version: number) {
     setError(null);
     try {
-      const resp = await fetch(`/api/anamnese/${pacienteId}?version=${version}`, {
-        cache: "no-store",
-        credentials: "include",
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao carregar versao");
-      const data = json as Anamnese;
+      const actionData = unwrapAction(await carregarAnamneseVersaoAction(pacienteId, version));
+      const data = actionData.anamnese as Anamnese;
       setAnamnese(data);
       fillFormFrom(data);
     } catch (err) {
@@ -508,12 +480,7 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
     setDeletingFicha(true);
     setError(null);
     try {
-      const resp = await fetch(`/api/anamnese/${pacienteId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao excluir ficha");
+      unwrapAction(await excluirAnamneseAction(pacienteId));
       await loadAll();
     } catch (err) {
       setError(normalizeApiError(err));
@@ -531,12 +498,7 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
     setDeletingVersion(version);
     setError(null);
     try {
-      const resp = await fetch(`/api/anamnese/${pacienteId}/versions/${version}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const json = await safeJson(resp);
-      if (!resp.ok) throw new Error(getApiErrorMessage(json) || "Erro ao excluir versao");
+      unwrapAction(await excluirAnamneseVersaoAction(pacienteId, version));
       await loadAll();
     } catch (err) {
       setError(normalizeApiError(err));

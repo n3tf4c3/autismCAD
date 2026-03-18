@@ -1,11 +1,11 @@
-import { db } from "@/db";
 import { idParamSchema } from "@/lib/zod/api";
-import { terapeutas } from "@/server/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
-import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import {
+  obterTerapeutaDetalhe,
+  obterTerapeutaPorUsuario,
+} from "@/server/modules/terapeutas/terapeutas.service";
 import { AppError } from "@/server/shared/errors";
 import { TerapeutaFormClient } from "@/app/(protected)/terapeutas/terapeuta-form.client";
 
@@ -26,24 +26,7 @@ export default async function EditarTerapeutaPage(props: PageProps) {
     if (!self || self.id !== id) throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
-  const [row] = await db
-    .select({
-      id: terapeutas.id,
-      nome: terapeutas.nome,
-      cpf: terapeutas.cpf,
-      nascimento: terapeutas.dataNascimento,
-      telefone: terapeutas.telefone,
-      cep: terapeutas.cep,
-      logradouro: terapeutas.logradouro,
-      numero: terapeutas.numero,
-      bairro: terapeutas.bairro,
-      cidade: terapeutas.cidade,
-      email: terapeutas.email,
-      especialidade: terapeutas.especialidade,
-    })
-    .from(terapeutas)
-    .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
-    .limit(1);
+  const row = await obterTerapeutaDetalhe(id);
 
   if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
 

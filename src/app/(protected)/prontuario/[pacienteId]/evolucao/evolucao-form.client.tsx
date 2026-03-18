@@ -2,6 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { listarAtendimentosAction } from "@/app/(protected)/consultas/consultas.actions";
+import {
+  atualizarEvolucaoAction,
+  criarEvolucaoAction,
+  excluirEvolucaoAction,
+} from "@/app/(protected)/prontuario/prontuario.actions";
 
 type AtendimentoOption = {
   id: number;
@@ -63,6 +69,13 @@ function toIntOrNull(value: string): number | null {
 
 function pickString(v: unknown): string {
   return typeof v === "string" ? v : v == null ? "" : String(v);
+}
+
+function unwrapAction<T>(
+  result: { ok: true; data: T } | { ok: false; error: string }
+): T {
+  if (!result.ok) throw new Error(result.error || "Falha na operacao");
+  return result.data;
 }
 
 const TITULO_SESSAO_OPTIONS = [
@@ -155,6 +168,7 @@ export function EvolucaoFormClient(props: {
   evolucaoId?: number | null;
   initial?: Initial | null;
   isTerapeuta?: boolean;
+  initialTerapeutas?: TerapeutaOption[];
 }) {
   const router = useRouter();
   const isEdit = !!props.evolucaoId;
@@ -176,7 +190,7 @@ export function EvolucaoFormClient(props: {
   const [conduta, setConduta] = useState<string>(pickString(initialPayload.conduta));
   const [descricao, setDescricao] = useState<string>(pickString(initialPayload.descricao));
   const [atendimentos, setAtendimentos] = useState<AtendimentoOption[]>([]);
-  const [terapeutas, setTerapeutas] = useState<TerapeutaOption[]>([]);
+  const [terapeutas] = useState<TerapeutaOption[]>(() => props.initialTerapeutas ?? []);
   const [tituloModo, setTituloModo] = useState<"lista" | "outro">(() => {
     const t = pickString(initialPayload.titulo).trim();
     if (!t) return "lista";
@@ -346,16 +360,28 @@ export function EvolucaoFormClient(props: {
     let alive = true;
     async function loadAtendimentos() {
       try {
-        const qs = new URLSearchParams({
+        const qs = {
           pacienteId: String(props.pacienteId),
           dataIni: data,
           dataFim: data,
-        }).toString();
-        const resp = await fetch(`/api/atendimentos?${qs}`);
-        const rows = (await resp.json().catch(() => [])) as AtendimentoOption[];
-        if (!resp.ok) return;
+        };
+        const rowsResult = unwrapAction(await listarAtendimentosAction(qs));
+        const rows = Array.isArray(rowsResult.items) ? rowsResult.items : [];
         if (!alive) return;
-        setAtendimentos(Array.isArray(rows) ? rows : []);
+        const mapped = rows.map((row) => {
+          const rec = row as Record<string, unknown>;
+          return {
+            id: Number(rec.id || 0),
+            data: String(rec.data ?? "").slice(0, 10),
+            hora_inicio: String(rec.hora_inicio ?? "").slice(0, 5),
+            hora_fim: String(rec.hora_fim ?? "").slice(0, 5),
+            terapeuta_id:
+              rec.terapeuta_id == null ? null : Number(rec.terapeuta_id),
+            terapeutaNome:
+              typeof rec.terapeutaNome === "string" ? rec.terapeutaNome : null,
+          } satisfies AtendimentoOption;
+        });
+        setAtendimentos(mapped.filter((row) => row.id > 0));
       } catch {
         // ignore
       }
@@ -372,26 +398,6 @@ export function EvolucaoFormClient(props: {
     const has = atendimentos.some((a) => String(a.id) === String(atendimentoId));
     if (!has) setAtendimentoId("");
   }, [atendimentoId, atendimentos, isEdit]);
-
-  useEffect(() => {
-    if (isTerapeuta) return;
-    let alive = true;
-    async function loadTerapeutas() {
-      try {
-        const resp = await fetch("/api/terapeutas");
-        const data = (await resp.json().catch(() => [])) as TerapeutaOption[];
-        if (!resp.ok) return;
-        if (!alive) return;
-        setTerapeutas(Array.isArray(data) ? data : []);
-      } catch {
-        // ignore
-      }
-    }
-    loadTerapeutas();
-    return () => {
-      alive = false;
-    };
-  }, [isTerapeuta]);
 
   useEffect(() => {
     if (isTerapeuta) return;
@@ -421,18 +427,11 @@ export function EvolucaoFormClient(props: {
         terapeutaId: resolvedTerapeutaId,
         payload,
       };
-      const url = isEdit
-        ? `/api/prontuario/evolucao/${props.evolucaoId}`
-        : `/api/prontuario/evolucao/${props.pacienteId}`;
-      const method = isEdit ? "PUT" : "POST";
-
-      const resp = await fetch(url, {
-        method,
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const dataResp = (await resp.json().catch(() => ({}))) as { error?: string };
-      if (!resp.ok) throw new Error(dataResp.error || "Falha ao salvar evolucao");
+      if (isEdit && props.evolucaoId) {
+        unwrapAction(await atualizarEvolucaoAction(props.evolucaoId, body));
+      } else {
+        unwrapAction(await criarEvolucaoAction(props.pacienteId, body));
+      }
       setMsg(isEdit ? "Evolucao atualizada." : "Evolucao registrada.");
       setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
     } catch (e) {
@@ -449,9 +448,7 @@ export function EvolucaoFormClient(props: {
     setBusy(true);
     setMsg(null);
     try {
-      const resp = await fetch(`/api/prontuario/evolucao/${props.evolucaoId}`, { method: "DELETE" });
-      const dataResp = (await resp.json().catch(() => ({}))) as { error?: string };
-      if (!resp.ok) throw new Error(dataResp.error || "Falha ao excluir evolucao");
+      unwrapAction(await excluirEvolucaoAction(props.evolucaoId));
       setMsg("Evolucao excluida.");
       setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
     } catch (e) {

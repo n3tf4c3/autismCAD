@@ -6,6 +6,8 @@ import {
 } from "@/server/modules/access-logs/access-logs.service";
 import { toAppError } from "@/server/shared/errors";
 
+export const dynamic = "force-dynamic";
+
 const ACCESS_LOG_TIMEZONE = "America/Cuiaba";
 
 function formatDateTime(value: Date | null) {
