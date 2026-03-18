@@ -60,6 +60,18 @@
     color: #d5d9e1 !important;
   }
 
+  .text-gray-800 {
+    color: #e4e9f3 !important;
+  }
+
+  .text-gray-900 {
+    color: #f3f6fb !important;
+  }
+
+  .hover\:text-gray-900:hover {
+    color: #f3f6fb !important;
+  }
+
   .hover\:bg-gray-50:hover {
     background-color: #202836 !important;
   }
