@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listarAtendimentosAction } from "@/app/(protected)/consultas/consultas.actions";
+import { normalizeAtendimentosList } from "@/app/(protected)/consultas/atendimento-compat";
 import {
   atualizarEvolucaoAction,
   criarEvolucaoAction,
@@ -366,29 +367,16 @@ export function EvolucaoFormClient(props: {
           dataFim: data,
         };
         const rowsResult = unwrapAction(await listarAtendimentosAction(qs));
-        const rows = Array.isArray(rowsResult.items) ? rowsResult.items : [];
+        const rows = normalizeAtendimentosList(rowsResult.items);
         if (!alive) return;
-        const mapped = rows.map((row) => {
-          const rec = row as Record<string, unknown>;
-          return {
-            id: Number(rec.id || 0),
-            data: String(rec.data ?? "").slice(0, 10),
-            horaInicio: String(rec.hora_inicio ?? rec.horaInicio ?? "").slice(0, 5),
-            horaFim: String(rec.hora_fim ?? rec.horaFim ?? "").slice(0, 5),
-            terapeutaId:
-              rec.terapeuta_id == null
-                ? rec.terapeutaId == null
-                  ? null
-                  : Number(rec.terapeutaId)
-                : Number(rec.terapeuta_id),
-            terapeutaNome:
-              typeof rec.terapeutaNome === "string"
-                ? rec.terapeutaNome
-                : typeof rec.terapeuta_nome === "string"
-                  ? rec.terapeuta_nome
-                  : null,
-          } satisfies AtendimentoOption;
-        });
+        const mapped = rows.map((rec) => ({
+          id: rec.id,
+          data: String(rec.data ?? "").slice(0, 10),
+          horaInicio: String(rec.hora_inicio ?? "").slice(0, 5),
+          horaFim: String(rec.hora_fim ?? "").slice(0, 5),
+          terapeutaId: rec.terapeuta_id,
+          terapeutaNome: rec.terapeutaNome,
+        } satisfies AtendimentoOption));
         setAtendimentos(mapped.filter((row) => row.id > 0));
       } catch {
         // ignore

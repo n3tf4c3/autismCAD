@@ -7,6 +7,7 @@ import {
   listarAtendimentosAction,
   type ActionResult,
 } from "@/app/(protected)/consultas/consultas.actions";
+import { normalizeAtendimentosList } from "@/app/(protected)/consultas/atendimento-compat";
 
 type MiniAtendimento = {
   id: number;
@@ -18,6 +19,19 @@ type MiniAtendimento = {
   realizado: boolean | number;
   presenca?: string | null;
 };
+
+function toMiniAtendimentos(value: unknown): MiniAtendimento[] {
+  return normalizeAtendimentosList(value).map((row) => ({
+    id: row.id,
+    data: row.data,
+    hora_inicio: row.hora_inicio,
+    hora_fim: row.hora_fim,
+    pacienteNome: row.pacienteNome,
+    terapeutaNome: row.terapeutaNome,
+    realizado: row.realizado,
+    presenca: row.presenca,
+  }));
+}
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -76,11 +90,11 @@ type TooltipState = {
 
 export function QuickCalendarClient(props: {
   initialYm: string;
-  initialItems: MiniAtendimento[];
+  initialItems: unknown[];
 }) {
   const cacheRef = useRef<Map<string, MiniAtendimento[]>>(new Map());
   const [ym, setYm] = useState(props.initialYm);
-  const [items, setItems] = useState<MiniAtendimento[]>(props.initialItems);
+  const [items, setItems] = useState<MiniAtendimento[]>(() => toMiniAtendimentos(props.initialItems));
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -95,7 +109,7 @@ export function QuickCalendarClient(props: {
   }, []);
 
   useEffect(() => {
-    cacheRef.current.set(props.initialYm, props.initialItems);
+    cacheRef.current.set(props.initialYm, toMiniAtendimentos(props.initialItems));
   }, [props.initialYm, props.initialItems]);
 
   useEffect(() => {
@@ -110,7 +124,7 @@ export function QuickCalendarClient(props: {
       try {
         const { dataIni, dataFim } = getMonthRange(ym);
         const data = unwrapAction(await listarAtendimentosAction({ dataIni, dataFim }));
-        const next = Array.isArray(data.items) ? (data.items as MiniAtendimento[]) : [];
+        const next = toMiniAtendimentos(data.items);
         cacheRef.current.set(ym, next);
         setItems(next);
       } catch {

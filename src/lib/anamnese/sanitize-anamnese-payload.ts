@@ -29,6 +29,7 @@ const ALLOWED_FIELDS = new Set([
   "comunicacao",
   "escola",
   "serie",
+  "periodoEscolar",
   "acompanhanteEscolar",
   "observacoesEscolares",
   "encaminhamento",

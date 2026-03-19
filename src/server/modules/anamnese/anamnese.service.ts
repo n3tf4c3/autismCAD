@@ -9,12 +9,6 @@ import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 type AnyRecord = Record<string, unknown>;
 
-function readValue(body: AnyRecord, camel: string, snake: string) {
-  if (body[camel] !== undefined) return body[camel];
-  if (body[snake] !== undefined) return body[snake];
-  return undefined;
-}
-
 function asTrimmedOrNull(value: unknown): string | null {
   if (value === undefined || value === null) return null;
   const parsed = String(value).trim();
@@ -40,34 +34,35 @@ function asBoolOrNull(value: unknown): boolean | null {
 export function buildAnamnesePayload(pacienteId: number, body: AnyRecord) {
   const payload: AnyRecord = {};
 
-  payload.entrevistaPor = asTrimmedOrNull(readValue(body, "entrevistaPor", "entrevista_por"));
-  payload.dataEntrevista = asDateOnlyOrNull(readValue(body, "dataEntrevista", "data_entrevista"));
-  payload.possuiDiagnostico = asBoolOrNull(readValue(body, "possuiDiagnostico", "possui_diagnostico"));
-  payload.diagnostico = asTrimmedOrNull(readValue(body, "diagnostico", "diagnostico"));
-  payload.laudoDiagnostico = asTrimmedOrNull(readValue(body, "laudoDiagnostico", "laudo_diagnostico"));
-  payload.medicoAcompanhante = asTrimmedOrNull(readValue(body, "medicoAcompanhante", "medico_acompanhante"));
-  payload.fezTerapia = asBoolOrNull(readValue(body, "fezTerapia", "fez_terapia"));
-  payload.terapias = asTrimmedOrNull(readValue(body, "terapias", "terapias"));
-  payload.frequencia = asTrimmedOrNull(readValue(body, "frequencia", "frequencia"));
-  payload.marcosMotores = asTrimmedOrNull(readValue(body, "marcosMotores", "marcos_motores"));
-  payload.linguagem = asTrimmedOrNull(readValue(body, "linguagem", "linguagem"));
-  payload.comunicacao = asTrimmedOrNull(readValue(body, "comunicacao", "comunicacao"));
-  payload.escola = asTrimmedOrNull(readValue(body, "escola", "escola"));
-  payload.serie = asTrimmedOrNull(readValue(body, "serie", "serie"));
-  payload.acompanhanteEscolar = asBoolOrNull(readValue(body, "acompanhanteEscolar", "acompanhante_escolar"));
-  payload.observacoesEscolares = asTrimmedOrNull(readValue(body, "observacoesEscolares", "observacoes_escolares"));
-  payload.encaminhamento = asTrimmedOrNull(readValue(body, "encaminhamento", "encaminhamento"));
-  payload.frustracoes = asTrimmedOrNull(readValue(body, "frustracoes", "frustracoes"));
-  payload.humor = asTrimmedOrNull(readValue(body, "humor", "humor"));
-  payload.estereotipias = asTrimmedOrNull(readValue(body, "estereotipias", "estereotipias"));
-  payload.autoagressao = asTrimmedOrNull(readValue(body, "autoagressao", "autoagressao"));
-  payload.heteroagressao = asTrimmedOrNull(readValue(body, "heteroagressao", "heteroagressao"));
-  payload.seletividadeAlimentar = asTrimmedOrNull(readValue(body, "seletividadeAlimentar", "seletividade_alimentar"));
-  payload.rotinaSono = asTrimmedOrNull(readValue(body, "rotinaSono", "rotina_sono"));
-  payload.medicamentosUsoAnterior = asTrimmedOrNull(readValue(body, "medicamentosUsoAnterior", "medicamentos_uso_anterior"));
-  payload.medicamentosUsoAtual = asTrimmedOrNull(readValue(body, "medicamentosUsoAtual", "medicamentos_uso_atual"));
-  payload.dificuldadesFamilia = asTrimmedOrNull(readValue(body, "dificuldadesFamilia", "dificuldades_familia"));
-  payload.expectativasTerapia = asTrimmedOrNull(readValue(body, "expectativasTerapia", "expectativas_terapia"));
+  payload.entrevistaPor = asTrimmedOrNull(body.entrevistaPor);
+  payload.dataEntrevista = asDateOnlyOrNull(body.dataEntrevista);
+  payload.possuiDiagnostico = asBoolOrNull(body.possuiDiagnostico);
+  payload.diagnostico = asTrimmedOrNull(body.diagnostico);
+  payload.laudoDiagnostico = asTrimmedOrNull(body.laudoDiagnostico);
+  payload.medicoAcompanhante = asTrimmedOrNull(body.medicoAcompanhante);
+  payload.fezTerapia = asBoolOrNull(body.fezTerapia);
+  payload.terapias = asTrimmedOrNull(body.terapias);
+  payload.frequencia = asTrimmedOrNull(body.frequencia);
+  payload.marcosMotores = asTrimmedOrNull(body.marcosMotores);
+  payload.linguagem = asTrimmedOrNull(body.linguagem);
+  payload.comunicacao = asTrimmedOrNull(body.comunicacao);
+  payload.escola = asTrimmedOrNull(body.escola);
+  payload.serie = asTrimmedOrNull(body.serie);
+  payload.periodoEscolar = asTrimmedOrNull(body.periodoEscolar);
+  payload.acompanhanteEscolar = asBoolOrNull(body.acompanhanteEscolar);
+  payload.observacoesEscolares = asTrimmedOrNull(body.observacoesEscolares);
+  payload.encaminhamento = asTrimmedOrNull(body.encaminhamento);
+  payload.frustracoes = asTrimmedOrNull(body.frustracoes);
+  payload.humor = asTrimmedOrNull(body.humor);
+  payload.estereotipias = asTrimmedOrNull(body.estereotipias);
+  payload.autoagressao = asTrimmedOrNull(body.autoagressao);
+  payload.heteroagressao = asTrimmedOrNull(body.heteroagressao);
+  payload.seletividadeAlimentar = asTrimmedOrNull(body.seletividadeAlimentar);
+  payload.rotinaSono = asTrimmedOrNull(body.rotinaSono);
+  payload.medicamentosUsoAnterior = asTrimmedOrNull(body.medicamentosUsoAnterior);
+  payload.medicamentosUsoAtual = asTrimmedOrNull(body.medicamentosUsoAtual);
+  payload.dificuldadesFamilia = asTrimmedOrNull(body.dificuldadesFamilia);
+  payload.expectativasTerapia = asTrimmedOrNull(body.expectativasTerapia);
 
   return sanitizeAnamnesePayload(payload).payload;
 }

@@ -128,8 +128,8 @@ export default async function DashboardPage() {
   const monthItems = monthAtendimentos.map((a) => ({
     id: Number(a.id),
     data: String(a.data).slice(0, 10),
-    hora_inicio: String(a.hora_inicio),
-    hora_fim: String(a.hora_fim),
+    horaInicio: String(a.horaInicio),
+    horaFim: String(a.horaFim),
     pacienteNome: a.pacienteNome,
     terapeutaNome: a.terapeutaNome,
     realizado: a.realizado ? 1 : 0,
@@ -195,8 +195,8 @@ export default async function DashboardPage() {
           </div>
           <ul className="dashboard-pendencias-list max-h-[296px] space-y-2 overflow-y-auto pr-1.5">
             {pendentesHoje.map((a) => {
-              const ini = String(a.hora_inicio ?? "").slice(0, 5);
-              const fim = String(a.hora_fim ?? "").slice(0, 5);
+              const ini = String(a.horaInicio ?? "").slice(0, 5);
+              const fim = String(a.horaFim ?? "").slice(0, 5);
               const faixa = ini && fim ? `${ini} - ${fim}` : "";
 
               return (

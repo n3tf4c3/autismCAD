@@ -7,25 +7,13 @@ import {
   listarAtendimentosAction,
   type ActionResult,
 } from "@/app/(protected)/consultas/consultas.actions";
+import {
+  normalizeAtendimentosList,
+  type AtendimentoCompat as Atendimento,
+} from "@/app/(protected)/consultas/atendimento-compat";
 
 type Terapeuta = { id: number; nome: string; especialidade?: string | null };
 type Paciente = { id: number; nome: string };
-
-type Atendimento = {
-  id: number;
-  paciente_id: number;
-  terapeuta_id: number | null;
-  pacienteNome: string;
-  terapeutaNome: string | null;
-  data: string;
-  hora_inicio: string;
-  hora_fim: string;
-  turno: string;
-  presenca: string;
-  realizado: boolean | number;
-  motivo: string | null;
-  observacoes: string | null;
-};
 
 type BloqueioAgenda = {
   id: string;
@@ -209,7 +197,7 @@ export function CalendarioClient(props: {
           dataFim: params.get("dataFim") ?? undefined,
         })
       );
-      setAgenda(Array.isArray(dataJson.items) ? (dataJson.items as Atendimento[]) : []);
+      setAgenda(normalizeAtendimentosList(dataJson.items));
     } catch (err) {
       setError(normalizeApiError(err));
       setAgenda([]);

@@ -48,8 +48,8 @@ export async function loadDashboardAgenda(input: LoadDashboardAgendaInput) {
       .select({
         id: atendimentos.id,
         data: atendimentos.data,
-        hora_inicio: atendimentos.horaInicio,
-        hora_fim: atendimentos.horaFim,
+        horaInicio: atendimentos.horaInicio,
+        horaFim: atendimentos.horaFim,
         pacienteNome: pacientes.nome,
         terapeutaNome: terapeutas.nome,
         realizado: atendimentos.realizado,
@@ -65,8 +65,8 @@ export async function loadDashboardAgenda(input: LoadDashboardAgendaInput) {
       .select({
         id: atendimentos.id,
         data: atendimentos.data,
-        hora_inicio: atendimentos.horaInicio,
-        hora_fim: atendimentos.horaFim,
+        horaInicio: atendimentos.horaInicio,
+        horaFim: atendimentos.horaFim,
         pacienteNome: pacientes.nome,
         terapeutaNome: terapeutas.nome,
         realizado: atendimentos.realizado,

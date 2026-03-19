@@ -8,28 +8,13 @@ import {
   listarAtendimentosAction,
   salvarAtendimentoAction,
 } from "@/app/(protected)/consultas/consultas.actions";
+import {
+  normalizeAtendimentosList,
+  type AtendimentoCompat as Atendimento,
+} from "@/app/(protected)/consultas/atendimento-compat";
 
 type Terapeuta = { id: number; nome: string };
 type Paciente = { id: number; nome: string };
-
-type Atendimento = {
-  id: number;
-  paciente_id: number;
-  terapeuta_id: number | null;
-  pacienteNome: string;
-  terapeutaNome: string | null;
-  data: string;
-  hora_inicio: string;
-  hora_fim: string;
-  turno: string;
-  periodo_inicio?: string | null;
-  periodo_fim?: string | null;
-  presenca: string;
-  status_repasse: string;
-  resumo_repasse: string | null;
-  motivo: string | null;
-  observacoes: string | null;
-};
 
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -115,7 +100,7 @@ export function ConsultasClient(props: {
       };
       const result = await listarAtendimentosAction(filters);
       if (!result.ok) throw new Error(result.error || "Erro ao listar atendimentos");
-      setItems(Array.isArray(result.data.items) ? (result.data.items as Atendimento[]) : []);
+      setItems(normalizeAtendimentosList(result.data.items));
     } catch (err) {
       setError(normalizeApiError(err));
       setItems([]);

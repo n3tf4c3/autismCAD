@@ -15,6 +15,53 @@ import type {
   EvolutivoQueryInput,
 } from "@/server/modules/relatorios/relatorios.schema";
 
+type EvolutivoAtendimentoInternal = {
+  id: number;
+  data: string;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  duracao_min: number;
+  presenca: string;
+  terapeuta_id: number | null;
+  terapeuta_nome: string | null;
+  motivo: string | null;
+  observacoes: string | null;
+  resumo_repasse: string | null;
+};
+
+type EvolutivoAtendimentoContract = {
+  id: number;
+  data: string;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  duracao_min: number;
+  presenca: string;
+  terapeuta_id: number | null;
+  terapeuta_nome: string | null;
+  motivo: string | null;
+  observacoes: string | null;
+  resumo_repasse: string | null;
+};
+
+function toEvolutivoAtendimentoContract(
+  atendimento: EvolutivoAtendimentoInternal
+): EvolutivoAtendimentoContract {
+  // Relatorios continuam em snake_case por contrato historico com telas e exportacao (PDF/DOCX).
+  return {
+    id: atendimento.id,
+    data: atendimento.data,
+    hora_inicio: atendimento.hora_inicio,
+    hora_fim: atendimento.hora_fim,
+    duracao_min: atendimento.duracao_min,
+    presenca: atendimento.presenca,
+    terapeuta_id: atendimento.terapeuta_id,
+    terapeuta_nome: atendimento.terapeuta_nome,
+    motivo: atendimento.motivo,
+    observacoes: atendimento.observacoes,
+    resumo_repasse: atendimento.resumo_repasse,
+  };
+}
+
 function calcularDuracaoMinutos(horaInicio?: string | null, horaFim?: string | null): number {
   if (!horaInicio || !horaFim) return 0;
   const hi = String(horaInicio).slice(0, 5);
@@ -313,19 +360,21 @@ export async function consolidateEvolutivoReport(params: {
     destaques: { ultimasObservacoes, principaisMotivosAusencia },
     resumoAutomatico,
     evolucoes: evolsSanitized.map((e) => ({ ...e, data: String(e.data).slice(0, 10) })),
-    atendimentos: atend.map((a) => ({
-      id: a.id,
-      data: a.data,
-      hora_inicio: a.hora_inicio,
-      hora_fim: a.hora_fim,
-      duracao_min: a.duracao_min,
-      presenca: a.presenca,
-      terapeuta_id: a.terapeuta_id,
-      terapeuta_nome: a.terapeuta_nome,
-      motivo: a.motivo,
-      observacoes: a.observacoes,
-      resumo_repasse: a.resumo_repasse,
-    })),
+    atendimentos: atend.map((a) =>
+      toEvolutivoAtendimentoContract({
+        id: a.id,
+        data: a.data,
+        hora_inicio: a.hora_inicio,
+        hora_fim: a.hora_fim,
+        duracao_min: a.duracao_min,
+        presenca: a.presenca,
+        terapeuta_id: a.terapeuta_id,
+        terapeuta_nome: a.terapeuta_nome,
+        motivo: a.motivo,
+        observacoes: a.observacoes,
+        resumo_repasse: a.resumo_repasse,
+      })
+    ),
   };
 }
 
