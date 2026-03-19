@@ -33,7 +33,56 @@ export const salvarDocumentoSchema = z.object({
 
 export type SalvarDocumentoInput = z.infer<typeof salvarDocumentoSchema>;
 
-export const evolucaoPayloadSchema = z.object({}).passthrough();
+const evolucaoTextoSchema = z.string().trim().optional().nullable();
+
+const evolucaoItemSchema = z
+  .object({
+    ensino: evolucaoTextoSchema,
+    habilidade: evolucaoTextoSchema,
+    opcao: evolucaoTextoSchema,
+    meta: evolucaoTextoSchema,
+    desempenho: evolucaoTextoSchema,
+    performance: evolucaoTextoSchema,
+    tipoAjuda: evolucaoTextoSchema,
+    tipo_ajuda: evolucaoTextoSchema,
+    ajuda: evolucaoTextoSchema,
+    tentativas: z.union([z.number(), z.string()]).optional().nullable(),
+    tentativa: z.union([z.number(), z.string()]).optional().nullable(),
+    acertos: z.union([z.number(), z.string()]).optional().nullable(),
+    reforcador: evolucaoTextoSchema,
+    reforco: evolucaoTextoSchema,
+  })
+  .passthrough();
+
+const comportamentoPayloadSchema = z
+  .object({
+    resultado: evolucaoTextoSchema,
+    descricao: evolucaoTextoSchema,
+    negativos: z.array(z.string().trim()).optional(),
+    positivos: z.array(z.string().trim()).optional(),
+    quantidades: z
+      .object({
+        negativo: z.record(z.string(), z.union([z.number(), z.string()])).optional(),
+        positivo: z.record(z.string(), z.union([z.number(), z.string()])).optional(),
+      })
+      .passthrough()
+      .optional()
+      .nullable(),
+  })
+  .passthrough();
+
+export const evolucaoPayloadSchema = z
+  .object({
+    titulo: evolucaoTextoSchema,
+    conduta: evolucaoTextoSchema,
+    descricao: evolucaoTextoSchema,
+    metas: z.array(z.string().trim()).optional(),
+    itensDesempenho: z.array(evolucaoItemSchema).optional(),
+    itens: z.array(evolucaoItemSchema).optional(),
+    comportamentos: comportamentoPayloadSchema.optional().nullable(),
+    comportamento: comportamentoPayloadSchema.optional().nullable(),
+  })
+  .passthrough();
 
 export const criarEvolucaoSchema = z.object({
   data: z.string().trim().optional(),

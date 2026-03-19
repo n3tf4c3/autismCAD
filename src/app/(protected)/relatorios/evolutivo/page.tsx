@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAuthSession } from "@/server/auth/session";
 import { requirePermission } from "@/server/auth/auth";
-import { loadUserAccess } from "@/server/auth/access";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
 import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/report.client";
@@ -10,8 +8,8 @@ import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/re
 export default async function RelatorioEvolutivoPage(props: {
   searchParams: Promise<{ pacienteId?: string }>;
 }) {
-  const session = await getAuthSession();
-  const roleCanon = canonicalRoleName(session?.user?.role ?? null) ?? session?.user?.role ?? null;
+  const { user, access } = await requirePermission("relatorios_clinicos:view");
+  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
   const isResponsavel = roleCanon === "RESPONSAVEL";
 
   if (isResponsavel) {
@@ -28,11 +26,7 @@ export default async function RelatorioEvolutivoPage(props: {
     ? `/relatorios/devolutiva-mensal?pacienteId=${initialPacienteId}`
     : "/relatorios/devolutiva-mensal";
 
-  let canExportPdf = false;
-  if (session?.user?.id) {
-    const access = await loadUserAccess(Number(session.user.id));
-    canExportPdf = hasPermissionKey(access.permissions, "relatorios_clinicos:export");
-  }
+  const canExportPdf = hasPermissionKey(access.permissions, "relatorios_clinicos:export");
 
   const canChooseTerapeuta = !isResponsavel && roleCanon !== "TERAPEUTA";
   const canChoosePaciente = !isResponsavel;

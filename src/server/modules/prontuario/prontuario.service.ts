@@ -25,6 +25,7 @@ import {
 } from "@/server/modules/prontuario/prontuario.schema";
 import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 
 function toIsoDate(value: string): string {
   const normalized = normalizeDateOnlyLoose(value);
@@ -219,7 +220,7 @@ export async function criarEvolucao(
   user?: { id: number | string; role?: string | null } | null
 ) {
   const dataVal = toIsoDate(input.data ?? ymdNowInClinicTz());
-  const payload = input.payload ?? {};
+  const payload = sanitizeEvolucaoPayload(input.payload ?? {}).payload;
 
   const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
@@ -307,7 +308,7 @@ export async function atualizarEvolucao(
   if (!current) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
   const dataVal = toIsoDate(input.data ?? current.data ?? ymdNowInClinicTz());
-  const payload = (input.payload ?? current.payload ?? {}) as Record<string, unknown>;
+  const payload = sanitizeEvolucaoPayload(input.payload ?? current.payload ?? {}).payload;
 
   const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw

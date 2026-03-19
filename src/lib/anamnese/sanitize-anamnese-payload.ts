@@ -1,4 +1,4 @@
-type AnyRecord = Record<string, unknown>;
+﻿type AnyRecord = Record<string, unknown>;
 
 const REMOVED_FIELDS = new Set([
   "comorbidadesFamiliares",
@@ -56,14 +56,14 @@ function asBoolOrNull(value: unknown): boolean | null {
   if (value === undefined || value === null || value === "") return null;
   const normalized = String(value).trim().toLowerCase();
   if (["1", "true", "sim", "yes", "on"].includes(normalized)) return true;
-  if (["0", "false", "nao", "não", "nÃ£o", "nÃƒÂ£o", "no", "off"].includes(normalized)) return false;
+  if (["0", "false", "nao", "no", "off"].includes(normalized)) return false;
   return null;
 }
 
 function normalizeEscola(value: unknown): "publica" | "privada" | null {
   const normalized = asTrimmedOrNull(value)?.toLowerCase();
   if (!normalized) return null;
-  if (normalized === "publica" || normalized === "pública" || normalized.includes("public")) return "publica";
+  if (normalized === "publica" || normalized === "pÃºblica" || normalized.includes("public")) return "publica";
   if (normalized === "privada" || normalized.includes("privad")) return "privada";
   return null;
 }
@@ -106,3 +106,4 @@ export function sanitizeAnamnesePayload(input: unknown): { changed: boolean; pay
 
   return { changed, payload };
 }
+

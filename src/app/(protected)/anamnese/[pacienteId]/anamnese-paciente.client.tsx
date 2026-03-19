@@ -16,18 +16,18 @@ type SchoolType = "" | "publica" | "privada";
 type SchoolPeriod = "" | "matutino" | "vespertino";
 
 type Anamnese = Record<string, unknown> & {
-  paciente_id: number;
+  pacienteId: number;
   version?: number;
   status?: string;
-  created_at?: string | Date;
-  updated_at?: string | Date;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 };
 
 type VersionItem = {
   id: number;
   version: number;
   status: string;
-  created_at: string | Date;
+  createdAt: string | Date;
   payload: Record<string, unknown>;
 };
 
@@ -121,13 +121,6 @@ function normalizeApiError(error: unknown): string {
 function unwrapAction<T>(result: ActionResult<T>): T {
   if (!result.ok) throw new Error(result.error || "Erro na requisicao");
   return result.data;
-}
-
-function readKey(data: Record<string, unknown> | null | undefined, camel: string, snake: string) {
-  if (!data) return undefined;
-  const v = data[camel];
-  if (v !== undefined) return v;
-  return data[snake];
 }
 
 function asText(value: unknown): string {
@@ -341,42 +334,42 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
       ...cur,
       status: (data.status === "Finalizada" ? "Finalizada" : "Rascunho") as AnamneseStatus,
 
-      entrevistaPor: asText(readKey(data, "entrevistaPor", "entrevista_por")),
-      dataEntrevista: asDateOnly(readKey(data, "dataEntrevista", "data_entrevista")),
+      entrevistaPor: asText(data.entrevistaPor),
+      dataEntrevista: asDateOnly(data.dataEntrevista),
 
-      possuiDiagnostico: asBoolTri(readKey(data, "possuiDiagnostico", "possui_diagnostico")),
-      diagnostico: asText(readKey(data, "diagnostico", "diagnostico")),
-      laudoDiagnostico: asText(readKey(data, "laudoDiagnostico", "laudo_diagnostico")),
-      medicoAcompanhante: asText(readKey(data, "medicoAcompanhante", "medico_acompanhante")),
+      possuiDiagnostico: asBoolTri(data.possuiDiagnostico),
+      diagnostico: asText(data.diagnostico),
+      laudoDiagnostico: asText(data.laudoDiagnostico),
+      medicoAcompanhante: asText(data.medicoAcompanhante),
 
-      fezTerapia: asBoolTri(readKey(data, "fezTerapia", "fez_terapia")),
-      terapias: asText(readKey(data, "terapias", "terapias")),
-      frequencia: asText(readKey(data, "frequencia", "frequencia")),
+      fezTerapia: asBoolTri(data.fezTerapia),
+      terapias: asText(data.terapias),
+      frequencia: asText(data.frequencia),
 
-      marcosMotores: asText(readKey(data, "marcosMotores", "marcos_motores")),
-      linguagem: asText(readKey(data, "linguagem", "linguagem")),
-      comunicacao: asText(readKey(data, "comunicacao", "comunicacao")),
+      marcosMotores: asText(data.marcosMotores),
+      linguagem: asText(data.linguagem),
+      comunicacao: asText(data.comunicacao),
 
-      escola: asSchoolType(readKey(data, "escola", "escola")),
-      serie: asText(readKey(data, "serie", "serie")),
-      periodoEscolar: asSchoolPeriod(readKey(data, "periodoEscolar", "periodo_escolar")),
-      acompanhanteEscolar: asBoolTri(readKey(data, "acompanhanteEscolar", "acompanhante_escolar")),
-      observacoesEscolares: asText(readKey(data, "observacoesEscolares", "observacoes_escolares")),
-      encaminhamento: asText(readKey(data, "encaminhamento", "encaminhamento")),
+      escola: asSchoolType(data.escola),
+      serie: asText(data.serie),
+      periodoEscolar: asSchoolPeriod(data.periodoEscolar),
+      acompanhanteEscolar: asBoolTri(data.acompanhanteEscolar),
+      observacoesEscolares: asText(data.observacoesEscolares),
+      encaminhamento: asText(data.encaminhamento),
 
-      frustracoes: asText(readKey(data, "frustracoes", "frustracoes")),
-      humor: asText(readKey(data, "humor", "humor")),
-      estereotipias: asText(readKey(data, "estereotipias", "estereotipias")),
-      autoagressao: asText(readKey(data, "autoagressao", "autoagressao")),
-      heteroagressao: asText(readKey(data, "heteroagressao", "heteroagressao")),
-      seletividadeAlimentar: asText(readKey(data, "seletividadeAlimentar", "seletividade_alimentar")),
-      rotinaSono: asText(readKey(data, "rotinaSono", "rotina_sono")),
+      frustracoes: asText(data.frustracoes),
+      humor: asText(data.humor),
+      estereotipias: asText(data.estereotipias),
+      autoagressao: asText(data.autoagressao),
+      heteroagressao: asText(data.heteroagressao),
+      seletividadeAlimentar: asText(data.seletividadeAlimentar),
+      rotinaSono: asText(data.rotinaSono),
 
-      medicamentosUsoAnterior: asText(readKey(data, "medicamentosUsoAnterior", "medicamentos_uso_anterior")),
-      medicamentosUsoAtual: asText(readKey(data, "medicamentosUsoAtual", "medicamentos_uso_atual")),
+      medicamentosUsoAnterior: asText(data.medicamentosUsoAnterior),
+      medicamentosUsoAtual: asText(data.medicamentosUsoAtual),
 
-      dificuldadesFamilia: asText(readKey(data, "dificuldadesFamilia", "dificuldades_familia")),
-      expectativasTerapia: asText(readKey(data, "expectativasTerapia", "expectativas_terapia")),
+      dificuldadesFamilia: asText(data.dificuldadesFamilia),
+      expectativasTerapia: asText(data.expectativasTerapia),
     }));
   }
 
@@ -685,7 +678,7 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
                   <td className="px-3 py-3 font-semibold text-[var(--marrom)]">{v.version}</td>
                   <td className="px-3 py-3 text-gray-700">{v.status}</td>
                   <td className="px-3 py-3 text-gray-700">
-                    {v.created_at ? new Date(v.created_at).toLocaleString("pt-BR") : "-"}
+                    {v.createdAt ? new Date(v.createdAt).toLocaleString("pt-BR") : "-"}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex flex-wrap gap-2">

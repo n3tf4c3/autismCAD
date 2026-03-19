@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { sanitizeAnamnesePayload } from "@/lib/anamnese/sanitize-anamnese-payload";
@@ -8,6 +8,43 @@ import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 type AnyRecord = Record<string, unknown>;
+
+const anamneseReadAliases = {
+  entrevista_por: "entrevistaPor",
+  data_entrevista: "dataEntrevista",
+  possui_diagnostico: "possuiDiagnostico",
+  laudo_diagnostico: "laudoDiagnostico",
+  medico_acompanhante: "medicoAcompanhante",
+  fez_terapia: "fezTerapia",
+  marcos_motores: "marcosMotores",
+  periodo_escolar: "periodoEscolar",
+  acompanhante_escolar: "acompanhanteEscolar",
+  observacoes_escolares: "observacoesEscolares",
+  seletividade_alimentar: "seletividadeAlimentar",
+  rotina_sono: "rotinaSono",
+  medicamentos_uso_anterior: "medicamentosUsoAnterior",
+  medicamentos_uso_atual: "medicamentosUsoAtual",
+  dificuldades_familia: "dificuldadesFamilia",
+  expectativas_terapia: "expectativasTerapia",
+} as const;
+
+function normalizeAnamneseReadPayload(input: unknown): AnyRecord {
+  const source =
+    input && typeof input === "object" && !Array.isArray(input)
+      ? ({ ...(input as AnyRecord) } as AnyRecord)
+      : {};
+
+  const normalized: AnyRecord = { ...source };
+  for (const [snakeKey, camelKey] of Object.entries(anamneseReadAliases)) {
+    if (normalized[camelKey] === undefined && source[snakeKey] !== undefined) {
+      normalized[camelKey] = source[snakeKey];
+    }
+    if (snakeKey in normalized) {
+      delete normalized[snakeKey];
+    }
+  }
+  return sanitizeAnamnesePayload(normalized).payload;
+}
 
 function asTrimmedOrNull(value: unknown): string | null {
   if (value === undefined || value === null) return null;
@@ -27,7 +64,7 @@ function asBoolOrNull(value: unknown): boolean | null {
   if (value === undefined || value === null || value === "") return null;
   const normalized = String(value).trim().toLowerCase();
   if (["1", "true", "sim", "yes", "on"].includes(normalized)) return true;
-  if (["0", "false", "nao", "não", "nÃ£o", "no", "off"].includes(normalized)) return false;
+  if (["0", "false", "nao", "no", "off"].includes(normalized)) return false;
   return null;
 }
 
@@ -83,18 +120,18 @@ export async function obterAnamneseBase(pacienteId: number) {
     .select({
       pacienteId: anamnese.pacienteId,
       payload: anamnese.payload,
-      created_at: anamnese.createdAt,
-      updated_at: anamnese.updatedAt,
+      createdAt: anamnese.createdAt,
+      updatedAt: anamnese.updatedAt,
     })
     .from(anamnese)
     .where(eq(anamnese.pacienteId, pacienteId))
     .limit(1);
   if (!row) return null;
   return {
-    ...(row.payload as AnyRecord),
-    paciente_id: row.pacienteId,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
+    ...normalizeAnamneseReadPayload(row.payload),
+    pacienteId: row.pacienteId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
@@ -105,7 +142,7 @@ export async function obterAnamneseVersao(pacienteId: number, version?: number |
       version: anamneseVersions.version,
       status: anamneseVersions.status,
       payload: anamneseVersions.payload,
-      created_at: anamneseVersions.createdAt,
+      createdAt: anamneseVersions.createdAt,
     })
     .from(anamneseVersions)
     .where(
@@ -120,11 +157,11 @@ export async function obterAnamneseVersao(pacienteId: number, version?: number |
   if (!row) return null;
 
   return {
-    ...(row.payload as AnyRecord),
+    ...normalizeAnamneseReadPayload(row.payload),
     version: row.version,
     status: row.status,
-    created_at: row.created_at,
-    paciente_id: row.pacienteId,
+    createdAt: row.createdAt,
+    pacienteId: row.pacienteId,
   };
 }
 
@@ -133,11 +170,11 @@ export async function listarAnamneseVersoes(pacienteId: number, limit = 50) {
   const rows = await db
     .select({
       id: anamneseVersions.id,
-      paciente_id: anamneseVersions.pacienteId,
+      pacienteId: anamneseVersions.pacienteId,
       version: anamneseVersions.version,
       status: anamneseVersions.status,
       payload: anamneseVersions.payload,
-      created_at: anamneseVersions.createdAt,
+      createdAt: anamneseVersions.createdAt,
     })
     .from(anamneseVersions)
     .where(eq(anamneseVersions.pacienteId, pacienteId))
@@ -146,11 +183,11 @@ export async function listarAnamneseVersoes(pacienteId: number, limit = 50) {
 
   return rows.map((row) => ({
     id: row.id,
-    paciente_id: row.paciente_id,
+    pacienteId: row.pacienteId,
     version: row.version,
     status: row.status,
-    created_at: row.created_at,
-    payload: row.payload as AnyRecord,
+    createdAt: row.createdAt,
+    payload: normalizeAnamneseReadPayload(row.payload),
   }));
 }
 
@@ -189,7 +226,7 @@ export async function salvarAnamneseCompleta(params: {
 
         const versionPayload: AnyRecord = {
           ...basePayload,
-          paciente_id: pacienteId,
+          pacienteId,
         };
 
         const [savedVersion] = await tx
@@ -203,15 +240,15 @@ export async function salvarAnamneseCompleta(params: {
           .returning({
             version: anamneseVersions.version,
             status: anamneseVersions.status,
-            created_at: anamneseVersions.createdAt,
+            createdAt: anamneseVersions.createdAt,
           });
 
         return {
           ...versionPayload,
           version: savedVersion.version,
           status: savedVersion.status,
-          created_at: savedVersion.created_at,
-          paciente_id: pacienteId,
+          createdAt: savedVersion.createdAt,
+          pacienteId,
         };
       }, { operation: "anamnese.salvarAnamneseCompleta", mode: "required" });
     } catch (error) {
@@ -250,7 +287,7 @@ export async function excluirAnamneseCompleta(pacienteId: number) {
     }
 
     return {
-      paciente_id: pacienteId,
+      pacienteId,
       deleted: true,
       versions_deleted: deletedVersions.length,
     };
@@ -304,10 +341,11 @@ export async function excluirAnamneseVersao(pacienteId: number, version: number)
     }
 
     return {
-      paciente_id: pacienteId,
+      pacienteId,
       version,
       deleted: true,
       has_current: !!latestRemaining,
     };
   }, { operation: "anamnese.excluirAnamneseVersao", mode: "required" });
 }
+

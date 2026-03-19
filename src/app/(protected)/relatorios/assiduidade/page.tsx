@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { getAuthSession } from "@/server/auth/session";
 import { requirePermission } from "@/server/auth/auth";
+import { canonicalRoleName } from "@/server/auth/permissions";
 import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { AssiduidadeClient } from "@/app/(protected)/relatorios/assiduidade/assiduidade.client";
 
 export default async function RelatorioAssiduidadePage() {
-  const session = await getAuthSession();
-  const role = session?.user?.role ?? null;
-  const canChooseTerapeuta = String(role || "").toUpperCase() !== "TERAPEUTA";
+  const { user } = await requirePermission("relatorios_admin:view");
+  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const canChooseTerapeuta = roleCanon !== "TERAPEUTA";
   let terapeutas: Array<{ id: number; nome: string }> = [];
 
   if (canChooseTerapeuta) {
