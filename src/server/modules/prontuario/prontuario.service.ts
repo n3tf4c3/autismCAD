@@ -64,6 +64,34 @@ async function obterTerapeutaIdDoAtendimento(pacienteId: number, atendimentoId: 
   return row.terapeutaId == null ? null : Number(row.terapeutaId);
 }
 
+async function marcarRepasseConcluido(executor: typeof db, atendimentoId: number) {
+  await executor
+    .update(atendimentos)
+    .set({ statusRepasse: "Concluido", updatedAt: sql`now()` })
+    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)));
+}
+
+async function sincronizarRepassePendenteSeSemEvolucao(
+  executor: typeof db,
+  atendimentoId: number,
+  ignoreEvolucaoId?: number | null
+) {
+  const where = [eq(evolucoes.atendimentoId, atendimentoId), isNull(evolucoes.deletedAt)];
+  if (ignoreEvolucaoId) where.push(sql`${evolucoes.id} <> ${ignoreEvolucaoId}`);
+
+  const [active] = await executor
+    .select({ id: evolucoes.id })
+    .from(evolucoes)
+    .where(and(...where))
+    .limit(1);
+  if (active) return;
+
+  await executor
+    .update(atendimentos)
+    .set({ statusRepasse: "Pendente", updatedAt: sql`now()` })
+    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)));
+}
+
 export async function listarDocumentos(pacienteId: number, tipo?: string | null) {
   const where = [eq(prontuarioDocumentos.pacienteId, pacienteId), isNull(prontuarioDocumentos.deletedAt)];
   if (tipo) where.push(eq(prontuarioDocumentos.tipo, tipo));
@@ -211,9 +239,9 @@ export async function criarEvolucao(
   }
 
   try {
-    const [saved] = await runDbTransaction(
-      async (tx) =>
-        tx
+    const saved = await runDbTransaction(
+      async (tx) => {
+        const [saved] = await tx
           .insert(evolucoes)
           .values({
             pacienteId,
@@ -222,7 +250,14 @@ export async function criarEvolucao(
             data: dataVal,
             payload,
           })
-          .returning({ id: evolucoes.id, data: evolucoes.data }),
+          .returning({ id: evolucoes.id, data: evolucoes.data });
+
+        if (atendimentoId) {
+          await marcarRepasseConcluido(tx, atendimentoId);
+        }
+
+        return saved;
+      },
       { operation: "prontuario.criarEvolucao", mode: "required" }
     );
     return { id: saved.id, data: String(saved.data).slice(0, 10) };
@@ -295,17 +330,34 @@ export async function atualizarEvolucao(
     throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
+  const atendimentoAnteriorId = current.atendimentoId == null ? null : Number(current.atendimentoId);
+  const atendimentoNovoId = atendimentoId == null ? null : Number(atendimentoId);
+
   try {
-    await db
-      .update(evolucoes)
-      .set({
-        data: dataVal,
-        payload,
-        atendimentoId,
-        terapeutaId,
-        updatedAt: sql`now()`,
-      })
-      .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)));
+    await runDbTransaction(
+      async (tx) => {
+        const [updated] = await tx
+          .update(evolucoes)
+          .set({
+            data: dataVal,
+            payload,
+            atendimentoId,
+            terapeutaId,
+            updatedAt: sql`now()`,
+          })
+          .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)))
+          .returning({ id: evolucoes.id });
+        if (!updated) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
+
+        if (atendimentoAnteriorId && atendimentoAnteriorId !== atendimentoNovoId) {
+          await sincronizarRepassePendenteSeSemEvolucao(tx, atendimentoAnteriorId, id);
+        }
+        if (atendimentoNovoId) {
+          await marcarRepasseConcluido(tx, atendimentoNovoId);
+        }
+      },
+      { operation: "prontuario.atualizarEvolucao", mode: "required" }
+    );
     return { id, data: dataVal };
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -316,11 +368,23 @@ export async function atualizarEvolucao(
 }
 
 export async function excluirEvolucao(id: number, userId?: number | null) {
-  const [row] = await db
-    .update(evolucoes)
-    .set({ deletedAt: sql`now()`, deletedByUserId: userId ?? null, updatedAt: sql`now()` })
-    .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)))
-    .returning({ id: evolucoes.id });
+  const row = await runDbTransaction(
+    async (tx) => {
+      const [deleted] = await tx
+        .update(evolucoes)
+        .set({ deletedAt: sql`now()`, deletedByUserId: userId ?? null, updatedAt: sql`now()` })
+        .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)))
+        .returning({ id: evolucoes.id, atendimentoId: evolucoes.atendimentoId });
+      if (!deleted) return null;
+
+      if (deleted.atendimentoId) {
+        await sincronizarRepassePendenteSeSemEvolucao(tx, Number(deleted.atendimentoId), id);
+      }
+
+      return deleted;
+    },
+    { operation: "prontuario.excluirEvolucao", mode: "required" }
+  );
   return !!row;
 }
 

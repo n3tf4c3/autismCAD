@@ -12,13 +12,11 @@ import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
 import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
 import {
-  AtualizarRepasseInput,
   AtendimentosQueryInput,
   ExcluirDiaInput,
   presencasPermitidas,
   RecorrenteInput,
   SaveAtendimentoInput,
-  statusRepassePermitidos,
   turnosPermitidos,
 } from "@/server/modules/atendimentos/atendimentos.schema";
 import { AppError } from "@/server/shared/errors";
@@ -30,35 +28,6 @@ function normalizeTurno(value?: string | null) {
 
 function normalizePresenca(value?: string | null) {
   return value && presencasPermitidas.has(value) ? value : "Nao informado";
-}
-
-type StatusRepasse = "Pendente" | "Em revisao" | "Concluido";
-
-const transicoesStatusRepasse: Record<StatusRepasse, Set<StatusRepasse>> = {
-  Pendente: new Set<StatusRepasse>(["Pendente", "Em revisao", "Concluido"]),
-  "Em revisao": new Set<StatusRepasse>(["Pendente", "Em revisao", "Concluido"]),
-  Concluido: new Set<StatusRepasse>(["Concluido", "Em revisao"]),
-};
-
-function normalizeStatusRepasse(value?: string | null): StatusRepasse | null {
-  if (!value) return null;
-  const parsed = value.trim();
-  if (!statusRepassePermitidos.has(parsed)) return null;
-  return parsed as StatusRepasse;
-}
-
-function normalizeResumoRepasse(value?: string | null): string | null {
-  const parsed = String(value ?? "").trim();
-  return parsed || null;
-}
-
-function assertStatusRepasseTransition(from: StatusRepasse, to: StatusRepasse) {
-  if (transicoesStatusRepasse[from].has(to)) return;
-  throw new AppError(
-    `Transicao de repasse invalida: ${from} -> ${to}`,
-    409,
-    "INVALID_REPASSE_TRANSITION"
-  );
 }
 
 function normalizeTime(value: string): string {
@@ -267,70 +236,6 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
   return runDbTransaction(
     async (tx) => salvarAtendimentoDb(tx, input, id),
     { operation: "atendimentos.salvarAtendimento", mode: "required" }
-  );
-}
-
-export async function atualizarRepasseAtendimento(id: number, input: AtualizarRepasseInput) {
-  return runDbTransaction(
-    async (tx) => {
-      const [existing] = await tx
-        .select({
-          id: atendimentos.id,
-          statusRepasse: atendimentos.statusRepasse,
-          resumoRepasse: atendimentos.resumoRepasse,
-        })
-        .from(atendimentos)
-        .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-        .limit(1);
-      if (!existing) {
-        throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
-      }
-
-      const statusAtual = normalizeStatusRepasse(existing.statusRepasse ?? "Pendente") ?? "Pendente";
-      const statusNext =
-        input.statusRepasse === undefined
-          ? statusAtual
-          : normalizeStatusRepasse(input.statusRepasse);
-      if (!statusNext) {
-        throw new AppError("Status de repasse invalido", 400, "INVALID_INPUT");
-      }
-      assertStatusRepasseTransition(statusAtual, statusNext);
-
-      const resumoAnterior = normalizeResumoRepasse(existing.resumoRepasse);
-      const resumoNext =
-        input.resumoRepasse === undefined
-          ? resumoAnterior
-          : normalizeResumoRepasse(input.resumoRepasse);
-
-      if (statusNext === "Concluido" && !resumoNext) {
-        throw new AppError(
-          "Resumo de repasse obrigatorio para concluir",
-          400,
-          "REPASSE_SUMMARY_REQUIRED"
-        );
-      }
-
-      const [updated] = await tx
-        .update(atendimentos)
-        .set({
-          statusRepasse: statusNext,
-          resumoRepasse: resumoNext,
-          updatedAt: sql`now()`,
-        })
-        .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-        .returning({
-          id: atendimentos.id,
-          statusRepasse: atendimentos.statusRepasse,
-          resumoRepasse: atendimentos.resumoRepasse,
-        });
-
-      if (!updated) {
-        throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
-      }
-
-      return updated;
-    },
-    { operation: "atendimentos.atualizarRepasseAtendimento", mode: "required" }
   );
 }
 

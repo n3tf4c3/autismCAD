@@ -6,11 +6,6 @@ export const presencasPermitidas = new Set([
   "Ausente",
   "Nao informado",
 ]);
-export const statusRepassePermitidos = new Set([
-  "Pendente",
-  "Em revisao",
-  "Concluido",
-]);
 
 export const atendimentosQuerySchema = z.object({
   pacienteId: z.coerce.number().int().positive().optional(),
@@ -59,18 +54,7 @@ export const excluirDiaSchema = z.object({
   diaSemana: z.coerce.number().int().min(0).max(6),
 });
 
-export const atualizarRepasseSchema = z
-  .object({
-    statusRepasse: z.string().trim().max(20).optional(),
-    resumoRepasse: z.string().trim().max(2000).optional().nullable(),
-  })
-  .refine(
-    (value) => value.statusRepasse !== undefined || value.resumoRepasse !== undefined,
-    "Informe statusRepasse ou resumoRepasse."
-  );
-
 export type AtendimentosQueryInput = z.infer<typeof atendimentosQuerySchema>;
 export type SaveAtendimentoInput = z.infer<typeof saveAtendimentoSchema>;
 export type RecorrenteInput = z.infer<typeof recorrenteSchema>;
 export type ExcluirDiaInput = z.infer<typeof excluirDiaSchema>;
-export type AtualizarRepasseInput = z.infer<typeof atualizarRepasseSchema>;
