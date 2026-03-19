@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { pacientes } from "@/server/db/schema";
+import { atendimentos, pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
+import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
 
-export default async function NovaEvolucaoPage(props: { params: Promise<{ pacienteId: string }> }) {
+function parsePositiveInt(value?: string): number | null {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) return null;
+  return parsed;
+}
+
+export default async function NovaEvolucaoPage(props: {
+  params: Promise<{ pacienteId: string }>;
+  searchParams: Promise<{ atendimentoId?: string; terapeutaId?: string; data?: string }>;
+}) {
   const { user } = await requirePermission("evolucoes:create");
   const { pacienteId } = await props.params;
+  const search = await props.searchParams;
   const id = Number(pacienteId);
   if (!id) {
     return (
@@ -58,6 +69,39 @@ export default async function NovaEvolucaoPage(props: { params: Promise<{ pacien
     }
   }
 
+  const atendimentoQueryId = parsePositiveInt(search.atendimentoId);
+  const terapeutaQueryId = parsePositiveInt(search.terapeutaId);
+  const dataQuery = normalizeDateOnlyLoose(search.data ?? "");
+
+  let initialAtendimentoId: number | null = null;
+  let initialTerapeutaId: number | null = terapeutaQueryId;
+  let initialData: string | null = dataQuery;
+
+  if (atendimentoQueryId) {
+    const [atendimento] = await db
+      .select({
+        id: atendimentos.id,
+        data: atendimentos.data,
+        terapeutaId: atendimentos.terapeutaId,
+      })
+      .from(atendimentos)
+      .where(
+        and(
+          eq(atendimentos.id, atendimentoQueryId),
+          eq(atendimentos.pacienteId, id),
+          isNull(atendimentos.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (atendimento) {
+      initialAtendimentoId = Number(atendimento.id);
+      initialData = String(atendimento.data).slice(0, 10);
+      initialTerapeutaId =
+        atendimento.terapeutaId == null ? null : Number(atendimento.terapeutaId);
+    }
+  }
+
   return (
     <main className="space-y-4">
       <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -81,6 +125,15 @@ export default async function NovaEvolucaoPage(props: { params: Promise<{ pacien
         pacienteId={paciente.id}
         isTerapeuta={isTerapeuta}
         initialTerapeutas={terapeutas}
+        initial={
+          initialAtendimentoId || initialTerapeutaId || initialData
+            ? {
+                atendimentoId: initialAtendimentoId,
+                terapeutaId: initialTerapeutaId,
+                data: initialData,
+              }
+            : undefined
+        }
       />
     </main>
   );

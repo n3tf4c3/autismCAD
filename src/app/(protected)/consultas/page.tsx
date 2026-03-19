@@ -12,7 +12,7 @@ export default async function ConsultasPage() {
     hasPermissionKey(access.permissions, "consultas:edit") ||
     hasPermissionKey(access.permissions, "consultas:presence");
   const canDeleteAtendimento = isAdmin || hasPermissionKey(access.permissions, "consultas:cancel");
-  const canEditRepasse = isAdmin || hasPermissionKey(access.permissions, "consultas:repasse_edit");
+  const canEditRepasse = isAdmin || hasPermissionKey(access.permissions, "evolucoes:create");
 
   let terapeutas: Array<{ id: number; nome: string }> = [];
   try {
