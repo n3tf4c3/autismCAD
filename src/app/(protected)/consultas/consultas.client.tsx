@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  atualizarRepasseAtendimentoAction,
   excluirAtendimentoAction,
   excluirDiaAtendimentosAction,
   listarAtendimentosAction,
@@ -24,6 +25,8 @@ type Atendimento = {
   periodo_inicio?: string | null;
   periodo_fim?: string | null;
   presenca: string;
+  status_repasse: string;
+  resumo_repasse: string | null;
   motivo: string | null;
   observacoes: string | null;
 };
@@ -66,6 +69,9 @@ function dowFromYmdUtc(ymd: string): number {
 export function ConsultasClient(props: {
   initialTerapeutas: Terapeuta[];
   initialPacientes: Paciente[];
+  canEditAtendimento: boolean;
+  canDeleteAtendimento: boolean;
+  canEditRepasse: boolean;
 }) {
   const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
   const [pacientes] = useState<Paciente[]>(() => props.initialPacientes);
@@ -91,6 +97,13 @@ export function ConsultasClient(props: {
   const [editPeriodoFim, setEditPeriodoFim] = useState<string>("");
   const [editPresenca, setEditPresenca] = useState<string>("Nao informado");
   const [editMotivo, setEditMotivo] = useState<string>("");
+
+  const [repasseOpen, setRepasseOpen] = useState(false);
+  const [repasseItem, setRepasseItem] = useState<Atendimento | null>(null);
+  const [repasseStatus, setRepasseStatus] = useState<string>("Pendente");
+  const [repasseResumo, setRepasseResumo] = useState<string>("");
+  const [repasseBusy, setRepasseBusy] = useState(false);
+  const [repasseMsg, setRepasseMsg] = useState<string | null>(null);
 
   const [delOpen, setDelOpen] = useState(false);
   const [delItem, setDelItem] = useState<Atendimento | null>(null);
@@ -139,6 +152,20 @@ export function ConsultasClient(props: {
     setEditBusy(false);
   }
 
+  function openRepasse(a: Atendimento) {
+    setRepasseItem(a);
+    setRepasseStatus(String(a.status_repasse || "Pendente"));
+    setRepasseResumo(String(a.resumo_repasse || ""));
+    setRepasseMsg(null);
+    setRepasseOpen(true);
+  }
+
+  function closeRepasse() {
+    setRepasseOpen(false);
+    setRepasseItem(null);
+    setRepasseBusy(false);
+  }
+
   async function submitEdit() {
     if (!editItem) return;
     setEditMsg(null);
@@ -177,6 +204,24 @@ export function ConsultasClient(props: {
       setEditMsg(normalizeApiError(err));
     } finally {
       setEditBusy(false);
+    }
+  }
+
+  async function submitRepasse() {
+    if (!repasseItem) return;
+    setRepasseMsg(null);
+    setRepasseBusy(true);
+    try {
+      const result = await atualizarRepasseAtendimentoAction(repasseItem.id, {
+        statusRepasse: repasseStatus,
+        resumoRepasse: repasseResumo.trim() || null,
+      });
+      if (!result.ok) throw new Error(result.error || "Erro ao salvar repasse");
+      closeRepasse();
+      await loadAtendimentos();
+    } catch (err) {
+      setRepasseMsg(normalizeApiError(err));
+      setRepasseBusy(false);
     }
   }
 
@@ -349,7 +394,7 @@ export function ConsultasClient(props: {
                 <th className="px-3 py-2">Paciente</th>
                 <th className="px-3 py-2">Terapeuta</th>
                 <th className="px-3 py-2">Horario</th>
-                <th className="px-3 py-2">Presenca</th>
+                <th className="px-3 py-2">Presenca / Repasse</th>
                 <th className="px-3 py-2">Motivo/Obs</th>
                 <th className="px-3 py-2 text-center">Acoes</th>
               </tr>
@@ -371,33 +416,64 @@ export function ConsultasClient(props: {
                   <td className="px-3 py-3 text-gray-700">
                     {String(a.hora_inicio).slice(0, 5)} - {String(a.hora_fim).slice(0, 5)}
                   </td>
-                  <td className="px-3 py-3 text-gray-700">{a.presenca}</td>
                   <td className="px-3 py-3 text-gray-700">
-                    {(a.observacoes || a.motivo || "-").toString().slice(0, 120)}
+                    <div>{a.presenca}</div>
+                    <div className="text-xs text-gray-500">Repasse: {a.status_repasse || "Pendente"}</div>
+                  </td>
+                  <td className="px-3 py-3 text-gray-700">
+                    {(a.observacoes || a.resumo_repasse || a.motivo || "-").toString().slice(0, 120)}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(a)}
-                        className="inline-flex items-center rounded-full border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openDelete(a)}
-                        className="inline-flex items-center rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
-                      >
-                        Excluir
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void excluirPorPeriodo(a)}
-                        className="inline-flex items-center rounded-full border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50"
-                      >
-                        Excluir por periodo
-                      </button>
+                    <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+                      {props.canEditAtendimento ? (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(a)}
+                          title="Editar atendimento"
+                          aria-label="Editar atendimento"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-blue-200 text-[11px] font-bold text-blue-700 hover:bg-blue-50"
+                        >
+                          E
+                        </button>
+                      ) : null}
+                      {props.canDeleteAtendimento ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openDelete(a)}
+                            title="Excluir atendimento"
+                            aria-label="Excluir atendimento"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 text-[11px] font-bold text-red-700 hover:bg-red-50"
+                          >
+                            X
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void excluirPorPeriodo(a)}
+                            title="Excluir atendimentos por periodo"
+                            aria-label="Excluir atendimentos por periodo"
+                            className="inline-flex h-7 w-8 items-center justify-center rounded-full border border-amber-200 text-[11px] font-bold text-amber-700 hover:bg-amber-50"
+                          >
+                            EP
+                          </button>
+                        </>
+                      ) : null}
+                      {props.canEditRepasse ? (
+                        <button
+                          type="button"
+                          onClick={() => openRepasse(a)}
+                          title="Editar repasse"
+                          aria-label="Editar repasse"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 text-[11px] font-bold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          R
+                        </button>
+                      ) : null}
+                      {!props.canEditAtendimento &&
+                      !props.canDeleteAtendimento &&
+                      !props.canEditRepasse ? (
+                        <span className="text-xs text-gray-400">-</span>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -553,6 +629,81 @@ export function ConsultasClient(props: {
                 disabled={editBusy}
               >
                 {editBusy ? "Salvando..." : "Salvar alteracoes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {repasseOpen && repasseItem ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeRepasse();
+          }}
+        >
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Repasse</p>
+                <h3 className="text-lg font-bold text-[var(--marrom)]">{repasseItem.pacienteNome}</h3>
+              </div>
+              <button
+                type="button"
+                className="text-2xl leading-none text-gray-500 hover:text-[var(--laranja)]"
+                aria-label="Fechar"
+                onClick={closeRepasse}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 text-sm">
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Status do repasse</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={repasseStatus}
+                  onChange={(e) => setRepasseStatus(e.target.value)}
+                >
+                  <option value="Pendente">Pendente</option>
+                  <option value="Em revisao">Em revisao</option>
+                  <option value="Concluido">Concluido</option>
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Resumo do repasse</span>
+                <textarea
+                  rows={5}
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={repasseResumo}
+                  onChange={(e) => setRepasseResumo(e.target.value)}
+                  placeholder="Resumo clinico para devolutiva do dia."
+                />
+              </label>
+            </div>
+
+            {repasseMsg ? <p className="mt-3 text-sm text-red-600">{repasseMsg}</p> : null}
+
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeRepasse}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={repasseBusy}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitRepasse()}
+                className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                disabled={repasseBusy}
+              >
+                {repasseBusy ? "Salvando..." : "Salvar repasse"}
               </button>
             </div>
           </div>

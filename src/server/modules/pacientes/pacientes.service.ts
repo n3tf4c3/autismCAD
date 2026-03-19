@@ -132,12 +132,22 @@ export async function listarPacientes(filters: PacientesQueryInput) {
   }
 
   return rows.map((row) => ({
-    ...row,
+    id: row.id,
+    nome: row.nome,
+    cpf: row.cpf,
     nascimento: row.data_nascimento,
+    convenio: row.convenio,
+    email: row.email,
     nomeResponsavel: row.nome_responsavel,
+    telefone: row.telefone,
+    telefone2: row.telefone2,
     nomeMae: row.nome_mae,
     nomePai: row.nome_pai,
+    sexo: row.sexo,
     dataInicio: row.data_inicio,
+    foto: row.foto,
+    laudo: row.laudo,
+    documento: row.documento,
     ativo: row.ativo,
     terapias: terapiasMap.get(row.id) ?? [],
   }));

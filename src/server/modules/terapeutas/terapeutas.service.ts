@@ -80,9 +80,20 @@ export async function listarTerapeutas(filters: TerapeutasQueryInput) {
     .orderBy(asc(terapeutas.nome));
 
   return rows.map((row) => ({
-    ...row,
+    id: row.id,
+    nome: row.nome,
+    cpf: row.cpf,
     nascimento: row.data_nascimento,
+    email: row.email,
+    telefone: row.telefone,
+    // Compatibilidade: alguns registros antigos ainda populam apenas `endereco`.
     logradouro: row.logradouro || row.endereco,
+    numero: row.numero,
+    bairro: row.bairro,
+    cidade: row.cidade,
+    cep: row.cep,
+    especialidade: row.especialidade,
+    ativo: row.ativo,
   }));
 }
 

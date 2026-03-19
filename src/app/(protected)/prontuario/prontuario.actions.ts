@@ -50,6 +50,18 @@ function parsePositiveInt(value: number, label: string, code: string): number {
   return parsed;
 }
 
+function assertCamelCaseEvolucaoInput(input: unknown) {
+  if (!input || typeof input !== "object") return;
+  const payload = input as Record<string, unknown>;
+  if ("atendimento_id" in payload || "terapeuta_id" in payload) {
+    throw new AppError(
+      "Formato legado nao suportado. Use atendimentoId e terapeutaId.",
+      400,
+      "INVALID_INPUT"
+    );
+  }
+}
+
 async function canAccessEvolucao(
   user: { role?: string | null; id: string | number },
   pacienteId: number,
@@ -70,6 +82,7 @@ export async function criarEvolucaoAction(
     const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
     const { user } = await requirePermission("evolucoes:create");
     await assertPacienteAccess(user, parsedPacienteId);
+    assertCamelCaseEvolucaoInput(input);
     const parsedInput = criarEvolucaoSchema.parse(input ?? {});
     const saved = await criarEvolucao(parsedPacienteId, parsedInput, user);
     revalidatePath(`/prontuario/${parsedPacienteId}`);
@@ -92,14 +105,15 @@ export async function atualizarEvolucaoAction(
 
     const canAccess = await canAccessEvolucao(
       user,
-      Number(evolucaoAtual.paciente_id),
-      Number(evolucaoAtual.terapeuta_id)
+      Number(evolucaoAtual.pacienteId),
+      Number(evolucaoAtual.terapeutaId)
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
+    assertCamelCaseEvolucaoInput(input);
     const parsedInput = atualizarEvolucaoSchema.parse(input ?? {});
     const updated = await atualizarEvolucao(parsedEvolucaoId, parsedInput, user, evolucaoAtual);
-    const pacienteId = Number(evolucaoAtual.paciente_id);
+    const pacienteId = Number(evolucaoAtual.pacienteId);
     revalidatePath(`/prontuario/${pacienteId}`);
     revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);
     return { ok: true, data: updated };
@@ -119,15 +133,15 @@ export async function excluirEvolucaoAction(
 
     const canAccess = await canAccessEvolucao(
       user,
-      Number(evolucaoAtual.paciente_id),
-      Number(evolucaoAtual.terapeuta_id)
+      Number(evolucaoAtual.pacienteId),
+      Number(evolucaoAtual.terapeutaId)
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
     const ok = await excluirEvolucao(parsedEvolucaoId, Number(user.id));
     if (!ok) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
-    const pacienteId = Number(evolucaoAtual.paciente_id);
+    const pacienteId = Number(evolucaoAtual.pacienteId);
     revalidatePath(`/prontuario/${pacienteId}`);
     revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);
     return { ok: true, data: { id: parsedEvolucaoId, deleted: true } };

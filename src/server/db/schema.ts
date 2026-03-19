@@ -2,6 +2,7 @@ import {
   type AnyPgColumn,
   bigint,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -250,6 +251,10 @@ export const atendimentos = pgTable(
       .defaultNow(),
   },
   (table) => [
+    check(
+      "ck_atendimentos_realizado_presenca",
+      sql`${table.realizado} = (${table.presenca} = 'Presente')`
+    ),
     index("idx_atend_paciente").on(table.pacienteId),
     index("idx_atend_terapeuta").on(table.terapeutaId),
     index("idx_atend_data_terapeuta").on(table.data, table.terapeutaId),

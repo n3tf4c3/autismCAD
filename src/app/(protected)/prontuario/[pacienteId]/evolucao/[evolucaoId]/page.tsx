@@ -34,7 +34,7 @@ export default async function EditarEvolucaoPage(props: {
     );
   }
 
-  if (Number(evolucao.paciente_id) !== pid) {
+  if (Number(evolucao.pacienteId) !== pid) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm text-red-600">Evolucao nao pertence ao paciente.</p>
@@ -54,7 +54,7 @@ export default async function EditarEvolucaoPage(props: {
     );
   }
   if ((canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA") {
-    if (!access.terapeutaId || access.terapeutaId !== Number(evolucao.terapeuta_id)) {
+    if (!access.terapeutaId || access.terapeutaId !== Number(evolucao.terapeutaId)) {
       return (
         <main className="rounded-2xl bg-white p-6 shadow-sm">
           <p className="text-sm text-red-600">Acesso negado.</p>
@@ -115,8 +115,8 @@ export default async function EditarEvolucaoPage(props: {
         initialTerapeutas={terapeutas}
         initial={{
           data: evolucao.data,
-          atendimento_id: evolucao.atendimento_id ? Number(evolucao.atendimento_id) : null,
-          terapeuta_id: evolucao.terapeuta_id ? Number(evolucao.terapeuta_id) : null,
+          atendimentoId: evolucao.atendimentoId ? Number(evolucao.atendimentoId) : null,
+          terapeutaId: evolucao.terapeutaId ? Number(evolucao.terapeutaId) : null,
           payload: (evolucao.payload ?? {}) as Record<string, unknown>,
         }}
       />

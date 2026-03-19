@@ -12,9 +12,9 @@ import {
 type AtendimentoOption = {
   id: number;
   data: string;
-  hora_inicio: string;
-  hora_fim: string;
-  terapeuta_id?: number | null;
+  horaInicio: string;
+  horaFim: string;
+  terapeutaId?: number | null;
   terapeutaNome?: string | null;
 };
 
@@ -41,8 +41,8 @@ type BehaviorItem = { value: string; label: string; qty: number };
 
 type Initial = {
   data?: string | null;
-  atendimento_id?: number | null;
-  terapeuta_id?: number | null;
+  atendimentoId?: number | null;
+  terapeutaId?: number | null;
   payload?: Record<string, unknown> | null;
 };
 
@@ -180,10 +180,10 @@ export function EvolucaoFormClient(props: {
   );
   const [data, setData] = useState<string>(props.initial?.data ?? todayIso());
   const [atendimentoId, setAtendimentoId] = useState<string>(
-    props.initial?.atendimento_id ? String(props.initial.atendimento_id) : ""
+    props.initial?.atendimentoId ? String(props.initial.atendimentoId) : ""
   );
   const [terapeutaId, setTerapeutaId] = useState<string>(
-    props.initial?.terapeuta_id ? String(props.initial.terapeuta_id) : ""
+    props.initial?.terapeutaId ? String(props.initial.terapeutaId) : ""
   );
 
   const [titulo, setTitulo] = useState<string>(pickString(initialPayload.titulo));
@@ -272,7 +272,7 @@ export function EvolucaoFormClient(props: {
     return atendimentos.find((a) => Number(a.id) === idNum) ?? null;
   }, [atendimentoId, atendimentos]);
 
-  const terapeutaIdLocked = !isTerapeuta && !!atendimentoAtual?.terapeuta_id;
+  const terapeutaIdLocked = !isTerapeuta && !!atendimentoAtual?.terapeutaId;
 
   const payload = useMemo(() => {
     const merged: Record<string, unknown> = { ...initialPayload };
@@ -373,12 +373,20 @@ export function EvolucaoFormClient(props: {
           return {
             id: Number(rec.id || 0),
             data: String(rec.data ?? "").slice(0, 10),
-            hora_inicio: String(rec.hora_inicio ?? "").slice(0, 5),
-            hora_fim: String(rec.hora_fim ?? "").slice(0, 5),
-            terapeuta_id:
-              rec.terapeuta_id == null ? null : Number(rec.terapeuta_id),
+            horaInicio: String(rec.hora_inicio ?? rec.horaInicio ?? "").slice(0, 5),
+            horaFim: String(rec.hora_fim ?? rec.horaFim ?? "").slice(0, 5),
+            terapeutaId:
+              rec.terapeuta_id == null
+                ? rec.terapeutaId == null
+                  ? null
+                  : Number(rec.terapeutaId)
+                : Number(rec.terapeuta_id),
             terapeutaNome:
-              typeof rec.terapeutaNome === "string" ? rec.terapeutaNome : null,
+              typeof rec.terapeutaNome === "string"
+                ? rec.terapeutaNome
+                : typeof rec.terapeuta_nome === "string"
+                  ? rec.terapeuta_nome
+                  : null,
           } satisfies AtendimentoOption;
         });
         setAtendimentos(mapped.filter((row) => row.id > 0));
@@ -401,9 +409,9 @@ export function EvolucaoFormClient(props: {
 
   useEffect(() => {
     if (isTerapeuta) return;
-    if (!atendimentoAtual?.terapeuta_id) return;
-    setTerapeutaId(String(atendimentoAtual.terapeuta_id));
-  }, [atendimentoAtual?.terapeuta_id, isTerapeuta]);
+    if (!atendimentoAtual?.terapeutaId) return;
+    setTerapeutaId(String(atendimentoAtual.terapeutaId));
+  }, [atendimentoAtual?.terapeutaId, isTerapeuta]);
 
   async function submit() {
     setBusy(true);
@@ -413,7 +421,7 @@ export function EvolucaoFormClient(props: {
       const resolvedTerapeutaId = isTerapeuta
         ? null
         : terapeutaIdLocked
-          ? Number(atendimentoAtual?.terapeuta_id || 0) || null
+          ? Number(atendimentoAtual?.terapeutaId || 0) || null
           : terapeutaId
             ? Number(terapeutaId)
             : null;
@@ -559,9 +567,9 @@ export function EvolucaoFormClient(props: {
               {atendimentos.map((a) => (
                 <option key={a.id} value={String(a.id)}>
                   {String(a.data).slice(0, 10)} - {a.terapeutaNome || "Terapeuta"}{" "}
-                  {a.hora_inicio || a.hora_fim
-                    ? `(${String(a.hora_inicio || "").slice(0, 5)}${
-                        a.hora_fim ? ` - ${String(a.hora_fim || "").slice(0, 5)}` : ""
+                  {a.horaInicio || a.horaFim
+                    ? `(${String(a.horaInicio || "").slice(0, 5)}${
+                        a.horaFim ? ` - ${String(a.horaFim || "").slice(0, 5)}` : ""
                       })`
                     : ""}{" "}
                   (#{a.id})
@@ -625,7 +633,7 @@ export function EvolucaoFormClient(props: {
                 <label className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</label>
                 <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                   {atendimentoAtual?.terapeutaNome ||
-                    (atendimentoAtual?.terapeuta_id ? `#${atendimentoAtual.terapeuta_id}` : "Vinculado ao atendimento")}
+                    (atendimentoAtual?.terapeutaId ? `#${atendimentoAtual.terapeutaId}` : "Vinculado ao atendimento")}
                 </p>
                 <p className="text-xs text-gray-500">Vinculado ao atendimento selecionado.</p>
               </div>

@@ -68,53 +68,28 @@ export async function listarDocumentos(pacienteId: number, tipo?: string | null)
   const where = [eq(prontuarioDocumentos.pacienteId, pacienteId), isNull(prontuarioDocumentos.deletedAt)];
   if (tipo) where.push(eq(prontuarioDocumentos.tipo, tipo));
 
-  try {
-    return await db
-      .select({
-        ...documentoSelectBase,
-        autor_nome: users.nome,
-      })
-      .from(prontuarioDocumentos)
-      .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
-      .where(and(...where))
-      .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
-  } catch (error) {
-    console.warn("[prontuario] fallback sem join de autor em listarDocumentos", error);
-    return db
-      .select({
-        ...documentoSelectBase,
-        autor_nome: sql<string | null>`null`,
-      })
-      .from(prontuarioDocumentos)
-      .where(and(...where))
-      .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
-  }
+  return db
+    .select({
+      ...documentoSelectBase,
+      autor_nome: users.nome,
+    })
+    .from(prontuarioDocumentos)
+    .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
+    .where(and(...where))
+    .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
 }
 
 export async function obterDocumento(id: number) {
-  try {
-    const [row] = await db
-      .select({
-        ...documentoSelectBase,
-        autor_nome: users.nome,
-      })
-      .from(prontuarioDocumentos)
-      .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
-      .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
-      .limit(1);
-    return row ?? null;
-  } catch (error) {
-    console.warn("[prontuario] fallback sem join de autor em obterDocumento", error);
-    const [row] = await db
-      .select({
-        ...documentoSelectBase,
-        autor_nome: sql<string | null>`null`,
-      })
-      .from(prontuarioDocumentos)
-      .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
-      .limit(1);
-    return row ?? null;
-  }
+  const [row] = await db
+    .select({
+      ...documentoSelectBase,
+      autor_nome: users.nome,
+    })
+    .from(prontuarioDocumentos)
+    .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
+    .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function salvarDocumento(
@@ -187,15 +162,15 @@ export async function listarEvolucoesPorPaciente(pacienteId: number) {
   const rows = await db
     .select({
       id: evolucoes.id,
-      paciente_id: evolucoes.pacienteId,
-      terapeuta_id: evolucoes.terapeutaId,
-      atendimento_id: evolucoes.atendimentoId,
-      atendimento_hora_inicio: atendimentos.horaInicio,
-      atendimento_hora_fim: atendimentos.horaFim,
+      pacienteId: evolucoes.pacienteId,
+      terapeutaId: evolucoes.terapeutaId,
+      atendimentoId: evolucoes.atendimentoId,
+      atendimentoHoraInicio: atendimentos.horaInicio,
+      atendimentoHoraFim: atendimentos.horaFim,
       data: evolucoes.data,
       payload: evolucoes.payload,
-      created_at: evolucoes.createdAt,
-      terapeuta_nome: terapeutas.nome,
+      createdAt: evolucoes.createdAt,
+      terapeutaNome: terapeutas.nome,
     })
     .from(evolucoes)
     .leftJoin(terapeutas, eq(terapeutas.id, evolucoes.terapeutaId))
@@ -206,7 +181,7 @@ export async function listarEvolucoesPorPaciente(pacienteId: number) {
   return rows.map((row) => ({
     ...row,
     data: row.data ? String(row.data).slice(0, 10) : row.data,
-    created_at: row.created_at ? String(row.created_at) : row.created_at,
+    createdAt: row.createdAt ? String(row.createdAt) : row.createdAt,
   }));
 }
 
@@ -218,10 +193,10 @@ export async function criarEvolucao(
   const dataVal = toIsoDate(input.data ?? ymdNowInClinicTz());
   const payload = input.payload ?? {};
 
-  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
+  const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
 
-  const terapeutaRaw = input.terapeutaId ?? input.terapeuta_id ?? null;
+  const terapeutaRaw = input.terapeutaId ?? null;
   let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : null;
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
@@ -263,13 +238,13 @@ export async function obterEvolucaoPorId(id: number) {
   const [row] = await db
     .select({
       id: evolucoes.id,
-      paciente_id: evolucoes.pacienteId,
-      terapeuta_id: evolucoes.terapeutaId,
-      atendimento_id: evolucoes.atendimentoId,
+      pacienteId: evolucoes.pacienteId,
+      terapeutaId: evolucoes.terapeutaId,
+      atendimentoId: evolucoes.atendimentoId,
       data: evolucoes.data,
       payload: evolucoes.payload,
-      created_at: evolucoes.createdAt,
-      terapeuta_nome: terapeutas.nome,
+      createdAt: evolucoes.createdAt,
+      terapeutaNome: terapeutas.nome,
     })
     .from(evolucoes)
     .leftJoin(terapeutas, eq(terapeutas.id, evolucoes.terapeutaId))
@@ -280,7 +255,7 @@ export async function obterEvolucaoPorId(id: number) {
   return {
     ...row,
     data: row.data ? String(row.data).slice(0, 10) : row.data,
-    created_at: row.created_at ? String(row.created_at) : row.created_at,
+    createdAt: row.createdAt ? String(row.createdAt) : row.createdAt,
   };
 }
 
@@ -288,7 +263,7 @@ export async function atualizarEvolucao(
   id: number,
   input: AtualizarEvolucaoInput,
   user?: { id: number | string; role?: string | null } | null,
-  evolucaoAtual?: { paciente_id: number; terapeuta_id: number; data: string } | null
+  evolucaoAtual?: Awaited<ReturnType<typeof obterEvolucaoPorId>> | null
 ) {
   const current =
     evolucaoAtual ??
@@ -297,26 +272,23 @@ export async function atualizarEvolucao(
   if (!current) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
   const dataVal = toIsoDate(input.data ?? current.data ?? ymdNowInClinicTz());
-  const payload = (input.payload ?? (current as { payload?: unknown }).payload ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const payload = (input.payload ?? current.payload ?? {}) as Record<string, unknown>;
 
-  const atendimentoRaw = input.atendimentoId ?? input.atendimento_id ?? null;
+  const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw
     ? Number(atendimentoRaw)
-    : ((current as { atendimento_id?: number | null }).atendimento_id ?? null);
+    : (current.atendimentoId ?? null);
 
-  const terapeutaRaw = input.terapeutaId ?? input.terapeuta_id ?? null;
+  const terapeutaRaw = input.terapeutaId ?? null;
   const terapeutaExplicito = terapeutaRaw != null;
-  let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : Number(current.terapeuta_id);
+  let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : Number(current.terapeutaId);
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
     if (!terapeuta) throw new AppError("Terapeuta nao encontrado", 403, "FORBIDDEN");
     terapeutaId = terapeuta.id;
   } else if (!terapeutaExplicito && atendimentoRaw && atendimentoId) {
-    const tFromAtendimento = await obterTerapeutaIdDoAtendimento(Number(current.paciente_id), atendimentoId);
+    const tFromAtendimento = await obterTerapeutaIdDoAtendimento(Number(current.pacienteId), atendimentoId);
     if (tFromAtendimento) terapeutaId = tFromAtendimento;
   }
   if (!terapeutaId) {
@@ -394,8 +366,8 @@ export async function obterTimelineProntuario(pacienteId: number) {
   const mappedEvols = evols.map((e) => {
     const payload = (e.payload ?? {}) as Record<string, unknown>;
     const isComportamento = !!payload.comportamentos;
-    const horaInicio = e.atendimento_hora_inicio ? String(e.atendimento_hora_inicio).slice(0, 5) : "";
-    const horaFim = e.atendimento_hora_fim ? String(e.atendimento_hora_fim).slice(0, 5) : "";
+    const horaInicio = e.atendimentoHoraInicio ? String(e.atendimentoHoraInicio).slice(0, 5) : "";
+    const horaFim = e.atendimentoHoraFim ? String(e.atendimentoHoraFim).slice(0, 5) : "";
     const horario = horaInicio && horaFim ? `${horaInicio} - ${horaFim}` : horaInicio || horaFim || null;
     return {
       kind: "evolucao" as const,
@@ -406,8 +378,8 @@ export async function obterTimelineProntuario(pacienteId: number) {
         (isComportamento ? "Registro de comportamento" : "Evolucao clinica"),
       status: "-",
       version: null as number | null,
-      data: e.data || e.created_at,
-      profissional: e.terapeuta_nome || "Terapeuta",
+      data: e.data || e.createdAt,
+      profissional: e.terapeutaNome || "Terapeuta",
       horario,
     };
   });

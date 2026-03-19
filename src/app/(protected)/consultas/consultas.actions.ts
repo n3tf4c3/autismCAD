@@ -2,12 +2,14 @@
 
 import { requirePermission } from "@/server/auth/auth";
 import {
+  atualizarRepasseSchema,
   atendimentosQuerySchema,
   excluirDiaSchema,
   recorrenteSchema,
   saveAtendimentoSchema,
 } from "@/server/modules/atendimentos/atendimentos.schema";
 import {
+  atualizarRepasseAtendimento,
   criarRecorrentes,
   excluirDia,
   listarAtendimentos,
@@ -121,6 +123,31 @@ export async function excluirDiaAtendimentosAction(
     const parsed = excluirDiaSchema.parse(input);
     const result = await excluirDia(parsed, Number(user.id));
     return { ok: true, data: { removidos: result.removidos } };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function atualizarRepasseAtendimentoAction(
+  atendimentoId: number,
+  input: unknown
+): Promise<ActionResult<{ id: number; statusRepasse: string; resumoRepasse: string | null }>> {
+  try {
+    await requirePermission("consultas:repasse_edit");
+    const idNum = Number(atendimentoId);
+    if (!Number.isFinite(idNum) || idNum <= 0) {
+      throw new AppError("Atendimento invalido", 400, "INVALID_INPUT");
+    }
+    const parsed = atualizarRepasseSchema.parse(input ?? {});
+    const updated = await atualizarRepasseAtendimento(idNum, parsed);
+    return {
+      ok: true,
+      data: {
+        id: updated.id,
+        statusRepasse: String(updated.statusRepasse),
+        resumoRepasse: updated.resumoRepasse ?? null,
+      },
+    };
   } catch (error) {
     return actionErrorResult(error);
   }
