@@ -63,7 +63,7 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
       id: profissionaisTabela.id,
       nome: profissionaisTabela.nome,
       cpf: profissionaisTabela.cpf,
-      data_nascimento: profissionaisTabela.dataNascimento,
+      dataNascimento: profissionaisTabela.dataNascimento,
       email: profissionaisTabela.email,
       telefone: profissionaisTabela.telefone,
       endereco: profissionaisTabela.endereco,
@@ -83,7 +83,7 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
     id: row.id,
     nome: row.nome,
     cpf: row.cpf,
-    nascimento: row.data_nascimento,
+    dataNascimento: row.dataNascimento,
     email: row.email,
     telefone: row.telefone,
     // Compatibilidade: alguns registros antigos ainda populam apenas `endereco`.

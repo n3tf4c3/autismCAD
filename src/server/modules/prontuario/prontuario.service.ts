@@ -37,16 +37,16 @@ function toIsoDate(value: string): string {
 
 const documentoSelectBase = {
   id: prontuarioDocumentos.id,
-  paciente_id: prontuarioDocumentos.pacienteId,
+  pacienteId: prontuarioDocumentos.pacienteId,
   tipo: prontuarioDocumentos.tipo,
   version: prontuarioDocumentos.version,
   status: prontuarioDocumentos.status,
   titulo: prontuarioDocumentos.titulo,
   payload: prontuarioDocumentos.payload,
-  created_by_user_id: prontuarioDocumentos.createdByUserId,
-  created_by_role: prontuarioDocumentos.createdByRole,
-  created_at: prontuarioDocumentos.createdAt,
-  updated_at: prontuarioDocumentos.updatedAt,
+  createdByUserId: prontuarioDocumentos.createdByUserId,
+  createdByRole: prontuarioDocumentos.createdByRole,
+  createdAt: prontuarioDocumentos.createdAt,
+  updatedAt: prontuarioDocumentos.updatedAt,
 } as const;
 
 async function obterProfissionalIdDoAtendimento(
@@ -103,7 +103,7 @@ export async function listarDocumentos(pacienteId: number, tipo?: string | null)
   return db
     .select({
       ...documentoSelectBase,
-      autor_nome: users.nome,
+      autorNome: users.nome,
     })
     .from(prontuarioDocumentos)
     .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
@@ -115,7 +115,7 @@ export async function obterDocumento(id: number) {
   const [row] = await db
     .select({
       ...documentoSelectBase,
-      autor_nome: users.nome,
+      autorNome: users.nome,
     })
     .from(prontuarioDocumentos)
     .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
@@ -405,7 +405,7 @@ export async function finalizarDocumento(id: number) {
     .returning({
       id: prontuarioDocumentos.id,
       status: prontuarioDocumentos.status,
-      updated_at: prontuarioDocumentos.updatedAt,
+      updatedAt: prontuarioDocumentos.updatedAt,
     });
   return row ?? null;
 }
@@ -432,8 +432,8 @@ export async function obterTimelineProntuario(pacienteId: number) {
     titulo: d.titulo || d.tipo,
     status: d.status,
     version: d.version,
-    data: d.created_at ? String(d.created_at) : "",
-    profissional: d.autor_nome || d.created_by_role || "Usuario",
+    data: d.createdAt ? String(d.createdAt) : "",
+    profissional: d.autorNome || d.createdByRole || "Usuario",
   }));
 
   const mappedEvols = evols.map((e) => {

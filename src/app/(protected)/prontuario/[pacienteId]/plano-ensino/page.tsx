@@ -60,7 +60,7 @@ export default async function PlanoEnsinoPage(props: {
     );
   }
 
-  if (sourceDoc && (Number(sourceDoc.paciente_id) !== id || sourceDoc.tipo !== "PLANO_ENSINO")) {
+  if (sourceDoc && (Number(sourceDoc.pacienteId) !== id || sourceDoc.tipo !== "PLANO_ENSINO")) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm text-red-600">Documento informado nao pode ser usado para editar este plano.</p>

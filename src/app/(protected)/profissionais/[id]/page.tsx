@@ -76,8 +76,8 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
 
   const canEdit = canEditAny || Boolean(self && self.id === row.id);
 
-  const nascimentoBr = formatDateBr(row.nascimento);
-  const age = calcAge(row.nascimento);
+  const nascimentoBr = formatDateBr(row.dataNascimento);
+  const age = calcAge(row.dataNascimento);
   const enderecoLines = pickEndereco({
     logradouro: row.logradouro,
     numero: row.numero,

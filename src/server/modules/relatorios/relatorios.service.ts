@@ -133,7 +133,7 @@ export async function consolidateEvolutivoReport(params: {
       id: pacientes.id,
       nome: pacientes.nome,
       cpf: pacientes.cpf,
-      data_nascimento: pacientes.dataNascimento,
+      dataNascimento: pacientes.dataNascimento,
     })
     .from(pacientes)
     .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))

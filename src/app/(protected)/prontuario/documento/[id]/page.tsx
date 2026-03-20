@@ -38,7 +38,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
   }
 
   try {
-    await assertPacienteAccess(user, Number(doc.paciente_id));
+    await assertPacienteAccess(user, Number(doc.pacienteId));
   } catch (error) {
     const err = toAppError(error);
     return (
@@ -61,7 +61,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
             </h1>
           </div>
           <Link
-            href={`/prontuario/${doc.paciente_id}`}
+            href={`/prontuario/${doc.pacienteId}`}
             className="text-sm font-semibold text-[var(--laranja)]"
           >
             &larr; Voltar
@@ -78,12 +78,12 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
           <div className="text-right text-sm text-gray-600">
             <p>Status: {doc.status || "-"}</p>
             <p>Versao: {doc.version ?? "-"}</p>
-            <p>Data: {formatDateBr(String(doc.created_at).slice(0, 10))}</p>
+            <p>Data: {formatDateBr(String(doc.createdAt).slice(0, 10))}</p>
           </div>
         </div>
 
         <p className="mt-3 text-sm text-gray-600">
-          Autor: {doc.autor_nome || doc.created_by_role || "Usuario"}
+          Autor: {doc.autorNome || doc.createdByRole || "Usuario"}
         </p>
 
         {planoEnsino ? (
@@ -139,13 +139,13 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
           {doc.tipo === "PLANO_ENSINO" ? (
             <>
               <Link
-                href={getDocumentoEditarHref(doc.paciente_id, doc.tipo, doc.id)}
+                href={getDocumentoEditarHref(doc.pacienteId, doc.tipo, doc.id)}
                 className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
               >
                 Editar
               </Link>
               <Link
-                href={`/prontuario/${doc.paciente_id}/plano-ensino`}
+                href={`/prontuario/${doc.pacienteId}/plano-ensino`}
                 className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
               >
                 Criar nova versao
