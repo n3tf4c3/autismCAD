@@ -53,9 +53,9 @@ function parsePositiveInt(value: number, label: string, code: string): number {
 function assertCamelCaseEvolucaoInput(input: unknown) {
   if (!input || typeof input !== "object") return;
   const payload = input as Record<string, unknown>;
-  if ("atendimento_id" in payload || "terapeuta_id" in payload) {
+  if ("atendimento_id" in payload || "profissional_id" in payload || "terapeuta_id" in payload) {
     throw new AppError(
-      "Formato legado nao suportado. Use atendimentoId e terapeutaId.",
+      "Formato legado nao suportado. Use atendimentoId e profissionalId.",
       400,
       "INVALID_INPUT"
     );
@@ -65,13 +65,14 @@ function assertCamelCaseEvolucaoInput(input: unknown) {
 async function canAccessEvolucao(
   user: { role?: string | null; id: string | number },
   pacienteId: number,
-  terapeutaId: number | null
+  profissionalId: number | null
 ): Promise<boolean> {
   const access = await assertPacienteAccess(user, pacienteId);
-  if ((canonicalRoleName(user.role ?? null) ?? user.role ?? null) !== "TERAPEUTA") {
+  if ((canonicalRoleName(user.role ?? null) ?? user.role ?? null) !== "PROFISSIONAL") {
     return true;
   }
-  return !!access.terapeutaId && access.terapeutaId === terapeutaId;
+  const accessProfissionalId = access.profissionalId;
+  return !!accessProfissionalId && accessProfissionalId === profissionalId;
 }
 
 export async function criarEvolucaoAction(
@@ -106,7 +107,7 @@ export async function atualizarEvolucaoAction(
     const canAccess = await canAccessEvolucao(
       user,
       Number(evolucaoAtual.pacienteId),
-      Number(evolucaoAtual.terapeutaId)
+      Number(evolucaoAtual.profissionalId)
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
@@ -134,7 +135,7 @@ export async function excluirEvolucaoAction(
     const canAccess = await canAccessEvolucao(
       user,
       Number(evolucaoAtual.pacienteId),
-      Number(evolucaoAtual.terapeutaId)
+      Number(evolucaoAtual.profissionalId)
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 

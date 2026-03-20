@@ -1,6 +1,6 @@
 import { requirePermission } from "@/server/auth/auth";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { CalendarioClient } from "@/app/(protected)/calendario/calendario.client";
 
 export const dynamic = "force-dynamic";
@@ -12,21 +12,21 @@ function normalizeDateParam(value?: string): string | undefined {
 }
 
 export default async function CalendarioPage(props: {
-  searchParams: Promise<{ terapeutaId?: string; data?: string }>;
+  searchParams: Promise<{ profissionalId?: string; data?: string }>;
 }) {
   await requirePermission("consultas:view");
 
-  let terapeutas: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
+  let profissionais: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
   try {
-    await requirePermission("terapeutas:view");
-    const terapeutasRows = await listarTerapeutas({});
-    terapeutas = terapeutasRows.map((item) => ({
+    await requirePermission("profissionais:view");
+    const profissionaisRows = await listarProfissionais({});
+    profissionais = profissionaisRows.map((item) => ({
       id: item.id,
       nome: item.nome,
       especialidade: item.especialidade ?? null,
     }));
   } catch {
-    terapeutas = [];
+    profissionais = [];
   }
 
   let pacientes: Array<{ id: number; nome: string }> = [];
@@ -39,22 +39,22 @@ export default async function CalendarioPage(props: {
   }
 
   const searchParams = await props.searchParams;
-  const terapeutaParam = String(searchParams.terapeutaId ?? "").trim();
-  const hasTherapistInList =
-    terapeutaParam &&
-    terapeutas.some((terapeuta) => String(terapeuta.id) === terapeutaParam);
+  const profissionalParam = String(searchParams.profissionalId ?? "").trim();
+  const hasProfissionalInList =
+    profissionalParam &&
+    profissionais.some((profissional) => String(profissional.id) === profissionalParam);
 
-  const initialTerapeutaId = hasTherapistInList
-    ? terapeutaParam
-    : terapeutas.length === 1
-      ? String(terapeutas[0]?.id ?? "")
+  const initialProfissionalId = hasProfissionalInList
+    ? profissionalParam
+    : profissionais.length === 1
+      ? String(profissionais[0]?.id ?? "")
       : "";
 
   return (
     <CalendarioClient
-      initialTerapeutas={terapeutas}
+      initialProfissionais={profissionais}
       initialPacientes={pacientes}
-      initialTerapeutaId={initialTerapeutaId || undefined}
+      initialProfissionalId={initialProfissionalId || undefined}
       initialData={normalizeDateParam(searchParams.data)}
     />
   );

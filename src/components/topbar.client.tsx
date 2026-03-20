@@ -7,7 +7,7 @@ import { useShell } from "@/components/shell/shell-provider.client";
 function roleLabel(role?: string | null): string {
   const key = String(role || "").trim().toUpperCase();
   if (key === "ADMIN" || key === "ADMIN_GERAL") return "Administrador";
-  if (key === "TERAPEUTA") return "Profissional";
+  if (key === "PROFISSIONAL") return "Profissional";
   if (key === "RECEPCAO") return "Recepcao";
   if (key === "RESPONSAVEL") return "Responsavel";
   return role ? String(role) : "Usuario";

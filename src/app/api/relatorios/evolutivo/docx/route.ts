@@ -12,7 +12,7 @@ function parseQuery(url: string) {
     pacienteId: search.get("pacienteId"),
     from: search.get("from") ?? undefined,
     to: search.get("to") ?? undefined,
-    terapeutaId: search.get("terapeutaId") ?? undefined,
+    profissionalId: search.get("profissionalId") ?? undefined,
   });
 }
 

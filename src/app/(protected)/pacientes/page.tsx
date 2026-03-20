@@ -1,6 +1,6 @@
 import { requirePermission } from "@/server/auth/auth";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { PacientesPageClient } from "@/app/(protected)/pacientes/pacientes-page.client";
 
 export default async function PacientesPage() {
@@ -8,14 +8,14 @@ export default async function PacientesPage() {
 
   const items = await listarPacientes({});
 
-  let terapeutas: Array<{ id: number; nome: string }> = [];
+  let profissionais: Array<{ id: number; nome: string }> = [];
   try {
-    await requirePermission("terapeutas:view");
-    const terapeutasRows = await listarTerapeutas({});
-    terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+    await requirePermission("profissionais:view");
+    const profissionaisRows = await listarProfissionais({});
+    profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
   } catch {
-    terapeutas = [];
+    profissionais = [];
   }
 
-  return <PacientesPageClient initialItems={items} initialTerapeutas={terapeutas} />;
+  return <PacientesPageClient initialItems={items} initialProfissionais={profissionais} />;
 }

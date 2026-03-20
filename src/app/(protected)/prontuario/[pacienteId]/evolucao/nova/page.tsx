@@ -5,7 +5,7 @@ import { atendimentos, pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { canonicalRoleName } from "@/server/auth/permissions";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
 import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
@@ -18,7 +18,7 @@ function parsePositiveInt(value?: string): number | null {
 
 export default async function NovaEvolucaoPage(props: {
   params: Promise<{ pacienteId: string }>;
-  searchParams: Promise<{ atendimentoId?: string; terapeutaId?: string; data?: string }>;
+  searchParams: Promise<{ atendimentoId?: string; profissionalId?: string; data?: string }>;
 }) {
   const { user } = await requirePermission("evolucoes:create");
   const { pacienteId } = await props.params;
@@ -57,24 +57,24 @@ export default async function NovaEvolucaoPage(props: {
     );
   }
 
-  const isTerapeuta = (canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA";
-  let terapeutas: Array<{ id: number; nome: string }> = [];
-  if (!isTerapeuta) {
+  const isProfissional = (canonicalRoleName(user.role) ?? user.role) === "PROFISSIONAL";
+  let profissionais: Array<{ id: number; nome: string }> = [];
+  if (!isProfissional) {
     try {
-      await requirePermission("terapeutas:view");
-      const terapeutasRows = await listarTerapeutas({});
-      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+      await requirePermission("profissionais:view");
+      const profissionaisRows = await listarProfissionais({});
+      profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
     } catch {
-      terapeutas = [];
+      profissionais = [];
     }
   }
 
   const atendimentoQueryId = parsePositiveInt(search.atendimentoId);
-  const terapeutaQueryId = parsePositiveInt(search.terapeutaId);
+  const profissionalQueryId = parsePositiveInt(search.profissionalId);
   const dataQuery = normalizeDateOnlyLoose(search.data ?? "");
 
   let initialAtendimentoId: number | null = null;
-  let initialTerapeutaId: number | null = terapeutaQueryId;
+  let initialProfissionalId: number | null = profissionalQueryId;
   let initialData: string | null = dataQuery;
 
   if (atendimentoQueryId) {
@@ -82,7 +82,7 @@ export default async function NovaEvolucaoPage(props: {
       .select({
         id: atendimentos.id,
         data: atendimentos.data,
-        terapeutaId: atendimentos.terapeutaId,
+        profissionalId: atendimentos.profissionalId,
       })
       .from(atendimentos)
       .where(
@@ -97,8 +97,8 @@ export default async function NovaEvolucaoPage(props: {
     if (atendimento) {
       initialAtendimentoId = Number(atendimento.id);
       initialData = String(atendimento.data).slice(0, 10);
-      initialTerapeutaId =
-        atendimento.terapeutaId == null ? null : Number(atendimento.terapeutaId);
+      initialProfissionalId =
+        atendimento.profissionalId == null ? null : Number(atendimento.profissionalId);
     }
   }
 
@@ -123,13 +123,13 @@ export default async function NovaEvolucaoPage(props: {
 
       <EvolucaoFormClient
         pacienteId={paciente.id}
-        isTerapeuta={isTerapeuta}
-        initialTerapeutas={terapeutas}
+        isProfissional={isProfissional}
+        initialProfissionais={profissionais}
         initial={
-          initialAtendimentoId || initialTerapeutaId || initialData
+          initialAtendimentoId || initialProfissionalId || initialData
             ? {
                 atendimentoId: initialAtendimentoId,
-                terapeutaId: initialTerapeutaId,
+                profissionalId: initialProfissionalId,
                 data: initialData,
               }
             : undefined

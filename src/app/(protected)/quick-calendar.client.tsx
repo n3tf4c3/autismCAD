@@ -15,7 +15,7 @@ type MiniAtendimento = {
   hora_inicio: string;
   hora_fim: string;
   pacienteNome: string;
-  terapeutaNome: string | null;
+  profissionalNome: string | null;
   realizado: boolean | number;
   presenca?: string | null;
 };
@@ -27,7 +27,7 @@ function toMiniAtendimentos(value: unknown): MiniAtendimento[] {
     hora_inicio: row.hora_inicio,
     hora_fim: row.hora_fim,
     pacienteNome: row.pacienteNome,
-    terapeutaNome: row.terapeutaNome,
+    profissionalNome: row.profissionalNome,
     realizado: row.realizado,
     presenca: row.presenca,
   }));
@@ -199,7 +199,7 @@ export function QuickCalendarClient(props: {
                     Horario: {hi}
                     {hf ? ` - ${hf}` : ""}
                   </p>
-                  <p className="text-gray-600">Profissional: {a.terapeutaNome || ""}</p>
+                  <p className="text-gray-600">Profissional: {a.profissionalNome || ""}</p>
                 </div>
               );
             })}

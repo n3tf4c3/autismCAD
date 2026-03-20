@@ -18,13 +18,17 @@ export type EvolutivoReport = {
     ultimoAtendimento: string | null;
   };
   destaques: {
-    ultimasObservacoes: Array<{ data: string; terapeuta_nome: string; texto: string }>;
+    ultimasObservacoes: Array<{
+      data: string;
+      profissional_nome?: string | null;
+      texto: string;
+    }>;
     principaisMotivosAusencia: Array<{ motivo: string; count: number }>;
   };
   resumoAutomatico: { texto: string; regrasDisparadas: string[] };
   atendimentos: Array<{
     data: string;
-    terapeuta_nome: string | null;
+    profissional_nome?: string | null;
     presenca: string;
     duracao_min: number;
     observacoes: string | null;
@@ -122,7 +126,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
     drawLine("- Sem observacoes registradas.");
   } else {
     for (const o of obs) {
-      const prefix = `${o.data} - ${o.terapeuta_nome || "Profissional"}: `;
+      const prefix = `${o.data} - ${o.profissional_nome || "Profissional"}: `;
       const text = `${prefix}${o.texto || ""}`.trim();
       const measure = (t: string) => font.widthOfTextAtSize(t, 11);
       const lines = wrapText(text, contentWidth, measure);
@@ -153,7 +157,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   } else {
     for (const a of atend.slice(0, 40)) {
       const obsText = (a.observacoes || a.resumo_repasse || a.motivo || "").trim();
-      const row = `${a.data} | ${(a.terapeuta_nome || "Profissional").trim()} | ${a.presenca} | ${a.duracao_min || 0} min | ${obsText}`;
+      const row = `${a.data} | ${(a.profissional_nome || "Profissional").trim()} | ${a.presenca} | ${a.duracao_min || 0} min | ${obsText}`;
       const measure = (t: string) => font.widthOfTextAtSize(t, 9);
       const lines = wrapText(row, contentWidth, measure);
       for (const l of lines) {

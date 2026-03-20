@@ -61,12 +61,12 @@ function pickEndereco(row: {
 export default async function ProfissionalDetalhePage(props: PageProps) {
   const user = await requireUser();
   const access = await loadUserAccess(Number(user.id));
-  const canView = hasPermissionKey(access.permissions, "terapeutas:view");
+  const canView = hasPermissionKey(access.permissions, "profissionais:view");
   if (!canView) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
   const { id } = idParamSchema.parse(await props.params);
-  const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
-  const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
+  const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
+  const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
   const [row, self] = await Promise.all([
     obterProfissionalDetalhe(id),
     canEditAny || !canEditSelf ? Promise.resolve(null) : obterProfissionalPorUsuario(Number(user.id)),
@@ -141,7 +141,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
                 </Link>
               ) : null}
               <Link
-                href={`/calendario?terapeutaId=${row.id}`}
+                href={`/calendario?profissionalId=${row.id}`}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 Agenda
@@ -189,7 +189,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
           profissionalNome={row.nome}
           ativo={Boolean(row.ativo)}
           canArchive={canEdit}
-          canDelete={hasPermissionKey(access.permissions, "terapeutas:delete")}
+          canDelete={hasPermissionKey(access.permissions, "profissionais:delete")}
         />
       </div>
     </main>

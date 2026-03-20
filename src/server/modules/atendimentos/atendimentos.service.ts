@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
-import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
+import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import {
   AtendimentosQueryInput,
   ExcluirDiaInput,
@@ -55,6 +55,14 @@ function parseDateOnlyUtc(value: string): Date {
   return dt;
 }
 
+function resolveProfissionalId(input: { profissionalId?: number | null }) {
+  const id = input.profissionalId ?? null;
+  if (!id) {
+    throw new AppError("Profissional obrigatorio", 400, "INVALID_INPUT");
+  }
+  return Number(id);
+}
+
 type DbExecutor = typeof db;
 
 async function acquireAtendimentoScheduleLock(executor: DbExecutor, pacienteId: number, data: string) {
@@ -93,6 +101,7 @@ async function salvarAtendimentoDb(
   input: SaveAtendimentoInput,
   id?: number | null
 ) {
+  const profissionalId = resolveProfissionalId(input);
   const data = normalizeDateRequired(input.data);
   const horaInicio = normalizeTime(input.horaInicio);
   const horaFim = normalizeTime(input.horaFim);
@@ -132,7 +141,7 @@ async function salvarAtendimentoDb(
       .update(atendimentos)
       .set({
         pacienteId: input.pacienteId,
-        terapeutaId: input.terapeutaId,
+        profissionalId,
         data,
         horaInicio,
         horaFim,
@@ -157,7 +166,7 @@ async function salvarAtendimentoDb(
     .insert(atendimentos)
     .values({
       pacienteId: input.pacienteId,
-      terapeutaId: input.terapeutaId,
+      profissionalId,
       data,
       horaInicio,
       horaFim,
@@ -177,7 +186,8 @@ async function salvarAtendimentoDb(
 export async function listarAtendimentos(filters: AtendimentosQueryInput) {
   const where = [isNull(atendimentos.deletedAt)];
   if (filters.pacienteId) where.push(eq(atendimentos.pacienteId, filters.pacienteId));
-  if (filters.terapeutaId) where.push(eq(atendimentos.terapeutaId, filters.terapeutaId));
+  const profissionalId = filters.profissionalId ?? null;
+  if (profissionalId) where.push(eq(atendimentos.profissionalId, profissionalId));
   if (filters.dataIni) where.push(gte(atendimentos.data, filters.dataIni));
   if (filters.dataFim) where.push(lte(atendimentos.data, filters.dataFim));
 
@@ -185,7 +195,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
     .select({
       id: atendimentos.id,
       pacienteId: atendimentos.pacienteId,
-      terapeutaId: atendimentos.terapeutaId,
+      profissionalId: atendimentos.profissionalId,
       data: atendimentos.data,
       horaInicio: atendimentos.horaInicio,
       horaFim: atendimentos.horaFim,
@@ -201,20 +211,20 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
       createdAt: atendimentos.createdAt,
       updatedAt: atendimentos.updatedAt,
       pacienteNome: pacientes.nome,
-      terapeutaNome: terapeutas.nome,
+      profissionalNome: profissionaisTabela.nome,
     })
     .from(atendimentos)
     .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
-    .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
     .where(and(...where))
     .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id));
 
   return rows.map((row) => ({
     id: row.id,
     pacienteId: row.pacienteId,
-    terapeutaId: row.terapeutaId,
+    profissionalId: row.profissionalId,
     pacienteNome: row.pacienteNome,
-    terapeutaNome: row.terapeutaNome,
+    profissionalNome: row.profissionalNome,
     data: row.data,
     horaInicio: row.horaInicio,
     horaFim: row.horaFim,
@@ -262,6 +272,7 @@ export async function softDeleteAtendimento(id: number, deletedByUserId?: number
 }
 
 export async function criarRecorrentes(payload: RecorrenteInput) {
+  const profissionalId = resolveProfissionalId(payload);
   const inicio = parseDateOnlyUtc(payload.periodoInicio);
   const fim = parseDateOnlyUtc(payload.periodoFim);
   if (inicio > fim) {
@@ -291,7 +302,7 @@ export async function criarRecorrentes(payload: RecorrenteInput) {
           tx,
           {
             pacienteId: payload.pacienteId,
-            terapeutaId: payload.terapeutaId,
+            profissionalId,
             data,
             horaInicio: payload.horaInicio,
             horaFim: payload.horaFim,
@@ -345,7 +356,8 @@ export async function excluirDia(payload: ExcluirDiaInput, deletedByUserId?: num
     sql`${atendimentos.presenca} <> 'Ausente'`,
     eq(atendimentos.realizado, false),
   ];
-  if (payload.terapeutaId) where.push(eq(atendimentos.terapeutaId, payload.terapeutaId));
+  const profissionalId = payload.profissionalId ?? null;
+  if (profissionalId) where.push(eq(atendimentos.profissionalId, profissionalId));
 
   const removed = await runDbTransaction(
     async (tx) =>

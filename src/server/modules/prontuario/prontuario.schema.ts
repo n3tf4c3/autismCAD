@@ -34,6 +34,7 @@ export const salvarDocumentoSchema = z.object({
 export type SalvarDocumentoInput = z.infer<typeof salvarDocumentoSchema>;
 
 const evolucaoTextoSchema = z.string().trim().optional().nullable();
+const evolucaoProfissionalIdSchema = z.coerce.number().int().positive().optional().nullable();
 
 const evolucaoItemSchema = z
   .object({
@@ -87,7 +88,7 @@ export const evolucaoPayloadSchema = z
 export const criarEvolucaoSchema = z.object({
   data: z.string().trim().optional(),
   atendimentoId: z.coerce.number().int().positive().optional().nullable(),
-  terapeutaId: z.coerce.number().int().positive().optional().nullable(),
+  profissionalId: evolucaoProfissionalIdSchema,
   payload: evolucaoPayloadSchema.optional().default({}),
 });
 

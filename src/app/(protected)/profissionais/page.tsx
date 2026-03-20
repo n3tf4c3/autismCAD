@@ -3,7 +3,7 @@ import { listarProfissionais } from "@/server/modules/profissionais/profissionai
 import { ProfissionaisPageClient } from "@/app/(protected)/profissionais/profissionais-page.client";
 
 export default async function ProfissionaisPage() {
-  await requirePermission("terapeutas:view");
+  await requirePermission("profissionais:view");
 
   const items = await listarProfissionais({});
 

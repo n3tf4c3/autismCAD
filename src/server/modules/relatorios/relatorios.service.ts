@@ -2,13 +2,13 @@ import "server-only";
 
 import { and, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, evolucoes, pacientes, terapeutas } from "@/server/db/schema";
+import { atendimentos, evolucoes, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { obterTerapeutaPorUsuario } from "@/server/modules/profissionais/profissionais.service";
+import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 import type {
   AssiduidadeQueryInput,
@@ -22,8 +22,8 @@ type EvolutivoAtendimentoInternal = {
   hora_fim: string | null;
   duracao_min: number;
   presenca: string;
-  terapeuta_id: number | null;
-  terapeuta_nome: string | null;
+  profissional_id: number | null;
+  profissional_nome: string | null;
   motivo: string | null;
   observacoes: string | null;
   resumo_repasse: string | null;
@@ -36,8 +36,8 @@ type EvolutivoAtendimentoContract = {
   hora_fim: string | null;
   duracao_min: number;
   presenca: string;
-  terapeuta_id: number | null;
-  terapeuta_nome: string | null;
+  profissional_id: number | null;
+  profissional_nome: string | null;
   motivo: string | null;
   observacoes: string | null;
   resumo_repasse: string | null;
@@ -54,8 +54,8 @@ function toEvolutivoAtendimentoContract(
     hora_fim: atendimento.hora_fim,
     duracao_min: atendimento.duracao_min,
     presenca: atendimento.presenca,
-    terapeuta_id: atendimento.terapeuta_id,
-    terapeuta_nome: atendimento.terapeuta_nome,
+    profissional_id: atendimento.profissional_id,
+    profissional_nome: atendimento.profissional_nome,
     motivo: atendimento.motivo,
     observacoes: atendimento.observacoes,
     resumo_repasse: atendimento.resumo_repasse,
@@ -92,17 +92,17 @@ function normalizeTextoObservacao(a: {
   };
 }
 
-async function resolveTerapeutaFiltro(params: {
+async function resolveProfissionalFiltro(params: {
   roleCanon: string | null;
   userId: number;
-  terapeutaId?: number | null;
+  profissionalId?: number | null;
 }): Promise<number | null> {
-  if (params.roleCanon === "TERAPEUTA") {
-    const terapeuta = await obterTerapeutaPorUsuario(params.userId);
-    if (!terapeuta) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
-    return terapeuta.id;
+  if (params.roleCanon === "PROFISSIONAL") {
+    const profissional = await obterProfissionalPorUsuario(params.userId);
+    if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    return profissional.id;
   }
-  return params.terapeutaId ? Number(params.terapeutaId) : null;
+  return params.profissionalId ? Number(params.profissionalId) : null;
 }
 
 export async function consolidateEvolutivoReport(params: {
@@ -119,13 +119,13 @@ export async function consolidateEvolutivoReport(params: {
 
   const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
 
-  // Enforce paciente access (admins ok; terapeutas must be linked)
+  // Enforce paciente access (admins ok; profissionais must be linked)
   await assertPacienteAccess(params.user, pacienteId);
 
-  const terapeutaFiltro = await resolveTerapeutaFiltro({
+  const profissionalFiltro = await resolveProfissionalFiltro({
     roleCanon,
     userId: Number(params.user.id),
-    terapeutaId: params.query.terapeutaId ?? null,
+    profissionalId: params.query.profissionalId ?? null,
   });
 
   const [paciente] = await db
@@ -147,7 +147,7 @@ export async function consolidateEvolutivoReport(params: {
     gte(atendimentos.data, from),
     lte(atendimentos.data, to),
   ];
-  if (terapeutaFiltro) whereAtend.push(eq(atendimentos.terapeutaId, terapeutaFiltro));
+  if (profissionalFiltro) whereAtend.push(eq(atendimentos.profissionalId, profissionalFiltro));
 
   const atendRaw = await db
     .select({
@@ -156,20 +156,24 @@ export async function consolidateEvolutivoReport(params: {
       hora_inicio: atendimentos.horaInicio,
       hora_fim: atendimentos.horaFim,
       presenca: atendimentos.presenca,
-      terapeuta_id: atendimentos.terapeutaId,
-      terapeuta_nome: terapeutas.nome,
+      profissional_id: atendimentos.profissionalId,
+      profissional_nome: profissionaisTabela.nome,
       motivo: atendimentos.motivo,
       observacoes: atendimentos.observacoes,
       resumo_repasse: atendimentos.resumoRepasse,
     })
     .from(atendimentos)
-    .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
     .where(and(...whereAtend))
     .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id));
 
   const atend = atendRaw.map((a) => {
     const dur = calcularDuracaoMinutos(a.hora_inicio, a.hora_fim);
-    return { ...a, data: String(a.data).slice(0, 10), duracao_min: dur };
+    return {
+      ...a,
+      data: String(a.data).slice(0, 10),
+      duracao_min: dur,
+    };
   });
 
   const indicadores = {
@@ -206,51 +210,52 @@ export async function consolidateEvolutivoReport(params: {
       Ausente: indicadores.ausentes,
       "Nao informado": indicadores.naoInformado,
     },
-    porTerapeuta: [] as Array<{
-      terapeuta_id: number | null;
-      terapeuta_nome: string;
+    porProfissional: [] as Array<{
+      profissional_id: number | null;
+      profissional_nome: string;
       total: number;
       presentes: number;
       ausentes: number;
     }>,
   };
-  type DistTerapeuta = {
-    terapeuta_id: number | null;
-    terapeuta_nome: string;
+  type DistProfissional = {
+    profissional_id: number | null;
+    profissional_nome: string;
     total: number;
     presentes: number;
     ausentes: number;
   };
-  const mapTer = new Map<number, DistTerapeuta>();
+  const mapProfissionais = new Map<number, DistProfissional>();
   atend.forEach((a) => {
-    const key = a.terapeuta_id ? Number(a.terapeuta_id) : 0;
-    if (!mapTer.has(key)) {
-      mapTer.set(key, {
-        terapeuta_id: a.terapeuta_id ? Number(a.terapeuta_id) : null,
-        terapeuta_nome: a.terapeuta_nome || "N/A",
+    const key = a.profissional_id ? Number(a.profissional_id) : 0;
+    if (!mapProfissionais.has(key)) {
+      mapProfissionais.set(key, {
+        profissional_id: a.profissional_id ? Number(a.profissional_id) : null,
+        profissional_nome: a.profissional_nome || "N/A",
         total: 0,
         presentes: 0,
         ausentes: 0,
       });
     }
-    const obj = mapTer.get(key);
+    const obj = mapProfissionais.get(key);
     if (!obj) return;
     obj.total += 1;
     if (a.presenca === "Presente") obj.presentes += 1;
     if (a.presenca === "Ausente") obj.ausentes += 1;
   });
-  distribuicao.porTerapeuta = Array.from(mapTer.values());
+  const distribuicaoProfissionais = Array.from(mapProfissionais.values());
+  distribuicao.porProfissional = distribuicaoProfissionais;
 
   const evols = await db
     .select({
       id: evolucoes.id,
       data: evolucoes.data,
-      terapeuta_id: evolucoes.terapeutaId,
-      terapeuta_nome: terapeutas.nome,
+      profissional_id: evolucoes.profissionalId,
+      profissional_nome: profissionaisTabela.nome,
       payload: evolucoes.payload,
     })
     .from(evolucoes)
-    .leftJoin(terapeutas, eq(terapeutas.id, evolucoes.terapeutaId))
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, evolucoes.profissionalId))
     .where(
       and(
         eq(evolucoes.pacienteId, pacienteId),
@@ -268,7 +273,7 @@ export async function consolidateEvolutivoReport(params: {
 
   const observacoes: Array<{
     data: string;
-    terapeuta_nome: string;
+    profissional_nome: string;
     texto: string;
     origem: string;
   }> = [];
@@ -279,7 +284,7 @@ export async function consolidateEvolutivoReport(params: {
     if (obs) {
       observacoes.push({
         data: a.data,
-        terapeuta_nome: a.terapeuta_nome || "Profissional",
+        profissional_nome: a.profissional_nome || "Profissional",
         texto: obs.texto,
         origem: obs.origem,
       });
@@ -303,7 +308,7 @@ export async function consolidateEvolutivoReport(params: {
     if (textos.length) {
       observacoes.push({
         data: String(e.data).slice(0, 10),
-        terapeuta_nome: e.terapeuta_nome || "Profissional",
+        profissional_nome: e.profissional_nome || "Profissional",
         texto: textos.join(" | "),
         origem: "evolucao",
       });
@@ -354,7 +359,10 @@ export async function consolidateEvolutivoReport(params: {
   return {
     paciente,
     periodo: { from, to },
-    filtros: { terapeutaId: terapeutaFiltro, role: roleCanon },
+    filtros: {
+      profissionalId: profissionalFiltro,
+      role: roleCanon,
+    },
     indicadores,
     distribuicao,
     destaques: { ultimasObservacoes, principaisMotivosAusencia },
@@ -368,8 +376,8 @@ export async function consolidateEvolutivoReport(params: {
         hora_fim: a.hora_fim,
         duracao_min: a.duracao_min,
         presenca: a.presenca,
-        terapeuta_id: a.terapeuta_id,
-        terapeuta_nome: a.terapeuta_nome,
+        profissional_id: a.profissional_id,
+        profissional_nome: a.profissional_nome,
         motivo: a.motivo,
         observacoes: a.observacoes,
         resumo_repasse: a.resumo_repasse,
@@ -389,10 +397,10 @@ export async function consolidateAssiduidadeReport(params: {
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
-  const terapeutaFiltro = await resolveTerapeutaFiltro({
+  const profissionalFiltro = await resolveProfissionalFiltro({
     roleCanon,
     userId,
-    terapeutaId: params.query.terapeutaId ?? null,
+    profissionalId: params.query.profissionalId ?? null,
   });
 
   const where = [
@@ -400,7 +408,7 @@ export async function consolidateAssiduidadeReport(params: {
     gte(atendimentos.data, from),
     lte(atendimentos.data, to),
   ];
-  if (terapeutaFiltro) where.push(eq(atendimentos.terapeutaId, terapeutaFiltro));
+  if (profissionalFiltro) where.push(eq(atendimentos.profissionalId, profissionalFiltro));
   if (params.query.presenca) where.push(eq(atendimentos.presenca, params.query.presenca));
   const nomeFiltro = params.query.pacienteNome?.trim() || null;
   if (nomeFiltro) {
@@ -414,11 +422,11 @@ export async function consolidateAssiduidadeReport(params: {
       paciente_nome: pacientes.nome,
       data: atendimentos.data,
       presenca: atendimentos.presenca,
-      terapeuta_nome: terapeutas.nome,
+      profissional_nome: profissionaisTabela.nome,
     })
     .from(atendimentos)
     .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
-    .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
     .where(and(...where));
 
   const rows = await baseFrom.orderBy(desc(atendimentos.data), desc(atendimentos.id));
@@ -439,7 +447,7 @@ export async function consolidateAssiduidadeReport(params: {
     faltas: number;
     neutros: number;
     ultimo: string;
-    terapeutas: Set<string>;
+    profissionais: Set<string>;
   }>();
 
   rows.forEach((a) => {
@@ -452,7 +460,7 @@ export async function consolidateAssiduidadeReport(params: {
         faltas: 0,
         neutros: 0,
         ultimo: "",
-        terapeutas: new Set<string>(),
+        profissionais: new Set<string>(),
       });
     }
     const item = mapa.get(key);
@@ -463,7 +471,7 @@ export async function consolidateAssiduidadeReport(params: {
     else item.neutros += 1;
     const d = String(a.data).slice(0, 10);
     if (d && (!item.ultimo || d > item.ultimo)) item.ultimo = d;
-    if (a.terapeuta_nome) item.terapeutas.add(String(a.terapeuta_nome));
+    if (a.profissional_nome) item.profissionais.add(String(a.profissional_nome));
   });
 
   const linhas = Array.from(mapa.values())
@@ -478,14 +486,19 @@ export async function consolidateAssiduidadeReport(params: {
         taxa: taxaLinha,
         neutros: l.neutros,
         ultimo: l.ultimo,
-        terapeutas: Array.from(l.terapeutas).join(", ") || "-",
+        profissionais: Array.from(l.profissionais).join(", ") || "-",
       };
     })
     .sort((a, b) => (a.taxa !== b.taxa ? a.taxa - b.taxa : a.pacienteNome.localeCompare(b.pacienteNome)));
 
   return {
     periodo: { from, to },
-    filtros: { terapeutaId: terapeutaFiltro, pacienteNome: nomeFiltro, presenca: params.query.presenca ?? null, role: roleCanon },
+    filtros: {
+      profissionalId: profissionalFiltro,
+      pacienteNome: nomeFiltro,
+      presenca: params.query.presenca ?? null,
+      role: roleCanon,
+    },
     resumo: { total, presentes, faltas, semRegistro, taxa },
     linhas,
   };

@@ -26,7 +26,12 @@ type ImpressaoReport = {
   };
   resumoAutomatico: { texto: string; regrasDisparadas: string[] };
   destaques: {
-    ultimasObservacoes: Array<{ data: string; terapeuta_nome: string; texto: string; origem: string }>;
+    ultimasObservacoes: Array<{
+      data: string;
+      profissional_nome?: string | null;
+      texto: string;
+      origem: string;
+    }>;
     principaisMotivosAusencia: Array<{ motivo: string; count: number }>;
   };
   atendimentos: Array<{
@@ -34,7 +39,7 @@ type ImpressaoReport = {
     data: string;
     hora_inicio?: string | null;
     hora_fim?: string | null;
-    terapeuta_nome: string | null;
+    profissional_nome?: string | null;
     presenca: string;
     duracao_min: number;
     observacoes: string | null;
@@ -1051,12 +1056,12 @@ export function DevolutivaImpressaoClient(props: {
                 <div className="space-y-3">
                   {feedbackItems.map((item, index) => (
                     <article
-                      key={`${item.data}-${item.terapeuta_nome}-${index}`}
+                      key={`${item.data}-${item.profissional_nome}-${index}`}
                       className="border border-[#e7ddd2] bg-[#fffdfa] px-4 py-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b7764]">
                         <span>{fmtDate(item.data)}</span>
-                        <span>{item.terapeuta_nome || "Profissional"}</span>
+                        <span>{item.profissional_nome || "Profissional"}</span>
                         <span>{item.origem || "registro clinico"}</span>
                       </div>
                       <p className="mt-3 text-sm leading-7 text-slate-700">{item.texto || "-"}</p>

@@ -4,8 +4,8 @@ import { canonicalRoleName, ADMIN_ROLES } from "@/server/auth/permissions";
 import { loadUserAccess } from "@/server/auth/access";
 import { AppError } from "@/server/shared/errors";
 import {
-  obterTerapeutaPorUsuario,
-  terapeutaAtendePaciente,
+  obterProfissionalPorUsuario,
+  profissionalAtendePaciente,
 } from "@/server/modules/profissionais/profissionais.service";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
@@ -29,21 +29,31 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
   }
 
   const isAdmin = access.roles.some((role) => ADMIN_ROLES.has(canonicalRoleName(role) ?? role));
-  if (isAdmin) return { userId, access, terapeutaId: null as number | null };
+  if (isAdmin) {
+    return {
+      userId,
+      access,
+      profissionalId: null as number | null,
+    };
+  }
 
-  const isTerapeuta = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "TERAPEUTA");
-  if (isTerapeuta) {
-    const terapeuta = await obterTerapeutaPorUsuario(userId);
-    if (!terapeuta) {
+  const isProfissional = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "PROFISSIONAL");
+  if (isProfissional) {
+    const profissional = await obterProfissionalPorUsuario(userId);
+    if (!profissional) {
       throw new AppError("Profissional sem vinculo", 403, "FORBIDDEN");
     }
 
-    const vinculado = await terapeutaAtendePaciente(pacienteId, terapeuta.id);
+    const vinculado = await profissionalAtendePaciente(pacienteId, profissional.id);
     if (!vinculado) {
       throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
     }
 
-    return { userId, access, terapeutaId: terapeuta.id };
+    return {
+      userId,
+      access,
+      profissionalId: profissional.id,
+    };
   }
 
   const isResponsavel = access.roles.some(
@@ -62,5 +72,9 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
     throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
   }
 
-  return { userId, access, terapeutaId: null as number | null };
+  return {
+    userId,
+    access,
+    profissionalId: null as number | null,
+  };
 }

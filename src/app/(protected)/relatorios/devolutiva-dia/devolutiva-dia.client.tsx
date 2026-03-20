@@ -22,14 +22,19 @@ type DiaReport = {
     taxaPresencaPercent: number;
   };
   destaques: {
-    ultimasObservacoes: Array<{ data: string; terapeuta_nome: string; texto: string; origem: string }>;
+    ultimasObservacoes: Array<{
+      data: string;
+      profissional_nome?: string | null;
+      texto: string;
+      origem: string;
+    }>;
   };
   atendimentos: Array<{
     id: number;
     data: string;
     hora_inicio?: string | null;
     hora_fim?: string | null;
-    terapeuta_nome: string | null;
+    profissional_nome?: string | null;
     presenca: string;
     duracao_min: number;
     observacoes: string | null;
@@ -286,14 +291,14 @@ export function DevolutivaDiaClient(props: {
     const devolutivasProfissionais = (report.destaques?.ultimasObservacoes || [])
       .map((o) => ({
         data: fmtDate(o.data),
-        terapeuta: (o.terapeuta_nome || "Profissional").replace(/\s+/g, " ").trim(),
+        profissional: (o.profissional_nome || "Profissional").replace(/\s+/g, " ").trim(),
         texto: String(o.texto || "").replace(/\s+/g, " ").trim(),
       }))
       .filter((o) => o.texto);
     if (devolutivasProfissionais.length) {
       linhas.push("Devolutiva do profissional:");
       devolutivasProfissionais.forEach((o) => {
-        linhas.push(`- ${o.data} | ${o.terapeuta}: ${o.texto}`);
+        linhas.push(`- ${o.data} | ${o.profissional}: ${o.texto}`);
       });
     }
     return linhas.join("\n");
@@ -301,9 +306,9 @@ export function DevolutivaDiaClient(props: {
 
   const feedbackItems = useMemo(() => {
     return (report?.destaques?.ultimasObservacoes || []).map((item, index) => ({
-      id: `${item.data}-${item.terapeuta_nome}-${index}`,
+      id: `${item.data}-${item.profissional_nome}-${index}`,
       dateLabel: fmtDate(item.data),
-      professional: item.terapeuta_nome || "Profissional",
+      professional: item.profissional_nome || "Profissional",
       origin: item.origem || "devolutiva",
       text: item.texto || "",
     }));
@@ -588,7 +593,7 @@ export function DevolutivaDiaClient(props: {
                         <p className="text-sm font-semibold text-[var(--marrom)]">
                           {fmtHour(a.hora_inicio)} - {fmtHour(a.hora_fim)}
                         </p>
-                        <p className="mt-1 text-xs text-gray-600">{a.terapeuta_nome || "Profissional"}</p>
+                        <p className="mt-1 text-xs text-gray-600">{a.profissional_nome || "Profissional"}</p>
                       </div>
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700">
                         {a.presenca}
@@ -622,7 +627,7 @@ export function DevolutivaDiaClient(props: {
                       <td className="px-4 py-2">
                         {fmtHour(a.hora_inicio)} - {fmtHour(a.hora_fim)}
                       </td>
-                      <td className="px-4 py-2">{a.terapeuta_nome || "Profissional"}</td>
+                      <td className="px-4 py-2">{a.profissional_nome || "Profissional"}</td>
                       <td className="px-4 py-2">{a.presenca}</td>
                       <td className="px-4 py-2">{a.duracao_min || "-"}</td>
                       <td className="px-4 py-2 text-gray-700">

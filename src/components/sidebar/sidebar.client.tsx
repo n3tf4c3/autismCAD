@@ -127,7 +127,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
           activeWhen: (p) => isActivePrefix("/pacientes", p),
         },
         {
-          key: "terapeutas",
+          key: "profissionais",
           label: "Profissionais",
           icon: "🧑‍⚕️",
           href: "/profissionais",

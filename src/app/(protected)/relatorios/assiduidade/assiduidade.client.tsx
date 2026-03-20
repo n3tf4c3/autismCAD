@@ -11,7 +11,7 @@ type Profissional = { id: number; nome: string };
 type Report = {
   periodo: { from: string; to: string };
   filtros: {
-    terapeutaId: number | null;
+    profissionalId: number | null;
     pacienteNome: string | null;
     presenca: string | null;
     role: string | null;
@@ -31,7 +31,7 @@ type Report = {
     taxa: number;
     neutros: number;
     ultimo: string;
-    terapeutas: string;
+    profissionais: string;
   }>;
 };
 
@@ -70,16 +70,16 @@ function unwrapAction<T>(result: ActionResult<T>): T {
 }
 
 export function AssiduidadeClient(props: {
-  canChooseTerapeuta: boolean;
-  initialTerapeutas: Profissional[];
+  canChooseProfissional: boolean;
+  initialProfissionais: Profissional[];
 }) {
   const [pacienteNome, setPacienteNome] = useState("");
-  const [terapeutaId, setTerapeutaId] = useState("");
+  const [profissionalId, setProfissionalId] = useState("");
   const [from, setFrom] = useState(ymdMinusDays(29));
   const [to, setTo] = useState(ymdToday());
   const [presenca, setPresenca] = useState("");
 
-  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
+  const [profissionais] = useState<Profissional[]>(() => props.initialProfissionais);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -91,8 +91,8 @@ export function AssiduidadeClient(props: {
     try {
       const filters = {
         pacienteNome: pacienteNome.trim() || undefined,
-        terapeutaId:
-          props.canChooseTerapeuta && terapeutaId ? Number(terapeutaId) : undefined,
+        profissionalId:
+          props.canChooseProfissional && profissionalId ? Number(profissionalId) : undefined,
         from: from || undefined,
         to: to || undefined,
         presenca: presenca || undefined,
@@ -134,13 +134,13 @@ export function AssiduidadeClient(props: {
           <label className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-[var(--marrom)]">Profissional</span>
             <select
-              value={terapeutaId}
-              onChange={(e) => setTerapeutaId(e.target.value)}
+              value={profissionalId}
+              onChange={(e) => setProfissionalId(e.target.value)}
               className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30 disabled:bg-gray-50"
-              disabled={!props.canChooseTerapeuta}
+              disabled={!props.canChooseProfissional}
             >
               <option value="">Todos</option>
-              {terapeutas.map((t) => (
+              {profissionais.map((t) => (
                 <option key={t.id} value={String(t.id)}>
                   {t.nome}
                 </option>
@@ -193,7 +193,7 @@ export function AssiduidadeClient(props: {
             type="button"
             onClick={() => {
               setPacienteNome("");
-              setTerapeutaId("");
+              setProfissionalId("");
               setFrom(ymdMinusDays(29));
               setTo(ymdToday());
               setPresenca("");
@@ -280,7 +280,7 @@ export function AssiduidadeClient(props: {
                     </td>
                     <td className="px-6 py-3 text-gray-700">{l.neutros}</td>
                     <td className="px-6 py-3 text-gray-700">{fmtDate(l.ultimo)}</td>
-                    <td className="px-6 py-3 text-gray-700">{l.terapeutas || "-"}</td>
+                    <td className="px-6 py-3 text-gray-700">{l.profissionais || "-"}</td>
                   </tr>
                 ))
               ) : (

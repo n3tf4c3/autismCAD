@@ -17,7 +17,7 @@ type Paciente = { id: number; nome: string };
 
 type BloqueioAgenda = {
   id: string;
-  terapeutaId: number;
+  profissionalId: number;
   data: string;
   horaInicio: string;
   horaFim: string;
@@ -90,7 +90,7 @@ function parseBloqueiosStorage(): BloqueioAgenda[] {
         const rec = item as Record<string, unknown>;
         return {
           id: String(rec.id ?? ""),
-          terapeutaId: Number(rec.terapeutaId ?? 0),
+          profissionalId: Number(rec.profissionalId ?? 0),
           data: String(rec.data ?? "").slice(0, 10),
           horaInicio: String(rec.horaInicio ?? "").slice(0, 5),
           horaFim: String(rec.horaFim ?? "").slice(0, 5),
@@ -100,8 +100,8 @@ function parseBloqueiosStorage(): BloqueioAgenda[] {
       .filter(
         (b) =>
           b.id &&
-          Number.isFinite(b.terapeutaId) &&
-          b.terapeutaId > 0 &&
+          Number.isFinite(b.profissionalId) &&
+          b.profissionalId > 0 &&
           /^\d{4}-\d{2}-\d{2}$/.test(b.data) &&
           /^\d{2}:\d{2}$/.test(b.horaInicio) &&
           /^\d{2}:\d{2}$/.test(b.horaFim)
@@ -120,15 +120,15 @@ function saveBloqueiosStorage(items: BloqueioAgenda[]) {
 }
 
 export function CalendarioClient(props: {
-  initialTerapeutas: Profissional[];
+  initialProfissionais: Profissional[];
   initialPacientes: Paciente[];
-  initialTerapeutaId?: string;
+  initialProfissionalId?: string;
   initialData?: string;
 }) {
   const initialDateParsed = parseYmdToLocalDate(props.initialData ?? "");
   const initialDate = initialDateParsed ? ymdLocal(initialDateParsed) : ymdLocal(new Date());
 
-  const [terapeutaId, setTerapeutaId] = useState<string>(() => props.initialTerapeutaId ?? "");
+  const [profissionalId, setProfissionalId] = useState<string>(() => props.initialProfissionalId ?? "");
   const [weekStart, setWeekStart] = useState<Date>(() =>
     initialDateParsed ? weekMonday(initialDateParsed) : weekMonday()
   );
@@ -167,11 +167,11 @@ export function CalendarioClient(props: {
     });
   }, [weekStart]);
 
-  const terapeutas = props.initialTerapeutas;
+  const profissionais = props.initialProfissionais;
   const pacientes = props.initialPacientes;
 
   async function loadAgenda() {
-    const id = terapeutaId ? Number(terapeutaId) : 0;
+    const id = profissionalId ? Number(profissionalId) : 0;
     if (!id) {
       setAgenda([]);
       return;
@@ -185,14 +185,14 @@ export function CalendarioClient(props: {
     end.setDate(end.getDate() + 5);
 
     const params = new URLSearchParams();
-    params.set("terapeutaId", String(id));
+    params.set("profissionalId", String(id));
     params.set("dataIni", ymdLocal(start));
     params.set("dataFim", ymdLocal(end));
 
     try {
       const dataJson = unwrapAction(
         await listarAtendimentosAction({
-          terapeutaId: id,
+          profissionalId: id,
           dataIni: params.get("dataIni") ?? undefined,
           dataFim: params.get("dataFim") ?? undefined,
         })
@@ -207,31 +207,31 @@ export function CalendarioClient(props: {
   }
 
   async function reservar() {
-    if (!terapeutaId || !inicio || !fim) return;
+    if (!profissionalId || !inicio || !fim) return;
     if (!bloquearHorario && !pacienteId) return;
     if (reservaModo === "dia" && !data) return;
     if (reservaModo === "periodo" && (!periodoInicio || !periodoFim || !diasSemana.size)) return;
     setSaving(true);
     setError(null);
     try {
-      const terapeutaNum = Number(terapeutaId);
-      if (!Number.isFinite(terapeutaNum) || terapeutaNum <= 0) {
+      const profissionalNum = Number(profissionalId);
+      if (!Number.isFinite(profissionalNum) || profissionalNum <= 0) {
         throw new Error("Selecione um profissional");
       }
       if (inicio >= fim) {
         throw new Error("Horario inicial deve ser menor que o final");
       }
 
-      const bloqueiosTerapeuta = bloqueios.filter((b) => b.terapeutaId === terapeutaNum);
+      const bloqueiosProfissional = bloqueios.filter((b) => b.profissionalId === profissionalNum);
       const hasAgendaConflict = (dateStr: string) =>
         agenda.some(
           (a) =>
             String(a.data).slice(0, 10) === dateStr &&
-            Number(a.terapeuta_id ?? 0) === terapeutaNum &&
+            Number(a.profissional_id ?? 0) === profissionalNum &&
             overlaps(inicio, fim, String(a.hora_inicio).slice(0, 5), String(a.hora_fim).slice(0, 5))
         );
       const hasBlockConflict = (dateStr: string) =>
-        bloqueiosTerapeuta.some(
+        bloqueiosProfissional.some(
           (b) => b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim)
         );
 
@@ -242,12 +242,12 @@ export function CalendarioClient(props: {
           if (hasAgendaConflict(dateStr)) {
             throw new Error(`Ja existe reserva neste horario em ${dateStr}`);
           }
-          if (next.some((b) => b.terapeutaId === terapeutaNum && b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim))) {
+          if (next.some((b) => b.profissionalId === profissionalNum && b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim))) {
             throw new Error(`Ja existe bloqueio neste horario em ${dateStr}`);
           }
           next.push({
-            id: `${terapeutaNum}-${dateStr}-${inicio}-${fim}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            terapeutaId: terapeutaNum,
+            id: `${profissionalNum}-${dateStr}-${inicio}-${fim}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            profissionalId: profissionalNum,
             data: dateStr,
             horaInicio: inicio,
             horaFim: fim,
@@ -301,7 +301,7 @@ export function CalendarioClient(props: {
         reservaModo === "periodo"
           ? {
               pacienteId,
-              terapeutaId,
+              profissionalId: profissionalId,
               horaInicio: inicio,
               horaFim: fim,
               turno,
@@ -314,7 +314,7 @@ export function CalendarioClient(props: {
             }
           : {
               pacienteId,
-              terapeutaId,
+              profissionalId: profissionalId,
               data,
               horaInicio: inicio,
               horaFim: fim,
@@ -360,18 +360,21 @@ export function CalendarioClient(props: {
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
-      if (terapeutaId) url.searchParams.set("terapeutaId", terapeutaId);
-      else url.searchParams.delete("terapeutaId");
+      if (profissionalId) {
+        url.searchParams.set("profissionalId", profissionalId);
+      } else {
+        url.searchParams.delete("profissionalId");
+      }
       window.history.replaceState({}, "", url.toString());
     } catch {
       // ignore
     }
-  }, [terapeutaId]);
+  }, [profissionalId]);
 
   useEffect(() => {
     void loadAgenda();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terapeutaId, weekStart]);
+  }, [profissionalId, weekStart]);
 
   useEffect(() => {
     function refreshOnFocus() {
@@ -389,7 +392,7 @@ export function CalendarioClient(props: {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terapeutaId, weekStart]);
+  }, [profissionalId, weekStart]);
 
   return (
     <main className="space-y-4">
@@ -402,11 +405,11 @@ export function CalendarioClient(props: {
           <div className="flex items-center gap-2">
             <select
               className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={terapeutaId}
-              onChange={(e) => setTerapeutaId(e.target.value)}
+              value={profissionalId}
+              onChange={(e) => setProfissionalId(e.target.value)}
             >
               <option value="">Selecione um profissional</option>
-              {terapeutas.map((t) => (
+              {profissionais.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nome}
                 </option>
@@ -452,7 +455,7 @@ export function CalendarioClient(props: {
                 .filter((a) => String(a.data).slice(0, 10) === dayStr)
                 .sort((a, b) => String(a.hora_inicio).localeCompare(String(b.hora_inicio)));
               const bloqueiosDia = bloqueios
-                .filter((b) => b.terapeutaId === Number(terapeutaId || 0) && b.data === dayStr)
+                .filter((b) => b.profissionalId === Number(profissionalId || 0) && b.data === dayStr)
                 .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
               const merged = [
                 ...slots.map((a) => ({ kind: "atendimento" as const, item: a })),
@@ -473,7 +476,7 @@ export function CalendarioClient(props: {
                 <div key={dayStr} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="text-sm font-semibold text-[var(--marrom)]">{fmtShort(d)}</div>
-                    {terapeutaId ? (
+                    {profissionalId ? (
                       <button
                         type="button"
                         className="text-xs text-[var(--laranja)] hover:underline"
@@ -490,7 +493,7 @@ export function CalendarioClient(props: {
                     ) : null}
                   </div>
                   <div className="space-y-2">
-                    {!terapeutaId ? (
+                    {!profissionalId ? (
                       <p className="text-xs text-gray-500">Selecione um profissional</p>
                     ) : merged.length ? (
                       merged.map((entry) =>
@@ -680,7 +683,7 @@ export function CalendarioClient(props: {
               type="button"
               className="mt-1 w-full rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
               onClick={() => void reservar()}
-              disabled={!terapeutaId || (!bloquearHorario && !pacienteId) || saving}
+              disabled={!profissionalId || (!bloquearHorario && !pacienteId) || saving}
             >
               {saving
                 ? "Salvando..."

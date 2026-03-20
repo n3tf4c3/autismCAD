@@ -15,11 +15,11 @@ type AtendimentoOption = {
   data: string;
   horaInicio: string;
   horaFim: string;
-  terapeutaId?: number | null;
-  terapeutaNome?: string | null;
+  profissionalId?: number | null;
+  profissionalNome?: string | null;
 };
 
-type TerapeutaOption = { id: number; nome: string };
+type ProfissionalOption = { id: number; nome: string };
 
 type DesempenhoChoice = "" | "ajuda" | "nao_fez" | "independente";
 type AjudaChoice = "" | "verbal" | "gestual" | "verbal_gestual" | "fisica_parcial" | "fisica_total";
@@ -43,7 +43,7 @@ type BehaviorItem = { value: string; label: string; qty: number };
 type Initial = {
   data?: string | null;
   atendimentoId?: number | null;
-  terapeutaId?: number | null;
+  profissionalId?: number | null;
   payload?: Record<string, unknown> | null;
 };
 
@@ -168,12 +168,12 @@ export function EvolucaoFormClient(props: {
   pacienteId: number;
   evolucaoId?: number | null;
   initial?: Initial | null;
-  isTerapeuta?: boolean;
-  initialTerapeutas?: TerapeutaOption[];
+  isProfissional?: boolean;
+  initialProfissionais?: ProfissionalOption[];
 }) {
   const router = useRouter();
   const isEdit = !!props.evolucaoId;
-  const isTerapeuta = !!props.isTerapeuta;
+  const isProfissional = !!props.isProfissional;
 
   const initialPayload = useMemo(
     () => (props.initial?.payload ?? {}) as Record<string, unknown>,
@@ -183,15 +183,15 @@ export function EvolucaoFormClient(props: {
   const [atendimentoId, setAtendimentoId] = useState<string>(
     props.initial?.atendimentoId ? String(props.initial.atendimentoId) : ""
   );
-  const [terapeutaId, setTerapeutaId] = useState<string>(
-    props.initial?.terapeutaId ? String(props.initial.terapeutaId) : ""
+  const [profissionalId, setProfissionalId] = useState<string>(
+    props.initial?.profissionalId ? String(props.initial.profissionalId) : ""
   );
 
   const [titulo, setTitulo] = useState<string>(pickString(initialPayload.titulo));
   const [conduta, setConduta] = useState<string>(pickString(initialPayload.conduta));
   const [descricao, setDescricao] = useState<string>(pickString(initialPayload.descricao));
   const [atendimentos, setAtendimentos] = useState<AtendimentoOption[]>([]);
-  const [terapeutas] = useState<TerapeutaOption[]>(() => props.initialTerapeutas ?? []);
+  const [profissionais] = useState<ProfissionalOption[]>(() => props.initialProfissionais ?? []);
   const [tituloModo, setTituloModo] = useState<"lista" | "outro">(() => {
     const t = pickString(initialPayload.titulo).trim();
     if (!t) return "lista";
@@ -273,7 +273,7 @@ export function EvolucaoFormClient(props: {
     return atendimentos.find((a) => Number(a.id) === idNum) ?? null;
   }, [atendimentoId, atendimentos]);
 
-  const terapeutaIdLocked = !isTerapeuta && !!atendimentoAtual?.terapeutaId;
+  const profissionalIdLocked = !isProfissional && !!atendimentoAtual?.profissionalId;
 
   const payload = useMemo(() => {
     const merged: Record<string, unknown> = { ...initialPayload };
@@ -374,8 +374,8 @@ export function EvolucaoFormClient(props: {
           data: String(rec.data ?? "").slice(0, 10),
           horaInicio: String(rec.hora_inicio ?? "").slice(0, 5),
           horaFim: String(rec.hora_fim ?? "").slice(0, 5),
-          terapeutaId: rec.terapeuta_id,
-          terapeutaNome: rec.terapeutaNome,
+          profissionalId: rec.profissional_id,
+          profissionalNome: rec.profissionalNome,
         } satisfies AtendimentoOption));
         setAtendimentos(mapped.filter((row) => row.id > 0));
       } catch {
@@ -396,31 +396,32 @@ export function EvolucaoFormClient(props: {
   }, [atendimentoId, atendimentos, isEdit]);
 
   useEffect(() => {
-    if (isTerapeuta) return;
-    if (!atendimentoAtual?.terapeutaId) return;
-    setTerapeutaId(String(atendimentoAtual.terapeutaId));
-  }, [atendimentoAtual?.terapeutaId, isTerapeuta]);
+    if (isProfissional) return;
+    const profissionalAtendimentoId = atendimentoAtual?.profissionalId;
+    if (!profissionalAtendimentoId) return;
+    setProfissionalId(String(profissionalAtendimentoId));
+  }, [atendimentoAtual?.profissionalId, isProfissional]);
 
   async function submit() {
     setBusy(true);
     setMsg(null);
     try {
       if (!data?.trim()) throw new Error("Data obrigatoria.");
-      const resolvedTerapeutaId = isTerapeuta
+      const resolvedProfissionalId = isProfissional
         ? null
-        : terapeutaIdLocked
-          ? Number(atendimentoAtual?.terapeutaId || 0) || null
-          : terapeutaId
-            ? Number(terapeutaId)
+        : profissionalIdLocked
+          ? Number(atendimentoAtual?.profissionalId ?? 0) || null
+          : profissionalId
+            ? Number(profissionalId)
             : null;
-      if (!isTerapeuta && !resolvedTerapeutaId) {
+      if (!isProfissional && !resolvedProfissionalId) {
         throw new Error("Selecione um atendimento ou um profissional.");
       }
 
       const body = {
         data,
         atendimentoId: atendimentoId ? Number(atendimentoId) : null,
-        terapeutaId: resolvedTerapeutaId,
+        profissionalId: resolvedProfissionalId,
         payload,
       };
       if (isEdit && props.evolucaoId) {
@@ -554,7 +555,7 @@ export function EvolucaoFormClient(props: {
               ) : null}
               {atendimentos.map((a) => (
                 <option key={a.id} value={String(a.id)}>
-                  {String(a.data).slice(0, 10)} - {a.terapeutaNome || "Profissional"}{" "}
+                  {String(a.data).slice(0, 10)} - {a.profissionalNome || "Profissional"}{" "}
                   {a.horaInicio || a.horaFim
                     ? `(${String(a.horaInicio || "").slice(0, 5)}${
                         a.horaFim ? ` - ${String(a.horaFim || "").slice(0, 5)}` : ""
@@ -614,14 +615,16 @@ export function EvolucaoFormClient(props: {
           </div>
         </div>
 
-        {!isTerapeuta ? (
+        {!isProfissional ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {terapeutaIdLocked ? (
+            {profissionalIdLocked ? (
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-semibold text-[var(--marrom)]">Profissional</label>
                 <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                  {atendimentoAtual?.terapeutaNome ||
-                    (atendimentoAtual?.terapeutaId ? `#${atendimentoAtual.terapeutaId}` : "Vinculado ao atendimento")}
+                  {atendimentoAtual?.profissionalNome ||
+                    (atendimentoAtual?.profissionalId
+                      ? `#${atendimentoAtual.profissionalId}`
+                      : "Vinculado ao atendimento")}
                 </p>
                 <p className="text-xs text-gray-500">Vinculado ao atendimento selecionado.</p>
               </div>
@@ -629,13 +632,13 @@ export function EvolucaoFormClient(props: {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-semibold text-[var(--marrom)]">Profissional (quando sem atendimento)</label>
                 <select
-                  value={terapeutaId}
-                  onChange={(e) => setTerapeutaId(e.target.value)}
+                  value={profissionalId}
+                  onChange={(e) => setProfissionalId(e.target.value)}
                   disabled={busy}
                   className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm disabled:opacity-60"
                 >
                   <option value="">Selecione</option>
-                  {terapeutas.map((t) => (
+                  {profissionais.map((t) => (
                     <option key={t.id} value={String(t.id)}>
                       {t.nome} (#{t.id})
                     </option>

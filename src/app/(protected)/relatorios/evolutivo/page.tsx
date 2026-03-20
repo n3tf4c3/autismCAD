@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/report.client";
 
 export default async function RelatorioEvolutivoPage(props: {
@@ -28,17 +28,17 @@ export default async function RelatorioEvolutivoPage(props: {
 
   const canExportPdf = hasPermissionKey(access.permissions, "relatorios_clinicos:export");
 
-  const canChooseTerapeuta = !isResponsavel && roleCanon !== "TERAPEUTA";
+  const canChooseProfissional = !isResponsavel && roleCanon !== "PROFISSIONAL";
   const canChoosePaciente = !isResponsavel;
-  let terapeutas: Array<{ id: number; nome: string }> = [];
+  let profissionais: Array<{ id: number; nome: string }> = [];
 
-  if (canChooseTerapeuta) {
+  if (canChooseProfissional) {
     try {
-      await requirePermission("terapeutas:view");
-      const terapeutasRows = await listarTerapeutas({});
-      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+      await requirePermission("profissionais:view");
+      const profissionaisRows = await listarProfissionais({});
+      profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
     } catch {
-      terapeutas = [];
+      profissionais = [];
     }
   }
 
@@ -72,10 +72,10 @@ export default async function RelatorioEvolutivoPage(props: {
 
       <EvolutivoReportClient
         initialPacienteId={initialPacienteId}
-        canChooseTerapeuta={canChooseTerapeuta}
+        canChooseProfissional={canChooseProfissional}
         canChoosePaciente={canChoosePaciente}
         canExportPdf={canExportPdf}
-        initialTerapeutas={terapeutas}
+        initialProfissionais={profissionais}
       />
     </div>
   );

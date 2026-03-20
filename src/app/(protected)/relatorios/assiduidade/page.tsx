@@ -1,22 +1,22 @@
 import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { AssiduidadeClient } from "@/app/(protected)/relatorios/assiduidade/assiduidade.client";
 
 export default async function RelatorioAssiduidadePage() {
   const { user } = await requirePermission("relatorios_admin:view");
   const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
-  const canChooseTerapeuta = roleCanon !== "TERAPEUTA";
-  let terapeutas: Array<{ id: number; nome: string }> = [];
+  const canChooseProfissional = roleCanon !== "PROFISSIONAL";
+  let profissionais: Array<{ id: number; nome: string }> = [];
 
-  if (canChooseTerapeuta) {
+  if (canChooseProfissional) {
     try {
-      await requirePermission("terapeutas:view");
-      const terapeutasRows = await listarTerapeutas({});
-      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+      await requirePermission("profissionais:view");
+      const profissionaisRows = await listarProfissionais({});
+      profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
     } catch {
-      terapeutas = [];
+      profissionais = [];
     }
   }
 
@@ -35,8 +35,8 @@ export default async function RelatorioAssiduidadePage() {
       </section>
 
       <AssiduidadeClient
-        canChooseTerapeuta={canChooseTerapeuta}
-        initialTerapeutas={terapeutas}
+        canChooseProfissional={canChooseProfissional}
+        initialProfissionais={profissionais}
       />
     </div>
   );

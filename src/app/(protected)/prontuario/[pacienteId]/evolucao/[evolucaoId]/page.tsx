@@ -6,7 +6,7 @@ import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { obterEvolucaoPorId } from "@/server/modules/prontuario/prontuario.service";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
 
@@ -53,8 +53,10 @@ export default async function EditarEvolucaoPage(props: {
       </main>
     );
   }
-  if ((canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA") {
-    if (!access.terapeutaId || access.terapeutaId !== Number(evolucao.terapeutaId)) {
+  if ((canonicalRoleName(user.role) ?? user.role) === "PROFISSIONAL") {
+    const evolucaoProfissionalId = Number(evolucao.profissionalId);
+    const accessProfissionalId = access.profissionalId;
+    if (!accessProfissionalId || accessProfissionalId !== evolucaoProfissionalId) {
       return (
         <main className="rounded-2xl bg-white p-6 shadow-sm">
           <p className="text-sm text-red-600">Acesso negado.</p>
@@ -77,15 +79,15 @@ export default async function EditarEvolucaoPage(props: {
     );
   }
 
-  const isTerapeuta = (canonicalRoleName(user.role) ?? user.role) === "TERAPEUTA";
-  let terapeutas: Array<{ id: number; nome: string }> = [];
-  if (!isTerapeuta) {
+  const isProfissional = (canonicalRoleName(user.role) ?? user.role) === "PROFISSIONAL";
+  let profissionais: Array<{ id: number; nome: string }> = [];
+  if (!isProfissional) {
     try {
-      await requirePermission("terapeutas:view");
-      const terapeutasRows = await listarTerapeutas({});
-      terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+      await requirePermission("profissionais:view");
+      const profissionaisRows = await listarProfissionais({});
+      profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
     } catch {
-      terapeutas = [];
+      profissionais = [];
     }
   }
 
@@ -111,12 +113,12 @@ export default async function EditarEvolucaoPage(props: {
       <EvolucaoFormClient
         pacienteId={paciente.id}
         evolucaoId={evolucao.id}
-        isTerapeuta={isTerapeuta}
-        initialTerapeutas={terapeutas}
+        isProfissional={isProfissional}
+        initialProfissionais={profissionais}
         initial={{
           data: evolucao.data,
           atendimentoId: evolucao.atendimentoId ? Number(evolucao.atendimentoId) : null,
-          terapeutaId: evolucao.terapeutaId ? Number(evolucao.terapeutaId) : null,
+          profissionalId: evolucao.profissionalId ? Number(evolucao.profissionalId) : null,
           payload: (evolucao.payload ?? {}) as Record<string, unknown>,
         }}
       />

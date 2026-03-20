@@ -27,14 +27,19 @@ type MensalReport = {
     ultimoAtendimento: string | null;
   };
   destaques: {
-    ultimasObservacoes: Array<{ data: string; terapeuta_nome: string; texto: string; origem: string }>;
+    ultimasObservacoes: Array<{
+      data: string;
+      profissional_nome?: string | null;
+      texto: string;
+      origem: string;
+    }>;
   };
   atendimentos: Array<{
     id: number;
     data: string;
     hora_inicio?: string | null;
     hora_fim?: string | null;
-    terapeuta_nome: string | null;
+    profissional_nome?: string | null;
     presenca: string;
     duracao_min: number;
     observacoes: string | null;
@@ -313,9 +318,9 @@ export function DevolutivaMensalClient(props: {
 
   const feedbackItems = useMemo(() => {
     return (report?.destaques?.ultimasObservacoes || []).map((item, index) => ({
-      id: `${item.data}-${item.terapeuta_nome}-${index}`,
+      id: `${item.data}-${item.profissional_nome}-${index}`,
       dateLabel: fmtDate(item.data),
-      professional: item.terapeuta_nome || "Profissional",
+      professional: item.profissional_nome || "Profissional",
       origin: item.origem || "devolutiva",
       text: item.texto || "",
     }));

@@ -178,7 +178,7 @@ export function ProfissionaisPageClient(props: { initialItems: Profissional[] })
                       Editar
                     </Link>
                     <Link
-                      href={`/calendario?terapeutaId=${item.id}`}
+                      href={`/calendario?profissionalId=${item.id}`}
                       className="inline-flex items-center justify-center rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                     >
                       Agenda

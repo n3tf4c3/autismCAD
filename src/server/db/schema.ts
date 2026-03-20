@@ -26,7 +26,7 @@ export const users = pgTable(
     senhaHash: varchar("senha_hash", { length: 255 }).notNull(),
     role: varchar("role", { length: 32 })
       .notNull()
-      .default("terapeuta")
+      .default("profissional")
       .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -219,7 +219,7 @@ export const atendimentos = pgTable(
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
       .references(() => pacientes.id, { onDelete: "cascade" }),
-    terapeutaId: bigint("terapeuta_id", { mode: "number" }).references(
+    profissionalId: bigint("profissional_id", { mode: "number" }).references(
       () => terapeutas.id,
       { onDelete: "set null" }
     ),
@@ -256,8 +256,8 @@ export const atendimentos = pgTable(
       sql`${table.realizado} = (${table.presenca} = 'Presente')`
     ),
     index("idx_atend_paciente").on(table.pacienteId),
-    index("idx_atend_terapeuta").on(table.terapeutaId),
-    index("idx_atend_data_terapeuta").on(table.data, table.terapeutaId),
+    index("idx_atend_profissional").on(table.profissionalId),
+    index("idx_atend_data_profissional").on(table.data, table.profissionalId),
     index("idx_atend_deleted_at").on(table.deletedAt),
   ]
 );
@@ -341,7 +341,7 @@ export const evolucoes = pgTable(
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
       .references(() => pacientes.id, { onDelete: "cascade" }),
-    terapeutaId: bigint("terapeuta_id", { mode: "number" })
+    profissionalId: bigint("profissional_id", { mode: "number" })
       .notNull()
       .references(() => terapeutas.id, { onDelete: "restrict" }),
     atendimentoId: bigint("atendimento_id", { mode: "number" }).references(() => atendimentos.id, {
@@ -361,7 +361,7 @@ export const evolucoes = pgTable(
       .on(table.atendimentoId)
       .where(sql`${table.deletedAt} is null and ${table.atendimentoId} is not null`),
     index("idx_evolucoes_paciente").on(table.pacienteId),
-    index("idx_evolucoes_terapeuta").on(table.terapeutaId),
+    index("idx_evolucoes_profissional").on(table.profissionalId),
     index("idx_evolucoes_data").on(table.data),
     index("idx_evolucoes_deleted_at").on(table.deletedAt),
   ]

@@ -38,9 +38,9 @@ function asBoolOrNumber(value: unknown): boolean | number {
 export type AtendimentoCompat = {
   id: number;
   paciente_id: number;
-  terapeuta_id: number | null;
+  profissional_id: number | null;
   pacienteNome: string;
-  terapeutaNome: string | null;
+  profissionalNome: string | null;
   data: string;
   hora_inicio: string;
   hora_fim: string;
@@ -63,12 +63,15 @@ function normalizeAtendimentoRow(value: unknown): AtendimentoCompat | null {
   const id = asNumberOr(readValue(row, "id"), 0);
   if (id <= 0) return null;
 
+  const profissionalId = asNullableNumber(readValue(row, "profissionalId"));
+  const profissionalNome = asNullableString(readValue(row, "profissionalNome"));
+
   return {
     id,
     paciente_id: asNumberOr(readValue(row, "pacienteId"), 0),
-    terapeuta_id: asNullableNumber(readValue(row, "terapeutaId")),
+    profissional_id: profissionalId,
     pacienteNome: asStringOr(readValue(row, "pacienteNome"), "Paciente"),
-    terapeutaNome: asNullableString(readValue(row, "terapeutaNome")),
+    profissionalNome,
     data: asStringOr(readValue(row, "data")),
     hora_inicio: asStringOr(readValue(row, "horaInicio")),
     hora_fim: asStringOr(readValue(row, "horaFim")),

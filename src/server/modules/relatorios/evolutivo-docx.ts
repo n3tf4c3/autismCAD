@@ -29,7 +29,12 @@ export type EvolutivoDocxReport = {
   };
   resumoAutomatico: { texto: string; regrasDisparadas: string[] };
   destaques: {
-    ultimasObservacoes: Array<{ data: string; terapeuta_nome: string; texto: string; origem: string }>;
+    ultimasObservacoes: Array<{
+      data: string;
+      profissional_nome?: string | null;
+      texto: string;
+      origem: string;
+    }>;
     principaisMotivosAusencia: Array<{ motivo: string; count: number }>;
   };
   atendimentos: Array<{
@@ -37,7 +42,7 @@ export type EvolutivoDocxReport = {
     data: string;
     hora_inicio?: string | null;
     hora_fim?: string | null;
-    terapeuta_nome: string | null;
+    profissional_nome?: string | null;
     presenca: string;
     duracao_min: number;
     observacoes: string | null;
@@ -364,7 +369,7 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
   if (observacoes.length) {
     children.push(
       ...observacoes.map((item) =>
-        bulletParagraph(`${fmtDate(item.data)} | ${item.terapeuta_nome || "Profissional"} | ${item.texto}`)
+        bulletParagraph(`${fmtDate(item.data)} | ${item.profissional_nome || "Profissional"} | ${item.texto}`)
       )
     );
   } else {

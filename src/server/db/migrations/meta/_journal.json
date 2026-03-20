@@ -106,6 +106,34 @@
       "when": 1773261595418,
       "tag": "0014_prontuario_documentos_updated_at",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1773355200000,
+      "tag": "0015_atendimentos_realizado_consistencia",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1773358800000,
+      "tag": "0016_profissionais_rbac_transition",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1773445200000,
+      "tag": "0017_profissional_id_columns_transition",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1773972000000,
+      "tag": "0018_drop_legacy_terapeuta_columns",
+      "breakpoints": true
     }
   ]
 }

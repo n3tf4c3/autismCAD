@@ -1,11 +1,11 @@
 import "server-only";
 import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, pacientes, terapeutas } from "@/server/db/schema";
+import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import { ymNowInClinicTz } from "@/server/shared/clock";
 
 type LoadDashboardAgendaInput = {
-  terapeutaId: number | null;
+  profissionalId?: number | null;
   today: string;
   ym: string;
 };
@@ -22,20 +22,21 @@ function monthRange(ym: string) {
 }
 
 export async function loadDashboardAgenda(input: LoadDashboardAgendaInput) {
+  const profissionalId = input.profissionalId ?? null;
   const { startIso, endIso } = monthRange(input.ym);
-  const todayWhere = input.terapeutaId
+  const todayWhere = profissionalId
     ? and(
         eq(atendimentos.data, input.today),
         isNull(atendimentos.deletedAt),
-        eq(atendimentos.terapeutaId, input.terapeutaId)
+        eq(atendimentos.profissionalId, profissionalId)
       )
     : and(eq(atendimentos.data, input.today), isNull(atendimentos.deletedAt));
-  const monthWhere = input.terapeutaId
+  const monthWhere = profissionalId
     ? and(
         isNull(atendimentos.deletedAt),
         gte(atendimentos.data, startIso),
         lte(atendimentos.data, endIso),
-        eq(atendimentos.terapeutaId, input.terapeutaId)
+        eq(atendimentos.profissionalId, profissionalId)
       )
     : and(
         isNull(atendimentos.deletedAt),
@@ -51,13 +52,13 @@ export async function loadDashboardAgenda(input: LoadDashboardAgendaInput) {
         horaInicio: atendimentos.horaInicio,
         horaFim: atendimentos.horaFim,
         pacienteNome: pacientes.nome,
-        terapeutaNome: terapeutas.nome,
+        profissionalNome: profissionaisTabela.nome,
         realizado: atendimentos.realizado,
         presenca: atendimentos.presenca,
       })
       .from(atendimentos)
       .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
-      .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
+      .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
       .where(todayWhere)
       .orderBy(asc(atendimentos.horaInicio), asc(atendimentos.id))
       .limit(60),
@@ -68,13 +69,13 @@ export async function loadDashboardAgenda(input: LoadDashboardAgendaInput) {
         horaInicio: atendimentos.horaInicio,
         horaFim: atendimentos.horaFim,
         pacienteNome: pacientes.nome,
-        terapeutaNome: terapeutas.nome,
+        profissionalNome: profissionaisTabela.nome,
         realizado: atendimentos.realizado,
         presenca: atendimentos.presenca,
       })
       .from(atendimentos)
       .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
-      .leftJoin(terapeutas, eq(terapeutas.id, atendimentos.terapeutaId))
+      .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
       .where(monthWhere)
       .orderBy(asc(atendimentos.data), asc(atendimentos.horaInicio), asc(atendimentos.id)),
   ]);

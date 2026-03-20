@@ -8,7 +8,7 @@ import {
   atendimentos,
   evolucoes,
   prontuarioDocumentos,
-  terapeutas,
+  terapeutas as profissionaisTabela,
   users,
 } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
@@ -24,7 +24,7 @@ import {
   SalvarDocumentoInput,
 } from "@/server/modules/prontuario/prontuario.schema";
 import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
-import { obterTerapeutaPorUsuario } from "@/server/modules/profissionais/profissionais.service";
+import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 
 function toIsoDate(value: string): string {
@@ -49,9 +49,12 @@ const documentoSelectBase = {
   updated_at: prontuarioDocumentos.updatedAt,
 } as const;
 
-async function obterTerapeutaIdDoAtendimento(pacienteId: number, atendimentoId: number): Promise<number | null> {
+async function obterProfissionalIdDoAtendimento(
+  pacienteId: number,
+  atendimentoId: number
+): Promise<number | null> {
   const [row] = await db
-    .select({ pacienteId: atendimentos.pacienteId, terapeutaId: atendimentos.terapeutaId })
+    .select({ pacienteId: atendimentos.pacienteId, profissionalId: atendimentos.profissionalId })
     .from(atendimentos)
     .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)))
     .limit(1);
@@ -62,7 +65,7 @@ async function obterTerapeutaIdDoAtendimento(pacienteId: number, atendimentoId: 
   if (Number(row.pacienteId) !== Number(pacienteId)) {
     throw new AppError("Atendimento nao pertence ao paciente", 400, "INVALID_INPUT");
   }
-  return row.terapeutaId == null ? null : Number(row.terapeutaId);
+  return row.profissionalId == null ? null : Number(row.profissionalId);
 }
 
 async function marcarRepasseConcluido(executor: typeof db, atendimentoId: number) {
@@ -192,17 +195,17 @@ export async function listarEvolucoesPorPaciente(pacienteId: number) {
     .select({
       id: evolucoes.id,
       pacienteId: evolucoes.pacienteId,
-      terapeutaId: evolucoes.terapeutaId,
+      profissionalId: evolucoes.profissionalId,
       atendimentoId: evolucoes.atendimentoId,
       atendimentoHoraInicio: atendimentos.horaInicio,
       atendimentoHoraFim: atendimentos.horaFim,
       data: evolucoes.data,
       payload: evolucoes.payload,
       createdAt: evolucoes.createdAt,
-      terapeutaNome: terapeutas.nome,
+      profissionalNome: profissionaisTabela.nome,
     })
     .from(evolucoes)
-    .leftJoin(terapeutas, eq(terapeutas.id, evolucoes.terapeutaId))
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, evolucoes.profissionalId))
     .leftJoin(atendimentos, eq(atendimentos.id, evolucoes.atendimentoId))
     .where(and(eq(evolucoes.pacienteId, pacienteId), isNull(evolucoes.deletedAt)))
     .orderBy(desc(evolucoes.data), desc(evolucoes.createdAt));
@@ -225,17 +228,17 @@ export async function criarEvolucao(
   const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
 
-  const terapeutaRaw = input.terapeutaId ?? null;
-  let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : null;
+  const profissionalRaw = input.profissionalId ?? null;
+  let profissionalId = profissionalRaw ? Number(profissionalRaw) : null;
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
-  if (roleCanon === "TERAPEUTA") {
-    const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
-    if (!terapeuta) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
-    terapeutaId = terapeuta.id;
-  } else if (!terapeutaId && atendimentoId) {
-    terapeutaId = await obterTerapeutaIdDoAtendimento(pacienteId, atendimentoId);
+  if (roleCanon === "PROFISSIONAL") {
+    const profissional = await obterProfissionalPorUsuario(Number(user?.id));
+    if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    profissionalId = profissional.id;
+  } else if (!profissionalId && atendimentoId) {
+    profissionalId = await obterProfissionalIdDoAtendimento(pacienteId, atendimentoId);
   }
-  if (!terapeutaId) {
+  if (!profissionalId) {
     throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
@@ -246,7 +249,7 @@ export async function criarEvolucao(
           .insert(evolucoes)
           .values({
             pacienteId,
-            terapeutaId,
+            profissionalId,
             atendimentoId,
             data: dataVal,
             payload,
@@ -275,15 +278,15 @@ export async function obterEvolucaoPorId(id: number) {
     .select({
       id: evolucoes.id,
       pacienteId: evolucoes.pacienteId,
-      terapeutaId: evolucoes.terapeutaId,
+      profissionalId: evolucoes.profissionalId,
       atendimentoId: evolucoes.atendimentoId,
       data: evolucoes.data,
       payload: evolucoes.payload,
       createdAt: evolucoes.createdAt,
-      terapeutaNome: terapeutas.nome,
+      profissionalNome: profissionaisTabela.nome,
     })
     .from(evolucoes)
-    .leftJoin(terapeutas, eq(terapeutas.id, evolucoes.terapeutaId))
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, evolucoes.profissionalId))
     .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)))
     .limit(1);
 
@@ -315,19 +318,24 @@ export async function atualizarEvolucao(
     ? Number(atendimentoRaw)
     : (current.atendimentoId ?? null);
 
-  const terapeutaRaw = input.terapeutaId ?? null;
-  const terapeutaExplicito = terapeutaRaw != null;
-  let terapeutaId = terapeutaRaw ? Number(terapeutaRaw) : Number(current.terapeutaId);
+  const profissionalRaw = input.profissionalId ?? null;
+  const profissionalExplicito = profissionalRaw != null;
+  let profissionalId = profissionalRaw
+    ? Number(profissionalRaw)
+    : Number(current.profissionalId);
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
-  if (roleCanon === "TERAPEUTA") {
-    const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
-    if (!terapeuta) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
-    terapeutaId = terapeuta.id;
-  } else if (!terapeutaExplicito && atendimentoRaw && atendimentoId) {
-    const tFromAtendimento = await obterTerapeutaIdDoAtendimento(Number(current.pacienteId), atendimentoId);
-    if (tFromAtendimento) terapeutaId = tFromAtendimento;
+  if (roleCanon === "PROFISSIONAL") {
+    const profissional = await obterProfissionalPorUsuario(Number(user?.id));
+    if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    profissionalId = profissional.id;
+  } else if (!profissionalExplicito && atendimentoRaw && atendimentoId) {
+    const profissionalFromAtendimento = await obterProfissionalIdDoAtendimento(
+      Number(current.pacienteId),
+      atendimentoId
+    );
+    if (profissionalFromAtendimento) profissionalId = profissionalFromAtendimento;
   }
-  if (!terapeutaId) {
+  if (!profissionalId) {
     throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
@@ -343,7 +351,7 @@ export async function atualizarEvolucao(
             data: dataVal,
             payload,
             atendimentoId,
-            terapeutaId,
+            profissionalId,
             updatedAt: sql`now()`,
           })
           .where(and(eq(evolucoes.id, id), isNull(evolucoes.deletedAt)))
@@ -444,7 +452,7 @@ export async function obterTimelineProntuario(pacienteId: number) {
       status: "-",
       version: null as number | null,
       data: e.data || e.createdAt,
-      profissional: e.terapeutaNome || "Profissional",
+      profissional: e.profissionalNome || "Profissional",
       horario,
     };
   });

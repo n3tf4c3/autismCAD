@@ -44,7 +44,7 @@ const ACTION_LABEL: Record<(typeof ACTIONS)[number], string> = {
   finalize: "Finalizar",
 };
 
-const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "terapeuta", "responsavel"] as const;
+const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "profissional", "responsavel", "terapeuta"] as const;
 type AllowedRole = (typeof ALLOWED_ROLES)[number];
 
 function classForTone(tone: Tone): string {

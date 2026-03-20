@@ -45,8 +45,8 @@ async function assertCanEditProfissional(profissionalId: number): Promise<number
   const user = await requireUser();
   const userId = Number(user.id);
   const access = await loadUserAccess(userId);
-  const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
-  const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
+  const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
+  const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
 
   if (!canEditAny && !canEditSelf) {
     throw new AppError("Acesso negado", 403, "FORBIDDEN");
@@ -73,7 +73,7 @@ export async function salvarProfissionalAction(
     if (idNum && Number.isFinite(idNum) && idNum > 0) {
       await assertCanEditProfissional(idNum);
     } else {
-      await requirePermission("terapeutas:create");
+      await requirePermission("profissionais:create");
     }
 
     const savedId = await salvarProfissional(parsed, idNum ?? null);
@@ -119,7 +119,7 @@ export async function deleteProfissionalAction(
       throw new AppError("Profissional invalido", 400, "INVALID_INPUT");
     }
 
-    const { user } = await requirePermission("terapeutas:delete");
+    const { user } = await requirePermission("profissionais:delete");
     const result = await deleteProfissional(idNum, Number(user.id));
 
     revalidatePath("/profissionais");
@@ -135,7 +135,7 @@ export async function listarProfissionaisAction(
   filters: unknown
 ): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarProfissionais>> }>> {
   try {
-    await requirePermission("terapeutas:view");
+    await requirePermission("profissionais:view");
     const parsed = profissionaisQuerySchema.parse(filters ?? {});
     const rows = await listarProfissionais(parsed);
     return { ok: true, data: { items: rows } };

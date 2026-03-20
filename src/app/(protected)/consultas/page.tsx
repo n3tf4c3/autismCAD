@@ -1,7 +1,7 @@
 import { requirePermission } from "@/server/auth/auth";
 import { ADMIN_ROLES, canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
-import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { ConsultasClient } from "@/app/(protected)/consultas/consultas.client";
 
 export default async function ConsultasPage() {
@@ -14,13 +14,13 @@ export default async function ConsultasPage() {
   const canDeleteAtendimento = isAdmin || hasPermissionKey(access.permissions, "consultas:cancel");
   const canEditRepasse = isAdmin || hasPermissionKey(access.permissions, "evolucoes:create");
 
-  let terapeutas: Array<{ id: number; nome: string }> = [];
+  let profissionais: Array<{ id: number; nome: string }> = [];
   try {
-    await requirePermission("terapeutas:view");
-    const terapeutasRows = await listarTerapeutas({});
-    terapeutas = terapeutasRows.map((item) => ({ id: item.id, nome: item.nome }));
+    await requirePermission("profissionais:view");
+    const profissionaisRows = await listarProfissionais({});
+    profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
   } catch {
-    terapeutas = [];
+    profissionais = [];
   }
 
   let pacientes: Array<{ id: number; nome: string }> = [];
@@ -34,7 +34,7 @@ export default async function ConsultasPage() {
 
   return (
     <ConsultasClient
-      initialTerapeutas={terapeutas}
+      initialProfissionais={profissionais}
       initialPacientes={pacientes}
       canEditAtendimento={canEditAtendimento}
       canDeleteAtendimento={canDeleteAtendimento}

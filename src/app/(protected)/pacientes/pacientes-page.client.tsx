@@ -45,10 +45,10 @@ function unwrapAction<T>(
 
 export function PacientesPageClient(props: {
   initialItems: Paciente[];
-  initialTerapeutas: Profissional[];
+  initialProfissionais: Profissional[];
 }) {
   const [items, setItems] = useState<Paciente[]>(() => props.initialItems);
-  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
+  const [profissionais] = useState<Profissional[]>(() => props.initialProfissionais);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nome, setNome] = useState("");
@@ -56,7 +56,7 @@ export function PacientesPageClient(props: {
 
   const [consultaOpen, setConsultaOpen] = useState(false);
   const [consultaPaciente, setConsultaPaciente] = useState<Paciente | null>(null);
-  const [consultaTerapeutaId, setConsultaTerapeutaId] = useState<string>("");
+  const [consultaProfissionalId, setConsultaProfissionalId] = useState<string>("");
   const [consultaHoraInicio, setConsultaHoraInicio] = useState<string>("08:00");
   const [consultaHoraFim, setConsultaHoraFim] = useState<string>("09:00");
   const [consultaTurno, setConsultaTurno] = useState<string>("Matutino");
@@ -124,7 +124,7 @@ export function PacientesPageClient(props: {
 
     setConsultaMsg(null);
 
-    if (!consultaTerapeutaId) {
+    if (!consultaProfissionalId) {
       setConsultaMsg("Selecione um profissional.");
       return;
     }
@@ -151,7 +151,7 @@ export function PacientesPageClient(props: {
     try {
       const payload = {
         pacienteId: paciente.id,
-        terapeutaId: Number(consultaTerapeutaId),
+        profissionalId: Number(consultaProfissionalId),
         horaInicio: consultaHoraInicio,
         horaFim: consultaHoraFim,
         turno: consultaTurno || "Matutino",
@@ -324,11 +324,11 @@ export function PacientesPageClient(props: {
                 <span className="font-semibold text-gray-700">Profissional</span>
                 <select
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={consultaTerapeutaId}
-                  onChange={(e) => setConsultaTerapeutaId(e.target.value)}
+                  value={consultaProfissionalId}
+                  onChange={(e) => setConsultaProfissionalId(e.target.value)}
                 >
                   <option value="">Selecione</option>
-                  {terapeutas.map((t) => (
+                  {profissionais.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.nome}
                     </option>

@@ -52,21 +52,21 @@ function dowFromYmdUtc(ymd: string): number {
 }
 
 export function ConsultasClient(props: {
-  initialTerapeutas: Profissional[];
+  initialProfissionais: Profissional[];
   initialPacientes: Paciente[];
   canEditAtendimento: boolean;
   canDeleteAtendimento: boolean;
   canEditRepasse: boolean;
 }) {
   const router = useRouter();
-  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
+  const [profissionais] = useState<Profissional[]>(() => props.initialProfissionais);
   const [pacientes] = useState<Paciente[]>(() => props.initialPacientes);
   const [items, setItems] = useState<Atendimento[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [pacienteId, setPacienteId] = useState<string>("");
-  const [terapeutaId, setTerapeutaId] = useState<string>("");
+  const [profissionalId, setProfissionalId] = useState<string>("");
   const [dataIni, setDataIni] = useState<string>(ymdToday());
   const [dataFim, setDataFim] = useState<string>(ymdToday());
 
@@ -75,7 +75,7 @@ export function ConsultasClient(props: {
   const [editMsg, setEditMsg] = useState<string | null>(null);
   const [editBusy, setEditBusy] = useState(false);
   const [editData, setEditData] = useState<string>("");
-  const [editTerapeutaId, setEditTerapeutaId] = useState<string>("");
+  const [editProfissionalId, setEditProfissionalId] = useState<string>("");
   const [editHoraInicio, setEditHoraInicio] = useState<string>("");
   const [editHoraFim, setEditHoraFim] = useState<string>("");
   const [editTurno, setEditTurno] = useState<string>("Matutino");
@@ -94,7 +94,7 @@ export function ConsultasClient(props: {
     try {
       const filters = {
         pacienteId: pacienteId || undefined,
-        terapeutaId: terapeutaId || undefined,
+        profissionalId: profissionalId || undefined,
         dataIni: dataIni || undefined,
         dataFim: dataFim || undefined,
       };
@@ -115,7 +115,7 @@ export function ConsultasClient(props: {
     setEditMsg(null);
 
     setEditData(ymdForInput(a.data));
-    setEditTerapeutaId(a.terapeuta_id ? String(a.terapeuta_id) : "");
+    setEditProfissionalId(a.profissional_id ? String(a.profissional_id) : "");
     setEditHoraInicio(hhmmForInput(a.hora_inicio));
     setEditHoraFim(hhmmForInput(a.hora_fim));
     setEditTurno(a.turno || "Matutino");
@@ -134,7 +134,7 @@ export function ConsultasClient(props: {
   function openRepasseEvolucao(a: Atendimento) {
     const params = new URLSearchParams();
     params.set("atendimentoId", String(a.id));
-    if (a.terapeuta_id) params.set("terapeutaId", String(a.terapeuta_id));
+    if (a.profissional_id) params.set("profissionalId", String(a.profissional_id));
     const dataYmd = ymdForInput(a.data);
     if (dataYmd) params.set("data", dataYmd);
     router.push(`/prontuario/${a.paciente_id}/evolucao/nova?${params.toString()}`);
@@ -144,8 +144,8 @@ export function ConsultasClient(props: {
     if (!editItem) return;
     setEditMsg(null);
 
-    const terapeutaIdNum = Number(editTerapeutaId);
-    if (!terapeutaIdNum || !editData || !editHoraInicio || !editHoraFim) {
+    const profissionalIdNum = Number(editProfissionalId);
+    if (!profissionalIdNum || !editData || !editHoraInicio || !editHoraFim) {
       setEditMsg("Preencha profissional, data e horarios.");
       return;
     }
@@ -160,7 +160,7 @@ export function ConsultasClient(props: {
     try {
       const result = await salvarAtendimentoAction(editItem.id, {
         pacienteId: editItem.paciente_id,
-        terapeutaId: terapeutaIdNum,
+        profissionalId: profissionalIdNum,
         data: editData,
         horaInicio: editHoraInicio,
         horaFim: editHoraFim,
@@ -278,11 +278,11 @@ export function ConsultasClient(props: {
             <span className="mb-1 block font-semibold text-[var(--marrom)]">Profissional</span>
             <select
               className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-              value={terapeutaId}
-              onChange={(e) => setTerapeutaId(e.target.value)}
+              value={profissionalId}
+              onChange={(e) => setProfissionalId(e.target.value)}
             >
               <option value="">Todos</option>
-              {terapeutas.map((t) => (
+              {profissionais.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nome}
                 </option>
@@ -319,7 +319,7 @@ export function ConsultasClient(props: {
               type="button"
               onClick={() => {
                 setPacienteId("");
-                setTerapeutaId("");
+                setProfissionalId("");
                 setDataIni(ymdToday());
                 setDataFim(ymdToday());
                 void loadAtendimentos();
@@ -368,7 +368,7 @@ export function ConsultasClient(props: {
                     ) : null}
                   </td>
                   <td className="px-3 py-3 font-semibold text-[var(--marrom)]">{a.pacienteNome}</td>
-                  <td className="px-3 py-3 text-gray-700">{a.terapeutaNome || "-"}</td>
+                  <td className="px-3 py-3 text-gray-700">{a.profissionalNome || "-"}</td>
                   <td className="px-3 py-3 text-gray-700">
                     {String(a.hora_inicio).slice(0, 5)} - {String(a.hora_fim).slice(0, 5)}
                   </td>
@@ -485,11 +485,11 @@ export function ConsultasClient(props: {
                 <span className="font-semibold text-gray-700">Profissional</span>
                 <select
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={editTerapeutaId}
-                  onChange={(e) => setEditTerapeutaId(e.target.value)}
+                  value={editProfissionalId}
+                  onChange={(e) => setEditProfissionalId(e.target.value)}
                 >
                   <option value="">Selecione</option>
-                  {terapeutas.map((t) => (
+                  {profissionais.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.nome}
                     </option>

@@ -5,9 +5,9 @@ import { db } from "@/db";
 import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
-import { pacientes, terapeutas } from "@/server/db/schema";
+import { pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
-import { obterTerapeutaPorUsuario } from "@/server/modules/profissionais/profissionais.service";
+import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
 
@@ -40,28 +40,28 @@ export default async function DashboardPage() {
   }
   assertHasPermission(access, ["consultas:view", "atendimentos:view"]);
   const isAdmin = access.roles.some((role) => ADMIN_ROLES.has(canonicalRoleName(role) ?? role));
-  const isTerapeuta = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "TERAPEUTA");
+  const isProfissional = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "PROFISSIONAL");
 
-  let terapeutaId: number | null = null;
-  if (!isAdmin && isTerapeuta) {
-    const terapeuta = await obterTerapeutaPorUsuario(userId);
-    if (!terapeuta) {
+  let profissionalId: number | null = null;
+  if (!isAdmin && isProfissional) {
+    const profissional = await obterProfissionalPorUsuario(userId);
+    if (!profissional) {
       return (
         <main className="rounded-2xl bg-white p-6 shadow-sm">
           <p className="text-sm text-red-600">Perfil sem vinculo de profissional. Contate o administrador.</p>
         </main>
       );
     }
-    terapeutaId = terapeuta.id;
+    profissionalId = profissional.id;
   }
 
   const today = ymdNowInClinicTz();
   const ym = ymNowInClinicTz();
   const birthdayMonth = monthFromYmd(today);
 
-  const [agenda, pacientesAniversariantes, terapeutasAniversariantes] = await Promise.all([
+  const [agenda, pacientesAniversariantes, profissionaisAniversariantes] = await Promise.all([
     loadDashboardAgenda({
-      terapeutaId,
+      profissionalId,
       today,
       ym,
     }),
@@ -83,21 +83,21 @@ export default async function DashboardPage() {
       .orderBy(asc(sql`extract(day from ${pacientes.dataNascimento})`), asc(pacientes.nome)),
     db
       .select({
-        id: terapeutas.id,
-        nome: terapeutas.nome,
-        dataNascimento: terapeutas.dataNascimento,
-        dia: sql<number>`extract(day from ${terapeutas.dataNascimento})::int`,
-        destaque: terapeutas.especialidade,
+        id: profissionaisTabela.id,
+        nome: profissionaisTabela.nome,
+        dataNascimento: profissionaisTabela.dataNascimento,
+        dia: sql<number>`extract(day from ${profissionaisTabela.dataNascimento})::int`,
+        destaque: profissionaisTabela.especialidade,
       })
-      .from(terapeutas)
+      .from(profissionaisTabela)
       .where(
         and(
-          isNull(terapeutas.deletedAt),
-          eq(terapeutas.ativo, true),
-          sql`extract(month from ${terapeutas.dataNascimento}) = ${birthdayMonth}`
+          isNull(profissionaisTabela.deletedAt),
+          eq(profissionaisTabela.ativo, true),
+          sql`extract(month from ${profissionaisTabela.dataNascimento}) = ${birthdayMonth}`
         )
       )
-      .orderBy(asc(sql`extract(day from ${terapeutas.dataNascimento})`), asc(terapeutas.nome)),
+      .orderBy(asc(sql`extract(day from ${profissionaisTabela.dataNascimento})`), asc(profissionaisTabela.nome)),
   ]);
 
   const { pendentes, monthAtendimentos } = agenda;
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
       tipo: "Paciente" as const,
       destaque: null,
     })),
-    ...terapeutasAniversariantes.map((item) => ({
+    ...profissionaisAniversariantes.map((item) => ({
       id: Number(item.id),
       nome: item.nome,
       dataNascimento: String(item.dataNascimento ?? "").slice(0, 10),
@@ -131,7 +131,7 @@ export default async function DashboardPage() {
     horaInicio: String(a.horaInicio),
     horaFim: String(a.horaFim),
     pacienteNome: a.pacienteNome,
-    terapeutaNome: a.terapeutaNome,
+    profissionalNome: a.profissionalNome,
     realizado: a.realizado ? 1 : 0,
     presenca: a.presenca,
   }));
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-xs text-gray-700">Profissional: {a.terapeutaNome || "-"}</p>
+                  <p className="text-xs text-gray-700">Profissional: {a.profissionalNome || "-"}</p>
                 </li>
               );
             })}

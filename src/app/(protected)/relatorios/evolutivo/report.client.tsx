@@ -24,14 +24,19 @@ type EvolutivoReport = {
     ultimoAtendimento: string | null;
   };
   destaques: {
-    ultimasObservacoes: Array<{ data: string; terapeuta_nome: string; texto: string; origem: string }>;
+    ultimasObservacoes: Array<{
+      data: string;
+      profissional_nome?: string | null;
+      texto: string;
+      origem: string;
+    }>;
     principaisMotivosAusencia: Array<{ motivo: string; count: number }>;
   };
   resumoAutomatico: { texto: string; regrasDisparadas: string[] };
   atendimentos: Array<{
     id: number;
     data: string;
-    terapeuta_nome: string | null;
+    profissional_nome?: string | null;
     presenca: string;
     duracao_min: number;
     observacoes: string | null;
@@ -76,16 +81,16 @@ function unwrapAction<T>(result: ActionResult<T>): T {
 
 export function EvolutivoReportClient(props: {
   initialPacienteId?: number | null;
-  canChooseTerapeuta: boolean;
+  canChooseProfissional: boolean;
   canChoosePaciente: boolean;
   canExportPdf: boolean;
-  initialTerapeutas: Profissional[];
+  initialProfissionais: Profissional[];
 }) {
   const [pacienteId, setPacienteId] = useState<string>(props.initialPacienteId ? String(props.initialPacienteId) : "");
   const [from, setFrom] = useState<string>(ymdMinusDays(29));
   const [to, setTo] = useState<string>(ymdToday());
-  const [terapeutaId, setTerapeutaId] = useState<string>("");
-  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
+  const [profissionalId, setProfissionalId] = useState<string>("");
+  const [profissionais] = useState<Profissional[]>(() => props.initialProfissionais);
   const [report, setReport] = useState<EvolutivoReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -95,7 +100,7 @@ export function EvolutivoReportClient(props: {
     if (pacienteId) p.set("pacienteId", pacienteId);
     if (from) p.set("from", from);
     if (to) p.set("to", to);
-    if (props.canChooseTerapeuta && terapeutaId) p.set("terapeutaId", terapeutaId);
+    if (props.canChooseProfissional && profissionalId) p.set("profissionalId", profissionalId);
     return p.toString();
   }
 
@@ -108,8 +113,8 @@ export function EvolutivoReportClient(props: {
         pacienteId: pacienteId || undefined,
         from: from || undefined,
         to: to || undefined,
-        terapeutaId:
-          props.canChooseTerapeuta && terapeutaId ? Number(terapeutaId) : undefined,
+        profissionalId:
+          props.canChooseProfissional && profissionalId ? Number(profissionalId) : undefined,
       };
       const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
       setReport(data.report as EvolutivoReport);
@@ -192,16 +197,16 @@ export function EvolutivoReportClient(props: {
               className="rounded-lg border border-gray-200 px-3 py-2"
             />
           </label>
-          {props.canChooseTerapeuta ? (
+          {props.canChooseProfissional ? (
             <label className="flex flex-col gap-2 md:col-span-1">
               <span className="text-sm font-semibold text-[var(--marrom)]">Profissional (opcional)</span>
               <select
-                value={terapeutaId}
-                onChange={(e) => setTerapeutaId(e.target.value)}
+                value={profissionalId}
+                onChange={(e) => setProfissionalId(e.target.value)}
                 className="rounded-lg border border-gray-200 px-3 py-2"
               >
                 <option value="">Todos</option>
-                {terapeutas.map((t) => (
+                {profissionais.map((t) => (
                   <option key={t.id} value={String(t.id)}>
                     {t.nome}
                   </option>
@@ -311,7 +316,7 @@ export function EvolutivoReportClient(props: {
                   report.destaques.ultimasObservacoes.map((o, idx) => (
                     <li key={`${o.data}-${idx}`} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                       <p className="text-xs text-gray-500">
-                        {fmtDate(o.data)} - {o.terapeuta_nome} - {o.origem}
+                        {fmtDate(o.data)} - {o.profissional_nome || "Profissional"} - {o.origem}
                       </p>
                       <p className="mt-1">{o.texto}</p>
                     </li>
@@ -369,7 +374,7 @@ export function EvolutivoReportClient(props: {
                   {(report.atendimentos || []).map((a) => (
                     <tr key={a.id}>
                       <td className="px-4 py-2">{fmtDate(a.data)}</td>
-                      <td className="px-4 py-2">{a.terapeuta_nome || "Profissional"}</td>
+                      <td className="px-4 py-2">{a.profissional_nome || "Profissional"}</td>
                       <td className="px-4 py-2">{a.presenca}</td>
                       <td className="px-4 py-2">{a.duracao_min || "-"}</td>
                       <td className="px-4 py-2 text-gray-700">
