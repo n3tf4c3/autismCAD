@@ -142,7 +142,7 @@ export default async function DashboardPage() {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">PC</div>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">🔎</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
             <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">CP</div>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">👦</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
             <p className="text-sm text-gray-600">Registre novos pacientes, contatos e perfis profissionais.</p>
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">PR</div>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">🧑‍⚕️</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Profissionais</h3>
             <p className="text-sm text-gray-600">Cadastre profissionais, especialidades e agendas.</p>
@@ -179,9 +179,9 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-sm">
+      <section className="flex h-full flex-col gap-4 rounded-xl bg-white p-5 shadow-sm xl:h-[540px]">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">AT</div>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">🔎</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessoes</h3>
             <p className="text-sm text-gray-600">Organize sessoes, confirme presenca e acompanhe evolucoes.</p>
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">CL</div>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">📅</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Calendario rapido</h3>
             <p className="text-sm text-gray-600">Visao mensal com sessoes marcadas.</p>
@@ -248,8 +248,8 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
-      <section className="birthday-board relative overflow-hidden rounded-[28px] p-[1px] shadow-sm">
-        <div className="birthday-board__surface relative flex h-full min-h-[320px] flex-col rounded-[27px] border border-white/40 bg-[radial-gradient(circle_at_top,#fff8ee_0%,#fff1d8_38%,#ffe0a0_100%)] p-5">
+      <section className="birthday-board relative flex h-full flex-col rounded-[28px] p-[1px] shadow-sm xl:h-[540px]">
+        <div className="birthday-board__surface relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-[27px] border border-white/40 bg-[radial-gradient(circle_at_top,#fff8ee_0%,#fff1d8_38%,#ffe0a0_100%)] p-5">
           <div className="birthday-confetti birthday-confetti--one" />
           <div className="birthday-confetti birthday-confetti--two" />
           <div className="birthday-confetti birthday-confetti--three" />
@@ -270,7 +270,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="relative z-10 mt-5 flex-1 space-y-3">
+          <div className="dashboard-pendencias-list relative z-10 mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1.5">
             {aniversariantes.length ? (
               aniversariantes.map((item, index) => (
                 <article
