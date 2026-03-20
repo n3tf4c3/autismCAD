@@ -7,7 +7,7 @@ import { useShell } from "@/components/shell/shell-provider.client";
 function roleLabel(role?: string | null): string {
   const key = String(role || "").trim().toUpperCase();
   if (key === "ADMIN" || key === "ADMIN_GERAL") return "Administrador";
-  if (key === "TERAPEUTA") return "Terapeuta";
+  if (key === "TERAPEUTA") return "Profissional";
   if (key === "RECEPCAO") return "Recepcao";
   if (key === "RESPONSAVEL") return "Responsavel";
   return role ? String(role) : "Usuario";
@@ -21,12 +21,12 @@ function pageMeta(pathname: string): { kicker: string; title: string } {
     return { kicker: "Cadastro", title: "Editar paciente" };
   }
   if (pathname.startsWith("/pacientes/")) return { kicker: "Consulta", title: "Paciente" };
-  if (pathname === "/terapeutas") return { kicker: "Cadastro", title: "Terapeutas" };
-  if (pathname === "/terapeutas/novo") return { kicker: "Cadastro", title: "Novo terapeuta" };
-  if (pathname.endsWith("/editar") && pathname.startsWith("/terapeutas/")) {
-    return { kicker: "Cadastro", title: "Editar terapeuta" };
+  if (pathname === "/profissionais") return { kicker: "Cadastro", title: "Profissionais" };
+  if (pathname === "/profissionais/novo") return { kicker: "Cadastro", title: "Novo profissional" };
+  if (pathname.endsWith("/editar") && pathname.startsWith("/profissionais/")) {
+    return { kicker: "Cadastro", title: "Editar profissional" };
   }
-  if (pathname.startsWith("/terapeutas/")) return { kicker: "Cadastro", title: "Terapeuta" };
+  if (pathname.startsWith("/profissionais/")) return { kicker: "Cadastro", title: "Profissional" };
   if (pathname.startsWith("/consultas")) return { kicker: "Agenda", title: "Consultas / Sessoes" };
   if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendario" };
   if (pathname.startsWith("/prontuario")) return { kicker: "Clinico", title: "Prontuario" };

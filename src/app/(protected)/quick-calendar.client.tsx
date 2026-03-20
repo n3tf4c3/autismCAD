@@ -199,7 +199,7 @@ export function QuickCalendarClient(props: {
                     Horario: {hi}
                     {hf ? ` - ${hf}` : ""}
                   </p>
-                  <p className="text-gray-600">Terapeuta: {a.terapeutaNome || ""}</p>
+                  <p className="text-gray-600">Profissional: {a.terapeutaNome || ""}</p>
                 </div>
               );
             })}
@@ -230,7 +230,7 @@ export function QuickCalendarClient(props: {
           </button>
           <span className="text-xs text-gray-600">
             {daysWithSessionsCount ? `${daysWithSessionsCount} dia(s)` : "Sem sessoes"}
-            {loading ? " · carregando..." : ""}
+            {loading ? " - carregando..." : ""}
           </span>
           <button
             type="button"

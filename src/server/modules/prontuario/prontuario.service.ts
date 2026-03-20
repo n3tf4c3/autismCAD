@@ -24,7 +24,7 @@ import {
   SalvarDocumentoInput,
 } from "@/server/modules/prontuario/prontuario.schema";
 import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
-import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import { obterTerapeutaPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 
 function toIsoDate(value: string): string {
@@ -230,13 +230,13 @@ export async function criarEvolucao(
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
-    if (!terapeuta) throw new AppError("Terapeuta nao encontrado", 403, "FORBIDDEN");
+    if (!terapeuta) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
     terapeutaId = terapeuta.id;
   } else if (!terapeutaId && atendimentoId) {
     terapeutaId = await obterTerapeutaIdDoAtendimento(pacienteId, atendimentoId);
   }
   if (!terapeutaId) {
-    throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
+    throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
   try {
@@ -321,14 +321,14 @@ export async function atualizarEvolucao(
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(Number(user?.id));
-    if (!terapeuta) throw new AppError("Terapeuta nao encontrado", 403, "FORBIDDEN");
+    if (!terapeuta) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
     terapeutaId = terapeuta.id;
   } else if (!terapeutaExplicito && atendimentoRaw && atendimentoId) {
     const tFromAtendimento = await obterTerapeutaIdDoAtendimento(Number(current.pacienteId), atendimentoId);
     if (tFromAtendimento) terapeutaId = tFromAtendimento;
   }
   if (!terapeutaId) {
-    throw new AppError("Terapeuta obrigatorio para evolucao", 400, "INVALID_INPUT");
+    throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
 
   const atendimentoAnteriorId = current.atendimentoId == null ? null : Number(current.atendimentoId);
@@ -444,7 +444,7 @@ export async function obterTimelineProntuario(pacienteId: number) {
       status: "-",
       version: null as number | null,
       data: e.data || e.createdAt,
-      profissional: e.terapeutaNome || "Terapeuta",
+      profissional: e.terapeutaNome || "Profissional",
       horario,
     };
   });

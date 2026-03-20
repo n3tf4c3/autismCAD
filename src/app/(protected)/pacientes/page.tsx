@@ -1,6 +1,6 @@
 import { requirePermission } from "@/server/auth/auth";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
-import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
+import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
 import { PacientesPageClient } from "@/app/(protected)/pacientes/pacientes-page.client";
 
 export default async function PacientesPage() {

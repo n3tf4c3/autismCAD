@@ -364,7 +364,7 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
   if (observacoes.length) {
     children.push(
       ...observacoes.map((item) =>
-        bulletParagraph(`${fmtDate(item.data)} | ${item.terapeuta_nome || "Terapeuta"} | ${item.texto}`)
+        bulletParagraph(`${fmtDate(item.data)} | ${item.terapeuta_nome || "Profissional"} | ${item.texto}`)
       )
     );
   } else {

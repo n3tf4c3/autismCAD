@@ -13,7 +13,7 @@ import {
   type AtendimentoCompat as Atendimento,
 } from "@/app/(protected)/consultas/atendimento-compat";
 
-type Terapeuta = { id: number; nome: string };
+type Profissional = { id: number; nome: string };
 type Paciente = { id: number; nome: string };
 
 function normalizeApiError(error: unknown): string {
@@ -52,14 +52,14 @@ function dowFromYmdUtc(ymd: string): number {
 }
 
 export function ConsultasClient(props: {
-  initialTerapeutas: Terapeuta[];
+  initialTerapeutas: Profissional[];
   initialPacientes: Paciente[];
   canEditAtendimento: boolean;
   canDeleteAtendimento: boolean;
   canEditRepasse: boolean;
 }) {
   const router = useRouter();
-  const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
+  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
   const [pacientes] = useState<Paciente[]>(() => props.initialPacientes);
   const [items, setItems] = useState<Atendimento[]>([]);
   const [loading, setLoading] = useState(false);
@@ -146,7 +146,7 @@ export function ConsultasClient(props: {
 
     const terapeutaIdNum = Number(editTerapeutaId);
     if (!terapeutaIdNum || !editData || !editHoraInicio || !editHoraFim) {
-      setEditMsg("Preencha terapeuta, data e horarios.");
+      setEditMsg("Preencha profissional, data e horarios.");
       return;
     }
 
@@ -275,7 +275,7 @@ export function ConsultasClient(props: {
             </select>
           </label>
           <label className="text-sm">
-            <span className="mb-1 block font-semibold text-[var(--marrom)]">Terapeuta</span>
+            <span className="mb-1 block font-semibold text-[var(--marrom)]">Profissional</span>
             <select
               className="w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
               value={terapeutaId}
@@ -348,7 +348,7 @@ export function ConsultasClient(props: {
               <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
                 <th className="px-3 py-2">Data / Periodo</th>
                 <th className="px-3 py-2">Paciente</th>
-                <th className="px-3 py-2">Terapeuta</th>
+                <th className="px-3 py-2">Profissional</th>
                 <th className="px-3 py-2">Horario</th>
                 <th className="px-3 py-2">Presenca / Repasse</th>
                 <th className="px-3 py-2">Motivo/Obs</th>
@@ -482,7 +482,7 @@ export function ConsultasClient(props: {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Terapeuta</span>
+                <span className="font-semibold text-gray-700">Profissional</span>
                 <select
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
                   value={editTerapeutaId}

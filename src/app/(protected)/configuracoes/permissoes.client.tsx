@@ -258,7 +258,7 @@ export function ConfiguracoesPermissoesClient() {
       return;
     }
     if (!isAllowedRole(role)) {
-      setCreateMsg("Papel invalido. Use admin, recepcao, terapeuta ou responsavel.");
+      setCreateMsg("Papel invalido. Use admin, recepcao, profissional ou responsavel.");
       setCreateTone("error");
       return;
     }
@@ -385,7 +385,7 @@ export function ConfiguracoesPermissoesClient() {
             <p className="text-sm text-gray-500">Gestao de acesso</p>
             <h2 className="text-xl font-semibold text-[var(--marrom)]">Cadastrar novo usuario</h2>
             <p className="text-sm text-slate-600">
-              Crie usuarios com papel admin, recepcao, terapeuta ou responsavel.
+              Crie usuarios com papel admin, recepcao, profissional ou responsavel.
             </p>
           </div>
         </div>

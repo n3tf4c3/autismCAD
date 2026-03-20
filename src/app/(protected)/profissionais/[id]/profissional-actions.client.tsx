@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  deleteTerapeutaAction,
-  setTerapeutaAtivoAction,
-} from "@/app/(protected)/terapeutas/terapeuta.actions";
+  deleteProfissionalAction,
+  setProfissionalAtivoAction,
+} from "@/app/(protected)/profissionais/profissional.actions";
 
 type Props = {
-  terapeutaId: number;
-  terapeutaNome: string;
+  profissionalId: number;
+  profissionalNome: string;
   ativo: boolean;
   canArchive: boolean;
   canDelete: boolean;
@@ -20,9 +20,9 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao executar acao";
 }
 
-export function TerapeutaActionsClient({
-  terapeutaId,
-  terapeutaNome,
+export function ProfissionalActionsClient({
+  profissionalId,
+  profissionalNome,
   ativo,
   canArchive,
   canDelete,
@@ -38,15 +38,15 @@ export function TerapeutaActionsClient({
     const vaiArquivar = ativo;
     const ok = window.confirm(
       vaiArquivar
-        ? `Arquivar o terapeuta ${terapeutaNome}?`
-        : `Desarquivar o terapeuta ${terapeutaNome}?`
+        ? `Arquivar o profissional ${profissionalNome}?`
+        : `Desarquivar o profissional ${profissionalNome}?`
     );
     if (!ok) return;
 
     setBusyAction("archive");
     setMsg(null);
     try {
-      const result = await setTerapeutaAtivoAction(terapeutaId, !vaiArquivar);
+      const result = await setProfissionalAtivoAction(profissionalId, !vaiArquivar);
       if (!result.ok) throw new Error(result.error || "Erro ao atualizar status");
       setMsg(null);
       router.refresh();
@@ -57,23 +57,23 @@ export function TerapeutaActionsClient({
     }
   }
 
-  async function excluirTerapeuta() {
+  async function excluirProfissional() {
     if (busyAction) return;
     const ok = window.confirm(
-      `Excluir o terapeuta ${terapeutaNome}? Esta acao remove o cadastro definitivamente.`
+      `Excluir o profissional ${profissionalNome}? Esta acao remove o cadastro definitivamente.`
     );
     if (!ok) return;
 
-    const okFinal = window.confirm("Confirmacao final: deseja realmente excluir este terapeuta?");
+    const okFinal = window.confirm("Confirmacao final: deseja realmente excluir este profissional?");
     if (!okFinal) return;
 
     setBusyAction("delete");
     setMsg(null);
     try {
-      const result = await deleteTerapeutaAction(terapeutaId);
-      if (!result.ok) throw new Error(result.error || "Erro ao excluir terapeuta");
+      const result = await deleteProfissionalAction(profissionalId);
+      if (!result.ok) throw new Error(result.error || "Erro ao excluir profissional");
 
-      router.push("/terapeutas");
+      router.push("/profissionais");
       router.refresh();
     } catch (error) {
       setMsg(normalizeApiError(error));
@@ -101,7 +101,7 @@ export function TerapeutaActionsClient({
         {canDelete && !ativo ? (
           <button
             type="button"
-            onClick={() => void excluirTerapeuta()}
+            onClick={() => void excluirProfissional()}
             disabled={busyAction !== null}
             className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
           >

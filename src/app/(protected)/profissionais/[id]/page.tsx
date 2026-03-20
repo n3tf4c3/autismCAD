@@ -3,12 +3,12 @@ import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
 import {
-  obterTerapeutaDetalhe,
-  obterTerapeutaPorUsuario,
-} from "@/server/modules/terapeutas/terapeutas.service";
+  obterProfissionalDetalhe,
+  obterProfissionalPorUsuario,
+} from "@/server/modules/profissionais/profissionais.service";
 import { AppError } from "@/server/shared/errors";
 import Link from "next/link";
-import { TerapeutaActionsClient } from "@/app/(protected)/terapeutas/[id]/terapeuta-actions.client";
+import { ProfissionalActionsClient } from "@/app/(protected)/profissionais/[id]/profissional-actions.client";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -53,12 +53,12 @@ function pickEndereco(row: {
   cep: string | null;
 }) {
   const line1 = [row.logradouro, row.numero].filter(Boolean).join(", ");
-  const line2 = [row.bairro, row.cidade].filter(Boolean).join(" · ");
+  const line2 = [row.bairro, row.cidade].filter(Boolean).join(" - ");
   const line3 = row.cep ? `CEP: ${row.cep}` : "";
   return [line1, line2, line3].filter(Boolean);
 }
 
-export default async function TerapeutaDetalhePage(props: PageProps) {
+export default async function ProfissionalDetalhePage(props: PageProps) {
   const user = await requireUser();
   const access = await loadUserAccess(Number(user.id));
   const canView = hasPermissionKey(access.permissions, "terapeutas:view");
@@ -68,11 +68,11 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
   const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
   const canEditSelf = hasPermissionKey(access.permissions, "terapeutas:edit_self");
   const [row, self] = await Promise.all([
-    obterTerapeutaDetalhe(id),
-    canEditAny || !canEditSelf ? Promise.resolve(null) : obterTerapeutaPorUsuario(Number(user.id)),
+    obterProfissionalDetalhe(id),
+    canEditAny || !canEditSelf ? Promise.resolve(null) : obterProfissionalPorUsuario(Number(user.id)),
   ]);
 
-  if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  if (!row) throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
 
   const canEdit = canEditAny || Boolean(self && self.id === row.id);
 
@@ -93,7 +93,7 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2">
               <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[var(--marrom)] shadow-sm ring-1 ring-black/5">
-                Ficha do terapeuta
+                Ficha do profissional
               </span>
               {row.especialidade ? (
                 <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
@@ -127,14 +127,14 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href="/terapeutas"
+                href="/profissionais"
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 Voltar
               </Link>
               {canEdit ? (
                 <Link
-                  href={`/terapeutas/${row.id}/editar`}
+                  href={`/profissionais/${row.id}/editar`}
                   className="rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
                 >
                   Editar
@@ -184,9 +184,9 @@ export default async function TerapeutaDetalhePage(props: PageProps) {
 
       <div className="border-t border-gray-100 px-6 py-5">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes administrativas</p>
-        <TerapeutaActionsClient
-          terapeutaId={row.id}
-          terapeutaNome={row.nome}
+        <ProfissionalActionsClient
+          profissionalId={row.id}
+          profissionalNome={row.nome}
           ativo={Boolean(row.ativo)}
           canArchive={canEdit}
           canDelete={hasPermissionKey(access.permissions, "terapeutas:delete")}

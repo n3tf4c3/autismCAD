@@ -6,7 +6,7 @@ import {
   type ActionResult,
 } from "@/app/(protected)/relatorios/relatorios.actions";
 
-type Terapeuta = { id: number; nome: string };
+type Profissional = { id: number; nome: string };
 
 type Report = {
   periodo: { from: string; to: string };
@@ -71,7 +71,7 @@ function unwrapAction<T>(result: ActionResult<T>): T {
 
 export function AssiduidadeClient(props: {
   canChooseTerapeuta: boolean;
-  initialTerapeutas: Terapeuta[];
+  initialTerapeutas: Profissional[];
 }) {
   const [pacienteNome, setPacienteNome] = useState("");
   const [terapeutaId, setTerapeutaId] = useState("");
@@ -79,7 +79,7 @@ export function AssiduidadeClient(props: {
   const [to, setTo] = useState(ymdToday());
   const [presenca, setPresenca] = useState("");
 
-  const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
+  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -111,11 +111,11 @@ export function AssiduidadeClient(props: {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="text-2xl">📊</div>
+            <div className="text-2xl">AS</div>
             <div>
               <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorio de assiduidade</h2>
               <p className="text-sm text-gray-600">
-                Filtre por paciente, terapeuta e periodo para acompanhar presenca e faltas.
+                Filtre por paciente, profissional e periodo para acompanhar presenca e faltas.
               </p>
             </div>
           </div>
@@ -132,7 +132,7 @@ export function AssiduidadeClient(props: {
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</span>
+            <span className="text-sm font-semibold text-[var(--marrom)]">Profissional</span>
             <select
               value={terapeutaId}
               onChange={(e) => setTerapeutaId(e.target.value)}
@@ -262,7 +262,7 @@ export function AssiduidadeClient(props: {
                 <th className="px-6 py-3">Taxa</th>
                 <th className="px-6 py-3">Sem registro</th>
                 <th className="px-6 py-3">Ultimo atendimento</th>
-                <th className="px-6 py-3">Terapeutas envolvidos</th>
+                <th className="px-6 py-3">Profissionais envolvidos</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">

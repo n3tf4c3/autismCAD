@@ -414,7 +414,7 @@ export function EvolucaoFormClient(props: {
             ? Number(terapeutaId)
             : null;
       if (!isTerapeuta && !resolvedTerapeutaId) {
-        throw new Error("Selecione um atendimento ou um terapeuta.");
+        throw new Error("Selecione um atendimento ou um profissional.");
       }
 
       const body = {
@@ -554,7 +554,7 @@ export function EvolucaoFormClient(props: {
               ) : null}
               {atendimentos.map((a) => (
                 <option key={a.id} value={String(a.id)}>
-                  {String(a.data).slice(0, 10)} - {a.terapeutaNome || "Terapeuta"}{" "}
+                  {String(a.data).slice(0, 10)} - {a.terapeutaNome || "Profissional"}{" "}
                   {a.horaInicio || a.horaFim
                     ? `(${String(a.horaInicio || "").slice(0, 5)}${
                         a.horaFim ? ` - ${String(a.horaFim || "").slice(0, 5)}` : ""
@@ -618,7 +618,7 @@ export function EvolucaoFormClient(props: {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {terapeutaIdLocked ? (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--marrom)]">Terapeuta</label>
+                <label className="text-sm font-semibold text-[var(--marrom)]">Profissional</label>
                 <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                   {atendimentoAtual?.terapeutaNome ||
                     (atendimentoAtual?.terapeutaId ? `#${atendimentoAtual.terapeutaId}` : "Vinculado ao atendimento")}
@@ -627,7 +627,7 @@ export function EvolucaoFormClient(props: {
               </div>
             ) : (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--marrom)]">Terapeuta (quando sem atendimento)</label>
+                <label className="text-sm font-semibold text-[var(--marrom)]">Profissional (quando sem atendimento)</label>
                 <select
                   value={terapeutaId}
                   onChange={(e) => setTerapeutaId(e.target.value)}

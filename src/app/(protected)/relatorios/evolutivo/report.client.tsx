@@ -7,7 +7,7 @@ import {
   type ActionResult,
 } from "@/app/(protected)/relatorios/relatorios.actions";
 
-type Terapeuta = { id: number; nome: string };
+type Profissional = { id: number; nome: string };
 
 type EvolutivoReport = {
   paciente: { id: number; nome: string; cpf: string };
@@ -79,13 +79,13 @@ export function EvolutivoReportClient(props: {
   canChooseTerapeuta: boolean;
   canChoosePaciente: boolean;
   canExportPdf: boolean;
-  initialTerapeutas: Terapeuta[];
+  initialTerapeutas: Profissional[];
 }) {
   const [pacienteId, setPacienteId] = useState<string>(props.initialPacienteId ? String(props.initialPacienteId) : "");
   const [from, setFrom] = useState<string>(ymdMinusDays(29));
   const [to, setTo] = useState<string>(ymdToday());
   const [terapeutaId, setTerapeutaId] = useState<string>("");
-  const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
+  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
   const [report, setReport] = useState<EvolutivoReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -150,7 +150,7 @@ export function EvolutivoReportClient(props: {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase text-gray-500">Filtros</p>
-            <h1 className="text-lg font-semibold text-[var(--marrom)]">Periodo e terapeuta</h1>
+            <h1 className="text-lg font-semibold text-[var(--marrom)]">Periodo e profissional</h1>
           </div>
           <button
             type="button"
@@ -194,7 +194,7 @@ export function EvolutivoReportClient(props: {
           </label>
           {props.canChooseTerapeuta ? (
             <label className="flex flex-col gap-2 md:col-span-1">
-              <span className="text-sm font-semibold text-[var(--marrom)]">Terapeuta (opcional)</span>
+              <span className="text-sm font-semibold text-[var(--marrom)]">Profissional (opcional)</span>
               <select
                 value={terapeutaId}
                 onChange={(e) => setTerapeutaId(e.target.value)}
@@ -270,7 +270,7 @@ export function EvolutivoReportClient(props: {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lg font-semibold text-[var(--marrom)]">Indicadores</h2>
               <p className="text-sm text-gray-600">
-                Paciente: <span className="font-semibold">{report.paciente.nome}</span> (#{report.paciente.id}) · Periodo{" "}
+                Paciente: <span className="font-semibold">{report.paciente.nome}</span> (#{report.paciente.id}) - Periodo{" "}
                 {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}
               </p>
             </div>
@@ -311,7 +311,7 @@ export function EvolutivoReportClient(props: {
                   report.destaques.ultimasObservacoes.map((o, idx) => (
                     <li key={`${o.data}-${idx}`} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                       <p className="text-xs text-gray-500">
-                        {fmtDate(o.data)} · {o.terapeuta_nome} · {o.origem}
+                        {fmtDate(o.data)} - {o.terapeuta_nome} - {o.origem}
                       </p>
                       <p className="mt-1">{o.texto}</p>
                     </li>
@@ -359,7 +359,7 @@ export function EvolutivoReportClient(props: {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left">Data</th>
-                    <th className="px-4 py-2 text-left">Terapeuta</th>
+                    <th className="px-4 py-2 text-left">Profissional</th>
                     <th className="px-4 py-2 text-left">Presenca</th>
                     <th className="px-4 py-2 text-left">Duracao (min)</th>
                     <th className="px-4 py-2 text-left">Observacao</th>
@@ -369,7 +369,7 @@ export function EvolutivoReportClient(props: {
                   {(report.atendimentos || []).map((a) => (
                     <tr key={a.id}>
                       <td className="px-4 py-2">{fmtDate(a.data)}</td>
-                      <td className="px-4 py-2">{a.terapeuta_nome || "Terapeuta"}</td>
+                      <td className="px-4 py-2">{a.terapeuta_nome || "Profissional"}</td>
                       <td className="px-4 py-2">{a.presenca}</td>
                       <td className="px-4 py-2">{a.duracao_min || "-"}</td>
                       <td className="px-4 py-2 text-gray-700">

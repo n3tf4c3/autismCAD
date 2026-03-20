@@ -6,7 +6,7 @@ import { AppError } from "@/server/shared/errors";
 import {
   obterTerapeutaPorUsuario,
   terapeutaAtendePaciente,
-} from "@/server/modules/terapeutas/terapeutas.service";
+} from "@/server/modules/profissionais/profissionais.service";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
 export type SessionUserLike = {
@@ -35,7 +35,7 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
   if (isTerapeuta) {
     const terapeuta = await obterTerapeutaPorUsuario(userId);
     if (!terapeuta) {
-      throw new AppError("Terapeuta sem vinculo", 403, "FORBIDDEN");
+      throw new AppError("Profissional sem vinculo", 403, "FORBIDDEN");
     }
 
     const vinculado = await terapeutaAtendePaciente(pacienteId, terapeuta.id);

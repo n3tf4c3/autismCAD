@@ -6,7 +6,7 @@ import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { obterEvolucaoPorId } from "@/server/modules/prontuario/prontuario.service";
-import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
+import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
 

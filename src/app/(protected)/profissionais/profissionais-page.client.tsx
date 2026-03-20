@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { listarTerapeutasAction } from "@/app/(protected)/terapeutas/terapeuta.actions";
+import { listarProfissionaisAction } from "@/app/(protected)/profissionais/profissional.actions";
 
-type Terapeuta = {
+type Profissional = {
   id: number;
   nome: string;
   cpf: string;
@@ -22,28 +22,28 @@ function formatCpf(cpf: string): string {
 
 function normalizeApiError(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return "Erro ao carregar terapeutas";
+  return "Erro ao carregar profissionais";
 }
 
-export function TerapeutasPageClient(props: { initialItems: Terapeuta[] }) {
-  const [items, setItems] = useState<Terapeuta[]>(() => props.initialItems);
+export function ProfissionaisPageClient(props: { initialItems: Profissional[] }) {
+  const [items, setItems] = useState<Profissional[]>(() => props.initialItems);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
   const [especialidade, setEspecialidade] = useState("");
 
-  async function loadTerapeutas(filters: { nome: string; cpf: string; especialidade: string }) {
+  async function loadProfissionais(filters: { nome: string; cpf: string; especialidade: string }) {
     setLoading(true);
     setError(null);
     try {
-      const result = await listarTerapeutasAction({
+      const result = await listarProfissionaisAction({
         nome: filters.nome.trim() || undefined,
         cpf: filters.cpf.trim() || undefined,
         especialidade: filters.especialidade.trim() || undefined,
       });
       if (!result.ok) {
-        throw new Error(result.error || "Erro ao carregar terapeutas");
+        throw new Error(result.error || "Erro ao carregar profissionais");
       }
       setItems(Array.isArray(result.data.items) ? result.data.items : []);
     } catch (err) {
@@ -58,19 +58,19 @@ export function TerapeutasPageClient(props: { initialItems: Terapeuta[] }) {
     <main className="rounded-2xl bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--marrom)]">Terapeutas</h1>
-          <p className="text-sm text-gray-600">Consultar e gerenciar terapeutas cadastrados.</p>
+          <h1 className="text-2xl font-bold text-[var(--marrom)]">Profissionais</h1>
+          <p className="text-sm text-gray-600">Consultar e gerenciar profissionais cadastrados.</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/terapeutas/novo"
+            href="/profissionais/novo"
             className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
           >
             + Novo cadastro
           </Link>
           <button
             type="button"
-            onClick={() => void loadTerapeutas({ nome, cpf, especialidade })}
+            onClick={() => void loadProfissionais({ nome, cpf, especialidade })}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             Recarregar
@@ -109,7 +109,7 @@ export function TerapeutasPageClient(props: { initialItems: Terapeuta[] }) {
         <div className="flex items-end gap-2">
           <button
             type="button"
-            onClick={() => void loadTerapeutas({ nome, cpf, especialidade })}
+            onClick={() => void loadProfissionais({ nome, cpf, especialidade })}
             className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-white hover:bg-[#e6961f]"
           >
             Filtrar
@@ -120,7 +120,7 @@ export function TerapeutasPageClient(props: { initialItems: Terapeuta[] }) {
               setNome("");
               setCpf("");
               setEspecialidade("");
-              void loadTerapeutas({ nome: "", cpf: "", especialidade: "" });
+              void loadProfissionais({ nome: "", cpf: "", especialidade: "" });
             }}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 font-semibold text-gray-700 hover:bg-gray-50"
           >
@@ -166,13 +166,13 @@ export function TerapeutasPageClient(props: { initialItems: Terapeuta[] }) {
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      href={`/terapeutas/${item.id}`}
+                      href={`/profissionais/${item.id}`}
                       className="inline-flex items-center justify-center rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                     >
                       Ver
                     </Link>
                     <Link
-                      href={`/terapeutas/${item.id}/editar`}
+                      href={`/profissionais/${item.id}/editar`}
                       className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                     >
                       Editar
@@ -190,7 +190,7 @@ export function TerapeutasPageClient(props: { initialItems: Terapeuta[] }) {
             {!loading && !items.length ? (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-sm text-gray-500">
-                  Nenhum terapeuta encontrado.
+                  Nenhum profissional encontrado.
                 </td>
               </tr>
             ) : null}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
-import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
+import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
 import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/report.client";
 
 export default async function RelatorioEvolutivoPage(props: {

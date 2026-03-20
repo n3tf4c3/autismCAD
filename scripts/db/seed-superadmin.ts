@@ -86,7 +86,7 @@ async function main() {
     .values([
       { slug: "admin-geral", nome: "Administrador Geral" },
       { slug: "admin", nome: "Administrador" },
-      { slug: "terapeuta", nome: "Terapeuta" },
+      { slug: "terapeuta", nome: "Profissional" },
       { slug: "recepcao", nome: "Recepcao" },
       { slug: "responsavel", nome: "Responsavel" },
     ])

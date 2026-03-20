@@ -5,11 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { ESPECIALIDADES_TERAPEUTA } from "@/lib/terapeutas/especialidades";
-import { saveTerapeutaSchema } from "@/server/modules/terapeutas/terapeutas.schema";
-import { salvarTerapeutaAction } from "@/app/(protected)/terapeutas/terapeuta.actions";
+import { ESPECIALIDADES_PROFISSIONAL } from "@/lib/profissionais/especialidades";
+import { saveProfissionalSchema } from "@/server/modules/profissionais/profissionais.schema";
+import { salvarProfissionalAction } from "@/app/(protected)/profissionais/profissional.actions";
 
-type TerapeutaFormInitial = {
+type ProfissionalFormInitial = {
   id?: number | null;
   nome?: string | null;
   cpf?: string | null;
@@ -31,9 +31,9 @@ type ViaCepResp = {
   localidade?: string;
 };
 
-type TerapeutaFormValues = z.input<typeof saveTerapeutaSchema>;
+type ProfissionalFormValues = z.input<typeof saveProfissionalSchema>;
 
-const EMPTY_FORM_VALUES: TerapeutaFormValues = {
+const EMPTY_FORM_VALUES: ProfissionalFormValues = {
   nome: "",
   cpf: "",
   nascimento: "",
@@ -102,7 +102,7 @@ function joinEndereco(parts: {
   return out.join(", ");
 }
 
-function buildFormValues(initial?: TerapeutaFormInitial): TerapeutaFormValues {
+function buildFormValues(initial?: ProfissionalFormInitial): ProfissionalFormValues {
   return {
     nome: String(initial?.nome ?? ""),
     cpf: formatCpf(String(initial?.cpf ?? "")),
@@ -119,7 +119,7 @@ function buildFormValues(initial?: TerapeutaFormInitial): TerapeutaFormValues {
   };
 }
 
-export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: TerapeutaFormInitial }) {
+export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial?: ProfissionalFormInitial }) {
   const router = useRouter();
   const initialId = props.initial?.id ?? null;
   const [busy, setBusy] = useState(false);
@@ -138,8 +138,8 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
     reset,
     setValue,
     watch,
-  } = useForm<TerapeutaFormValues>({
-    resolver: zodResolver(saveTerapeutaSchema),
+  } = useForm<ProfissionalFormValues>({
+    resolver: zodResolver(saveProfissionalSchema),
     defaultValues: buildFormValues(props.initial),
   });
 
@@ -271,17 +271,17 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
         };
 
         const isEdit = props.mode === "edit";
-        const result = await salvarTerapeutaAction(payload, isEdit ? initialId : null);
+        const result = await salvarProfissionalAction(payload, isEdit ? initialId : null);
         if (!result.ok) {
-          setMsg(result.error || "Erro ao salvar terapeuta");
+          setMsg(result.error || "Erro ao salvar profissional");
           return;
         }
 
-        router.push("/terapeutas");
+        router.push("/profissionais");
         router.refresh();
       } catch (error) {
         if (error instanceof Error) setMsg(error.message);
-        else setMsg("Erro ao salvar terapeuta");
+        else setMsg("Erro ao salvar profissional");
       } finally {
         setBusy(false);
       }
@@ -294,7 +294,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <section className="rounded-xl bg-white p-6 shadow-sm xl:col-span-2">
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Dados do terapeuta</h3>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Dados do profissional</h3>
             <p className="text-sm text-gray-600">Preencha as informacoes do profissional.</p>
           </div>
 
@@ -492,7 +492,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                 {...register("especialidade")}
               >
                 <option value="">Selecione</option>
-                {ESPECIALIDADES_TERAPEUTA.map((option) => (
+                {ESPECIALIDADES_PROFISSIONAL.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -516,7 +516,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
                   disabled={busy}
                   className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
                 >
-                  {busy ? "Salvando..." : "Salvar terapeuta"}
+                  {busy ? "Salvando..." : "Salvar profissional"}
                 </button>
               </div>
             </div>
@@ -526,7 +526,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
         <aside className="rounded-xl bg-white p-6 shadow-sm">
           <div>
             <p className="text-xs uppercase tracking-wide text-gray-500">Resumo</p>
-            <h4 className="text-lg font-semibold text-[var(--marrom)]">Ficha do terapeuta</h4>
+            <h4 className="text-lg font-semibold text-[var(--marrom)]">Ficha do profissional</h4>
           </div>
 
           <div className="mt-4 space-y-3 text-sm">
@@ -567,7 +567,7 @@ export function TerapeutaFormClient(props: { mode: "create" | "edit"; initial?: 
               <strong className="text-[var(--texto)]">{String(email ?? "").trim() || "-"}</strong>
             </div>
             <div className="rounded-lg border border-[#f1e1c7] bg-[#fff6e6] p-3 text-xs leading-relaxed text-[var(--marrom)]">
-              Os dados sao salvos na base de terapeutas e podem ser consultados ou editados pela equipe.
+              Os dados sao salvos na base de profissionais e podem ser consultados ou editados pela equipe.
             </div>
           </div>
         </aside>

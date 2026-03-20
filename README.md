@@ -1,6 +1,6 @@
 # AutismCAD (Next.js)
 
-Aplicacao web da Clinica Girassois para gestao de pacientes TEA, terapeutas, consultas, prontuarios e relatorios.
+Aplicacao web da Clinica Girassois para gestao de pacientes TEA, profissionais, consultas, prontuarios e relatorios.
 
 ## Stack
 - Next.js (App Router) + React
@@ -12,7 +12,7 @@ Aplicacao web da Clinica Girassois para gestao de pacientes TEA, terapeutas, con
 ## Modulos principais
 - Dashboard com agenda do dia e mural de aniversariantes
 - Pacientes (cadastro, edicao, vinculos, arquivos)
-- Terapeutas (cadastro, agenda, status ativo)
+- Profissionais (cadastro, agenda, status ativo)
 - Consultas/atendimentos (agenda, recorrencia, presenca)
 - Prontuario (evolucoes, documentos, plano de ensino)
 - Relatorios (assiduidade, devolutivas, evolutivo com export PDF/DOCX)

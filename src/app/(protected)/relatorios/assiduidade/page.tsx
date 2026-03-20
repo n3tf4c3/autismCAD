@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
-import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
+import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
 import { AssiduidadeClient } from "@/app/(protected)/relatorios/assiduidade/assiduidade.client";
 
 export default async function RelatorioAssiduidadePage() {

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AutismCAD",
-  description: "Plataforma clinica para gestao de pacientes, terapeutas e atendimentos.",
+  description: "Plataforma clinica para gestao de pacientes, profissionais e atendimentos.",
 };
 
 export default function RootLayout({

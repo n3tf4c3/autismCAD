@@ -3,17 +3,17 @@ import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
 import {
-  obterTerapeutaDetalhe,
-  obterTerapeutaPorUsuario,
-} from "@/server/modules/terapeutas/terapeutas.service";
+  obterProfissionalDetalhe,
+  obterProfissionalPorUsuario,
+} from "@/server/modules/profissionais/profissionais.service";
 import { AppError } from "@/server/shared/errors";
-import { TerapeutaFormClient } from "@/app/(protected)/terapeutas/terapeuta-form.client";
+import { ProfissionalFormClient } from "@/app/(protected)/profissionais/profissional-form.client";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function EditarTerapeutaPage(props: PageProps) {
+export default async function EditarProfissionalPage(props: PageProps) {
   const user = await requireUser();
   const access = await loadUserAccess(Number(user.id));
   const canEditAny = hasPermissionKey(access.permissions, "terapeutas:edit");
@@ -22,16 +22,16 @@ export default async function EditarTerapeutaPage(props: PageProps) {
 
   const { id } = idParamSchema.parse(await props.params);
   if (!canEditAny) {
-    const self = await obterTerapeutaPorUsuario(Number(user.id));
+    const self = await obterProfissionalPorUsuario(Number(user.id));
     if (!self || self.id !== id) throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
-  const row = await obterTerapeutaDetalhe(id);
+  const row = await obterProfissionalDetalhe(id);
 
-  if (!row) throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+  if (!row) throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
 
   return (
-    <TerapeutaFormClient
+    <ProfissionalFormClient
       mode="edit"
       initial={{
         id: row.id,

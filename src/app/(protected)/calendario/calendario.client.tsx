@@ -12,7 +12,7 @@ import {
   type AtendimentoCompat as Atendimento,
 } from "@/app/(protected)/consultas/atendimento-compat";
 
-type Terapeuta = { id: number; nome: string; especialidade?: string | null };
+type Profissional = { id: number; nome: string; especialidade?: string | null };
 type Paciente = { id: number; nome: string };
 
 type BloqueioAgenda = {
@@ -120,7 +120,7 @@ function saveBloqueiosStorage(items: BloqueioAgenda[]) {
 }
 
 export function CalendarioClient(props: {
-  initialTerapeutas: Terapeuta[];
+  initialTerapeutas: Profissional[];
   initialPacientes: Paciente[];
   initialTerapeutaId?: string;
   initialData?: string;
@@ -216,7 +216,7 @@ export function CalendarioClient(props: {
     try {
       const terapeutaNum = Number(terapeutaId);
       if (!Number.isFinite(terapeutaNum) || terapeutaNum <= 0) {
-        throw new Error("Selecione um terapeuta");
+        throw new Error("Selecione um profissional");
       }
       if (inicio >= fim) {
         throw new Error("Horario inicial deve ser menor que o final");
@@ -397,7 +397,7 @@ export function CalendarioClient(props: {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-[var(--marrom)]">Agenda</h1>
-            <p className="text-sm text-gray-600">Agenda semanal do terapeuta</p>
+            <p className="text-sm text-gray-600">Agenda semanal do profissional</p>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -405,7 +405,7 @@ export function CalendarioClient(props: {
               value={terapeutaId}
               onChange={(e) => setTerapeutaId(e.target.value)}
             >
-              <option value="">Selecione um terapeuta</option>
+              <option value="">Selecione um profissional</option>
               {terapeutas.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nome}
@@ -491,7 +491,7 @@ export function CalendarioClient(props: {
                   </div>
                   <div className="space-y-2">
                     {!terapeutaId ? (
-                      <p className="text-xs text-gray-500">Selecione um terapeuta</p>
+                      <p className="text-xs text-gray-500">Selecione um profissional</p>
                     ) : merged.length ? (
                       merged.map((entry) =>
                         entry.kind === "atendimento" ? (

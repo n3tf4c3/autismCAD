@@ -2,7 +2,7 @@ INSERT INTO roles (slug, nome)
 VALUES
   ('admin-geral', 'Administrador Geral'),
   ('admin', 'Administrador'),
-  ('terapeuta', 'Terapeuta'),
+  ('terapeuta', 'Profissional'),
   ('recepcao', 'Recepcao')
 ON CONFLICT (slug) DO NOTHING;
 

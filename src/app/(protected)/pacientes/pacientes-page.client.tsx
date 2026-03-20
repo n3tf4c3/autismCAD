@@ -15,7 +15,7 @@ type Paciente = {
   terapias: string[];
 };
 
-type Terapeuta = { id: number; nome: string };
+type Profissional = { id: number; nome: string };
 
 function formatCpf(cpf: string): string {
   const digits = (cpf || "").replace(/\D/g, "").slice(0, 11);
@@ -45,10 +45,10 @@ function unwrapAction<T>(
 
 export function PacientesPageClient(props: {
   initialItems: Paciente[];
-  initialTerapeutas: Terapeuta[];
+  initialTerapeutas: Profissional[];
 }) {
   const [items, setItems] = useState<Paciente[]>(() => props.initialItems);
-  const [terapeutas] = useState<Terapeuta[]>(() => props.initialTerapeutas);
+  const [terapeutas] = useState<Profissional[]>(() => props.initialTerapeutas);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nome, setNome] = useState("");
@@ -125,7 +125,7 @@ export function PacientesPageClient(props: {
     setConsultaMsg(null);
 
     if (!consultaTerapeutaId) {
-      setConsultaMsg("Selecione um terapeuta.");
+      setConsultaMsg("Selecione um profissional.");
       return;
     }
     if (!consultaHoraInicio || !consultaHoraFim) {
@@ -321,7 +321,7 @@ export function PacientesPageClient(props: {
 
             <div className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Terapeuta</span>
+                <span className="font-semibold text-gray-700">Profissional</span>
                 <select
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
                   value={consultaTerapeutaId}

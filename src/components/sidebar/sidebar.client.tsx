@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -128,11 +128,11 @@ export function SidebarClient(props: { userRole?: string | null }) {
         },
         {
           key: "terapeutas",
-          label: "Terapeutas",
+          label: "Profissionais",
           icon: "🧑‍⚕️",
-          href: "/terapeutas",
+          href: "/profissionais",
           kind: "link",
-          activeWhen: (p) => isActivePrefix("/terapeutas", p),
+          activeWhen: (p) => isActivePrefix("/profissionais", p),
         },
         {
           key: "consultas",

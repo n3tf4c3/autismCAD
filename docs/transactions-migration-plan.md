@@ -46,7 +46,7 @@ Referencias:
 - Esperado: base + versao consistentes sem orfaos.
 
 ### 4) `terapeutas.deleteTerapeuta`
-- Path: `src/server/modules/terapeutas/terapeutas.service.ts`
+- Path: `src/server/modules/profissionais/profissionais.service.ts`
 - Esperado: operacoes encadeadas (desvinculo + delete logico/fisico conforme regra) sem estado parcial.
 
 ### 5) `pacientes.arquivos.commit.action`

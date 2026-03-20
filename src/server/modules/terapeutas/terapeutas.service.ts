@@ -7,7 +7,7 @@ import {
   especialidadesPermitidas,
   SaveTerapeutaInput,
   TerapeutasQueryInput,
-} from "@/server/modules/terapeutas/terapeutas.schema";
+} from "@/server/modules/profissionais/profissionais.schema";
 import { AppError } from "@/server/shared/errors";
 import {
   escapeLikePattern,
@@ -134,7 +134,7 @@ export async function salvarTerapeuta(input: SaveTerapeutaInput, id?: number | n
           .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
           .returning({ id: terapeutas.id });
         if (!updated) {
-          throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+          throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
         }
         return updated.id;
       }
@@ -182,7 +182,7 @@ export async function deleteTerapeuta(id: number, deletedByUserId?: number | nul
     .where(and(eq(terapeutas.id, id), isNull(terapeutas.deletedAt)))
     .limit(1);
   if (!row) {
-    throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+    throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
   }
   if (row.ativo) {
     throw new AppError(
@@ -209,7 +209,7 @@ export async function deleteTerapeuta(id: number, deletedByUserId?: number | nul
   );
 
   if (!deleted) {
-    throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+    throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
   }
 
   return { id: deleted.id };
@@ -225,7 +225,7 @@ export async function setTerapeutaAtivo(id: number, ativo: boolean) {
         .returning({ id: terapeutas.id, ativo: terapeutas.ativo });
 
       if (!result) {
-        throw new AppError("Terapeuta nao encontrado", 404, "NOT_FOUND");
+        throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
       }
 
       return result;

@@ -5,16 +5,16 @@ import { loadUserAccess } from "@/server/auth/access";
 import { requirePermission, requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
 import {
-  saveTerapeutaSchema,
-  terapeutasQuerySchema,
-} from "@/server/modules/terapeutas/terapeutas.schema";
+  saveProfissionalSchema,
+  profissionaisQuerySchema,
+} from "@/server/modules/profissionais/profissionais.schema";
 import {
-  deleteTerapeuta,
-  listarTerapeutas,
-  obterTerapeutaPorUsuario,
-  salvarTerapeuta,
-  setTerapeutaAtivo,
-} from "@/server/modules/terapeutas/terapeutas.service";
+  deleteProfissional,
+  listarProfissionais,
+  obterProfissionalPorUsuario,
+  salvarProfissional,
+  setProfissionalAtivo,
+} from "@/server/modules/profissionais/profissionais.service";
 import { AppError, toAppError } from "@/server/shared/errors";
 
 type ActionError = {
@@ -41,7 +41,7 @@ function actionErrorResult(error: unknown): ActionError {
   };
 }
 
-async function assertCanEditTerapeuta(terapeutaId: number): Promise<number> {
+async function assertCanEditProfissional(profissionalId: number): Promise<number> {
   const user = await requireUser();
   const userId = Number(user.id);
   const access = await loadUserAccess(userId);
@@ -53,8 +53,8 @@ async function assertCanEditTerapeuta(terapeutaId: number): Promise<number> {
   }
 
   if (!canEditAny) {
-    const self = await obterTerapeutaPorUsuario(userId);
-    if (!self || self.id !== terapeutaId) {
+    const self = await obterProfissionalPorUsuario(userId);
+    if (!self || self.id !== profissionalId) {
       throw new AppError("Acesso negado", 403, "FORBIDDEN");
     }
   }
@@ -62,21 +62,24 @@ async function assertCanEditTerapeuta(terapeutaId: number): Promise<number> {
   return userId;
 }
 
-export async function salvarTerapeutaAction(input: unknown, terapeutaId?: number | null): Promise<ActionResult<{ id: number }>> {
+export async function salvarProfissionalAction(
+  input: unknown,
+  profissionalId?: number | null
+): Promise<ActionResult<{ id: number }>> {
   try {
-    const parsed = saveTerapeutaSchema.parse(input);
-    const idNum = terapeutaId ? Number(terapeutaId) : null;
+    const parsed = saveProfissionalSchema.parse(input);
+    const idNum = profissionalId ? Number(profissionalId) : null;
 
     if (idNum && Number.isFinite(idNum) && idNum > 0) {
-      await assertCanEditTerapeuta(idNum);
+      await assertCanEditProfissional(idNum);
     } else {
       await requirePermission("terapeutas:create");
     }
 
-    const savedId = await salvarTerapeuta(parsed, idNum ?? null);
-    revalidatePath("/terapeutas");
-    revalidatePath(`/terapeutas/${savedId}`);
-    revalidatePath(`/terapeutas/${savedId}/editar`);
+    const savedId = await salvarProfissional(parsed, idNum ?? null);
+    revalidatePath("/profissionais");
+    revalidatePath(`/profissionais/${savedId}`);
+    revalidatePath(`/profissionais/${savedId}/editar`);
 
     return { ok: true, data: { id: savedId } };
   } catch (error) {
@@ -84,22 +87,22 @@ export async function salvarTerapeutaAction(input: unknown, terapeutaId?: number
   }
 }
 
-export async function setTerapeutaAtivoAction(
-  terapeutaId: number,
+export async function setProfissionalAtivoAction(
+  profissionalId: number,
   ativo: boolean
 ): Promise<ActionResult<{ id: number; ativo: boolean }>> {
   try {
-    const idNum = Number(terapeutaId);
+    const idNum = Number(profissionalId);
     if (!Number.isFinite(idNum) || idNum <= 0) {
-      throw new AppError("Terapeuta invalido", 400, "INVALID_INPUT");
+      throw new AppError("Profissional invalido", 400, "INVALID_INPUT");
     }
 
-    await assertCanEditTerapeuta(idNum);
-    const result = await setTerapeutaAtivo(idNum, Boolean(ativo));
+    await assertCanEditProfissional(idNum);
+    const result = await setProfissionalAtivo(idNum, Boolean(ativo));
 
-    revalidatePath("/terapeutas");
-    revalidatePath(`/terapeutas/${idNum}`);
-    revalidatePath(`/terapeutas/${idNum}/editar`);
+    revalidatePath("/profissionais");
+    revalidatePath(`/profissionais/${idNum}`);
+    revalidatePath(`/profissionais/${idNum}/editar`);
 
     return { ok: true, data: { id: result.id, ativo: result.ativo } };
   } catch (error) {
@@ -107,20 +110,20 @@ export async function setTerapeutaAtivoAction(
   }
 }
 
-export async function deleteTerapeutaAction(
-  terapeutaId: number
+export async function deleteProfissionalAction(
+  profissionalId: number
 ): Promise<ActionResult<{ id: number }>> {
   try {
-    const idNum = Number(terapeutaId);
+    const idNum = Number(profissionalId);
     if (!Number.isFinite(idNum) || idNum <= 0) {
-      throw new AppError("Terapeuta invalido", 400, "INVALID_INPUT");
+      throw new AppError("Profissional invalido", 400, "INVALID_INPUT");
     }
 
     const { user } = await requirePermission("terapeutas:delete");
-    const result = await deleteTerapeuta(idNum, Number(user.id));
+    const result = await deleteProfissional(idNum, Number(user.id));
 
-    revalidatePath("/terapeutas");
-    revalidatePath(`/terapeutas/${idNum}`);
+    revalidatePath("/profissionais");
+    revalidatePath(`/profissionais/${idNum}`);
 
     return { ok: true, data: { id: result.id } };
   } catch (error) {
@@ -128,13 +131,13 @@ export async function deleteTerapeutaAction(
   }
 }
 
-export async function listarTerapeutasAction(
+export async function listarProfissionaisAction(
   filters: unknown
-): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarTerapeutas>> }>> {
+): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarProfissionais>> }>> {
   try {
     await requirePermission("terapeutas:view");
-    const parsed = terapeutasQuerySchema.parse(filters ?? {});
-    const rows = await listarTerapeutas(parsed);
+    const parsed = profissionaisQuerySchema.parse(filters ?? {});
+    const rows = await listarProfissionais(parsed);
     return { ok: true, data: { items: rows } };
   } catch (error) {
     return actionErrorResult(error);

@@ -1,6 +1,6 @@
 import { requirePermission } from "@/server/auth/auth";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
-import { listarTerapeutas } from "@/server/modules/terapeutas/terapeutas.service";
+import { listarTerapeutas } from "@/server/modules/profissionais/profissionais.service";
 import { CalendarioClient } from "@/app/(protected)/calendario/calendario.client";
 
 export const dynamic = "force-dynamic";

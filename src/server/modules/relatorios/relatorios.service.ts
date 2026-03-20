@@ -8,7 +8,7 @@ import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import { obterTerapeutaPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 import type {
   AssiduidadeQueryInput,
@@ -99,7 +99,7 @@ async function resolveTerapeutaFiltro(params: {
 }): Promise<number | null> {
   if (params.roleCanon === "TERAPEUTA") {
     const terapeuta = await obterTerapeutaPorUsuario(params.userId);
-    if (!terapeuta) throw new AppError("Terapeuta nao encontrado", 403, "FORBIDDEN");
+    if (!terapeuta) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
     return terapeuta.id;
   }
   return params.terapeutaId ? Number(params.terapeutaId) : null;
@@ -279,7 +279,7 @@ export async function consolidateEvolutivoReport(params: {
     if (obs) {
       observacoes.push({
         data: a.data,
-        terapeuta_nome: a.terapeuta_nome || "Terapeuta",
+        terapeuta_nome: a.terapeuta_nome || "Profissional",
         texto: obs.texto,
         origem: obs.origem,
       });
@@ -303,7 +303,7 @@ export async function consolidateEvolutivoReport(params: {
     if (textos.length) {
       observacoes.push({
         data: String(e.data).slice(0, 10),
-        terapeuta_nome: e.terapeuta_nome || "Terapeuta",
+        terapeuta_nome: e.terapeuta_nome || "Profissional",
         texto: textos.join(" | "),
         origem: "evolucao",
       });

@@ -7,7 +7,7 @@ import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
 import { pacientes, terapeutas } from "@/server/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
-import { obterTerapeutaPorUsuario } from "@/server/modules/terapeutas/terapeutas.service";
+import { obterTerapeutaPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
 
@@ -16,7 +16,7 @@ type BirthdayItem = {
   nome: string;
   dataNascimento: string;
   dia: number;
-  tipo: "Paciente" | "Terapeuta";
+  tipo: "Paciente" | "Profissional";
   destaque: string | null;
 };
 
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
     if (!terapeuta) {
       return (
         <main className="rounded-2xl bg-white p-6 shadow-sm">
-          <p className="text-sm text-red-600">Perfil sem vinculo de terapeuta. Contate o administrador.</p>
+          <p className="text-sm text-red-600">Perfil sem vinculo de profissional. Contate o administrador.</p>
         </main>
       );
     }
@@ -115,7 +115,7 @@ export default async function DashboardPage() {
       nome: item.nome,
       dataNascimento: String(item.dataNascimento ?? "").slice(0, 10),
       dia: Number(item.dia),
-      tipo: "Terapeuta" as const,
+      tipo: "Profissional" as const,
       destaque: item.destaque ?? null,
     })),
   ].sort((a, b) => a.dia - b.dia || a.nome.localeCompare(b.nome, "pt-BR"));
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">🔎</div>
+          <div className="text-3xl">PC</div>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
             <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
@@ -155,10 +155,10 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">👦</div>
+          <div className="text-3xl">CP</div>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
-            <p className="text-sm text-gray-600">Registre novos pacientes, contatos e perfis terapeuticos.</p>
+            <p className="text-sm text-gray-600">Registre novos pacientes, contatos e perfis profissionais.</p>
           </div>
         </div>
         <Link className={ctaButtonClass} href="/pacientes/novo">
@@ -168,20 +168,20 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">🧑‍⚕️</div>
+          <div className="text-3xl">PR</div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Terapeutas</h3>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Profissionais</h3>
             <p className="text-sm text-gray-600">Cadastre profissionais, especialidades e agendas.</p>
           </div>
         </div>
-        <Link className={ctaButtonClass} href="/terapeutas">
+        <Link className={ctaButtonClass} href="/profissionais">
           Ver equipe
         </Link>
       </section>
 
       <section className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">📅</div>
+          <div className="text-3xl">AT</div>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessoes</h3>
             <p className="text-sm text-gray-600">Organize sessoes, confirme presenca e acompanhe evolucoes.</p>
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-xs text-gray-700">Terapeuta: {a.terapeutaNome || "-"}</p>
+                  <p className="text-xs text-gray-700">Profissional: {a.terapeutaNome || "-"}</p>
                 </li>
               );
             })}
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">📆</div>
+          <div className="text-3xl">CL</div>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Calendario rapido</h3>
             <p className="text-sm text-gray-600">Visao mensal com sessoes marcadas.</p>
@@ -302,7 +302,7 @@ export default async function DashboardPage() {
               ))
             ) : (
               <div className="flex h-full min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-[#f0c980] bg-white/55 px-6 text-center text-sm font-medium text-[#8a6a2f]">
-                Nenhum paciente ou terapeuta faz aniversario neste mes.
+                Nenhum paciente ou profissional faz aniversario neste mes.
               </div>
             )}
           </div>
