@@ -63,7 +63,7 @@ function asBoolOrNull(value: unknown): boolean | null {
 function normalizeEscola(value: unknown): "publica" | "privada" | null {
   const normalized = asTrimmedOrNull(value)?.toLowerCase();
   if (!normalized) return null;
-  if (normalized === "publica" || normalized === "pÃºblica" || normalized.includes("public")) return "publica";
+  if (normalized === "publica" || normalized === "pública" || normalized.includes("public")) return "publica";
   if (normalized === "privada" || normalized.includes("privad")) return "privada";
   return null;
 }

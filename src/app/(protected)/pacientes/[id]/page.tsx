@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { loadUserAccess } from "@/server/auth/access";
@@ -78,7 +78,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
   if (!pacienteId) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente invalido.</p>
+        <p className="text-sm text-red-600">Paciente inválido.</p>
       </main>
     );
   }
@@ -99,7 +99,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente nao encontrado.</p>
+        <p className="text-sm text-red-600">Paciente não encontrado.</p>
       </main>
     );
   }
@@ -179,10 +179,10 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
           <div className="mt-6 border-t border-gray-100 pt-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prontuario clinico</p>
-                <h3 className="text-lg font-bold text-[var(--marrom)]">Historico clinico e Relatorios</h3>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prontuário clinico</p>
+                <h3 className="text-lg font-bold text-[var(--marrom)]">Histórico clinico e Relatórios</h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  Acesse anamnese, evolucoes, planos e relatorios do paciente.
+                  Acesse anamnese, evolucoes, planos e relatórios do paciente.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -190,7 +190,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                   href={`/prontuario/${paciente.id}`}
                   className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f]"
                 >
-                  Abrir Prontuario
+                  Abrir Prontuário
                 </Link>
               </div>
             </div>
@@ -259,7 +259,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
             </div>
 
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Responsavel</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Responsável</p>
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{paciente.nomeResponsavel || "-"}</p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -300,7 +300,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
       </section>
 
       <section className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes administrativas</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Ações administrativas</p>
         <PacienteActionsClient
           pacienteId={paciente.id}
           pacienteNome={paciente.nome}
@@ -312,3 +312,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
     </div>
   );
 }
+
+
+
+

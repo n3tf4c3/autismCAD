@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -249,7 +249,7 @@ export function PacientesPageClient(props: {
               <th className="px-3 py-2">Convenio</th>
               <th className="px-3 py-2">Contato</th>
               <th className="px-3 py-2">Terapias</th>
-              <th className="px-3 py-2">Acoes</th>
+              <th className="px-3 py-2">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -268,7 +268,7 @@ export function PacientesPageClient(props: {
                       Ver
                     </Link>
                     <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/prontuario/${item.id}`}>
-                      Prontuario
+                      Prontuário
                     </Link>
                     <button
                       type="button"
@@ -349,7 +349,7 @@ export function PacientesPageClient(props: {
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Horario inicio</span>
+                <span className="font-semibold text-gray-700">Horário inicio</span>
                 <input
                   type="time"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -358,7 +358,7 @@ export function PacientesPageClient(props: {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Horario fim</span>
+                <span className="font-semibold text-gray-700">Horário fim</span>
                 <input
                   type="time"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -368,7 +368,7 @@ export function PacientesPageClient(props: {
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Periodo - inicio</span>
+                <span className="font-semibold text-gray-700">Período - inicio</span>
                 <input
                   type="date"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -377,7 +377,7 @@ export function PacientesPageClient(props: {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Periodo - fim</span>
+                <span className="font-semibold text-gray-700">Período - fim</span>
                 <input
                   type="date"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -412,7 +412,7 @@ export function PacientesPageClient(props: {
               </div>
 
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Presenca</span>
+                <span className="font-semibold text-gray-700">Presença</span>
                 <select
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
                   value={consultaPresenca}
@@ -425,7 +425,7 @@ export function PacientesPageClient(props: {
               </label>
 
               <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="font-semibold text-gray-700">Motivo/Observacao</span>
+                <span className="font-semibold text-gray-700">Motivo/Observação</span>
                 <textarea
                   rows={3}
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -462,3 +462,5 @@ export function PacientesPageClient(props: {
     </main>
   );
 }
+
+

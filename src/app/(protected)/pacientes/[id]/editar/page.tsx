@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
@@ -16,7 +16,7 @@ export default async function EditarPacientePage(props: {
   if (!pacienteId) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente invalido.</p>
+        <p className="text-sm text-red-600">Paciente inválido.</p>
       </main>
     );
   }
@@ -37,7 +37,7 @@ export default async function EditarPacientePage(props: {
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente nao encontrado.</p>
+        <p className="text-sm text-red-600">Paciente não encontrado.</p>
       </main>
     );
   }
@@ -90,3 +90,5 @@ export default async function EditarPacientePage(props: {
     </main>
   );
 }
+
+

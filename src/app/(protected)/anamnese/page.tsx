@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { db } from "@/db";
 import { requirePermission } from "@/server/auth/auth";
 import { pacientes } from "@/server/db/schema";
@@ -25,7 +25,7 @@ export default async function AnamneseIndexPage() {
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
               <th className="px-3 py-2">Paciente</th>
-              <th className="px-3 py-2">Acoes</th>
+              <th className="px-3 py-2">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -57,3 +57,4 @@ export default async function AnamneseIndexPage() {
     </main>
   );
 }
+

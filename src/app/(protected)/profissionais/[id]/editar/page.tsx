@@ -1,4 +1,4 @@
-import { idParamSchema } from "@/lib/zod/api";
+﻿import { idParamSchema } from "@/lib/zod/api";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
@@ -28,7 +28,7 @@ export default async function EditarProfissionalPage(props: PageProps) {
 
   const row = await obterProfissionalDetalhe(id);
 
-  if (!row) throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
+  if (!row) throw new AppError("Profissional não encontrado", 404, "NOT_FOUND");
 
   return (
     <ProfissionalFormClient
@@ -51,3 +51,4 @@ export default async function EditarProfissionalPage(props: PageProps) {
     />
   );
 }
+

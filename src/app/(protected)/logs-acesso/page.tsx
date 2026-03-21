@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireAdminGeral } from "@/server/auth/auth";
 import {
   ACCESS_LOG_RETENTION_DAYS,
@@ -41,12 +41,12 @@ export default async function LogsAcessoPage() {
   } catch (error) {
     const err = toAppError(error);
     const message =
-      err.status === 403 ? "Acesso negado." : err.status === 401 ? "Nao autenticado." : err.message;
+      err.status === 403 ? "Acesso negado." : err.status === 401 ? "Não autenticado." : err.message;
 
     return (
       <main className="rounded-xl bg-white p-6 shadow-sm">
         <div>
-          <p className="text-sm text-gray-500">Administracao</p>
+          <p className="text-sm text-gray-500">Administração</p>
           <h1 className="text-2xl font-bold text-[var(--marrom)]">Log de acessos</h1>
           <p className="mt-2 text-sm text-red-600">{message}</p>
         </div>
@@ -76,7 +76,7 @@ export default async function LogsAcessoPage() {
     <div className="space-y-4">
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <div>
-          <p className="text-sm text-gray-500">Administracao</p>
+          <p className="text-sm text-gray-500">Administração</p>
           <h1 className="text-2xl font-bold text-[var(--marrom)]">Log de acessos</h1>
           <p className="mt-2 text-sm text-gray-600">
             Tentativas de login (sucesso e falha). Retencao automatica de {ACCESS_LOG_RETENTION_DAYS} dias.
@@ -95,7 +95,7 @@ export default async function LogsAcessoPage() {
               <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
                 <th className="px-3 py-2">Data/Hora (Cuiaba GMT-4)</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Usuario</th>
+                <th className="px-3 py-2">Usuário</th>
                 <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">IP de origem</th>
                 <th className="px-3 py-2">Browser</th>
@@ -110,7 +110,7 @@ export default async function LogsAcessoPage() {
                     </td>
                     <td className="px-3 py-2">{statusBadge(log.status)}</td>
                     <td className="px-3 py-2 text-gray-900">
-                      {log.user_nome || (log.user_id ? "Usuario removido" : "Nao identificado")}
+                      {log.user_nome || (log.user_id ? "Usuário removido" : "Nao identificado")}
                     </td>
                     <td className="px-3 py-2 text-gray-700">{log.user_email}</td>
                     <td className="px-3 py-2 font-mono text-xs text-gray-700">
@@ -133,3 +133,5 @@ export default async function LogsAcessoPage() {
     </div>
   );
 }
+
+

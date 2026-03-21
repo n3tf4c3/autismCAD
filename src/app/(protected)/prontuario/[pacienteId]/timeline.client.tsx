@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
@@ -114,7 +114,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
             ? "Documento clinico"
             : isComportamento
               ? "Registro de comportamento"
-              : "Evolucao terapeutica";
+              : "Evolução terapeutica";
           return (
             <div key={`${item.kind}-${item.id}`} className="relative pl-6">
               <span
@@ -138,7 +138,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                   </div>
                   <div className="text-right leading-tight">
                     <span className="block text-gray-500">{formatDateBr(item.data)}</span>
-                    {horario ? <span className="block text-xs text-gray-500">Horario: {horario}</span> : null}
+                    {horario ? <span className="block text-xs text-gray-500">Horário: {horario}</span> : null}
                   </div>
                 </div>
 
@@ -200,3 +200,6 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
     </section>
   );
 }
+
+
+

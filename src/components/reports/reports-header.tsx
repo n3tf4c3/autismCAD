@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 
 type ReportsHeaderProps = {
   title: string;
@@ -16,7 +16,7 @@ export function ReportsHeader(props: ReportsHeaderProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="max-w-3xl space-y-2">
             <span className="inline-flex rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--laranja)]">
-              Relatorios
+              Relatórios
             </span>
             <div className="space-y-1">
               <h1 className="text-xl font-semibold text-[var(--marrom)] sm:text-3xl">{props.title}</h1>
@@ -50,3 +50,4 @@ export function ReportsHeader(props: ReportsHeaderProps) {
     </section>
   );
 }
+

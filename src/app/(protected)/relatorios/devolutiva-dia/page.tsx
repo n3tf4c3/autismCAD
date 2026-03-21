@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -104,12 +104,12 @@ export default async function RelatorioDevolutivaDiaPage(props: {
       {isResponsavel && !pacientesVinculados.length ? (
         <section className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-red-600">
-            Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
+            Seu perfil ainda não possui paciente vinculado. Solicite ao administrador.
           </p>
         </section>
       ) : (
         <ReportsHeader
-          title="Relatorio diario"
+          title="Relatório diario"
           subtitle="Visao diaria compacta para leitura rapida no celular, preservando o mesmo comportamento da tela atual."
           modeToggle={<ReportModeToggle mode="daily" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
@@ -167,3 +167,5 @@ export default async function RelatorioDevolutivaDiaPage(props: {
     </div>
   );
 }
+
+

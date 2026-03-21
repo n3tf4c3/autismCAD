@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -15,7 +15,7 @@ export default async function NovoDocumentoPage(props: {
   if (!id) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente invalido.</p>
+        <p className="text-sm text-red-600">Paciente inválido.</p>
       </main>
     );
   }
@@ -40,10 +40,12 @@ export default async function NovoDocumentoPage(props: {
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente nao encontrado.</p>
+        <p className="text-sm text-red-600">Paciente não encontrado.</p>
       </main>
     );
   }
 
   redirect(`/prontuario/${paciente.id}`);
 }
+
+

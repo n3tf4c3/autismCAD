@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -346,13 +346,13 @@ export function ConsultasClient(props: {
           <table className="w-full min-w-[920px] border-collapse">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
-                <th className="px-3 py-2">Data / Periodo</th>
+                <th className="px-3 py-2">Data / Período</th>
                 <th className="px-3 py-2">Paciente</th>
                 <th className="px-3 py-2">Profissional</th>
-                <th className="px-3 py-2">Horario</th>
-                <th className="px-3 py-2">Presenca / Repasse</th>
+                <th className="px-3 py-2">Horário</th>
+                <th className="px-3 py-2">Presença / Repasse</th>
                 <th className="px-3 py-2">Motivo/Obs</th>
-                <th className="px-3 py-2 text-center">Acoes</th>
+                <th className="px-3 py-2 text-center">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -362,7 +362,7 @@ export function ConsultasClient(props: {
                     <div className="font-semibold">{String(a.data).slice(0, 10)}</div>
                     {a.periodo_inicio || a.periodo_fim ? (
                       <div className="text-xs text-gray-500">
-                        Periodo: {String(a.periodo_inicio || "-").slice(0, 10)} ate{" "}
+                        Período: {String(a.periodo_inicio || "-").slice(0, 10)} até{" "}
                         {String(a.periodo_fim || "-").slice(0, 10)}
                       </div>
                     ) : null}
@@ -497,7 +497,7 @@ export function ConsultasClient(props: {
                 </select>
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Horario inicio</span>
+                <span className="font-semibold text-gray-700">Horário inicio</span>
                 <input
                   type="time"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -506,7 +506,7 @@ export function ConsultasClient(props: {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Horario fim</span>
+                <span className="font-semibold text-gray-700">Horário fim</span>
                 <input
                   type="time"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -526,7 +526,7 @@ export function ConsultasClient(props: {
                 </select>
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Periodo - inicio</span>
+                <span className="font-semibold text-gray-700">Período - inicio</span>
                 <input
                   type="date"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -535,7 +535,7 @@ export function ConsultasClient(props: {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Periodo - fim</span>
+                <span className="font-semibold text-gray-700">Período - fim</span>
                 <input
                   type="date"
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -544,7 +544,7 @@ export function ConsultasClient(props: {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Presenca</span>
+                <span className="font-semibold text-gray-700">Presença</span>
                 <select
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
                   value={editPresenca}
@@ -556,7 +556,7 @@ export function ConsultasClient(props: {
                 </select>
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="font-semibold text-gray-700">Motivo/Observacao</span>
+                <span className="font-semibold text-gray-700">Motivo/Observação</span>
                 <textarea
                   rows={3}
                   className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -630,3 +630,7 @@ export function ConsultasClient(props: {
     </main>
   );
 }
+
+
+
+

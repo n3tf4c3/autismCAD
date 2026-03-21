@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ function unwrapAction<T>(
 async function openSignedUrl(pacienteId: number, kind: Kind) {
   const data = unwrapAction(await obterArquivoPacienteReadUrlAction(pacienteId, kind));
   const url = data.url;
-  if (!url) throw new Error("Arquivo nao encontrado");
+  if (!url) throw new Error("Arquivo não encontrado");
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -59,7 +59,7 @@ async function presignUpload(pacienteId: number, kind: Kind, file: File) {
   );
   const key = data.key;
   const url = data.url;
-  if (!key || !url) throw new Error("Resposta invalida ao preparar upload");
+  if (!key || !url) throw new Error("Resposta inválida ao preparar upload");
   return { key, url };
 }
 
@@ -226,3 +226,5 @@ export function PacienteArquivosClient(props: { pacienteId: number; existing: Ex
     </section>
   );
 }
+
+

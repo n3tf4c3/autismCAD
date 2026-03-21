@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -24,7 +24,7 @@ export default async function RelatoriosIndexPage(props: {
           </p>
           {!pacientesVinculados.length ? (
             <p className="mt-3 text-sm text-red-600">
-              Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
+              Seu perfil ainda não possui paciente vinculado. Solicite ao administrador.
             </p>
           ) : null}
         </section>
@@ -49,7 +49,7 @@ export default async function RelatoriosIndexPage(props: {
                       href={`/relatorios/devolutiva-dia?pacienteId=${paciente.id}`}
                       className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
                     >
-                      Devolutiva diaria
+                      Devolutiva diária
                     </Link>
                     <Link
                       href={`/relatorios/devolutiva-mensal?pacienteId=${paciente.id}`}
@@ -94,9 +94,9 @@ export default async function RelatoriosIndexPage(props: {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="text-2xl">📊</div>
+            <div className="text-2xl">{"\u{1F4CA}"}</div>
             <div>
-              <h1 className="text-2xl font-bold text-[var(--marrom)]">Relatorios</h1>
+              <h1 className="text-2xl font-bold text-[var(--marrom)]">Relatórios</h1>
               <p className="text-sm text-gray-600">
                 Acesse indicadores gerais ou gere relatorios por paciente.
               </p>
@@ -108,7 +108,7 @@ export default async function RelatoriosIndexPage(props: {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[var(--marrom)]">Indicadores gerais</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Assiduidade e presenca por paciente no periodo selecionado.
+          Assiduidade e presença por paciente no periodo selecionado.
         </p>
         <div className="mt-4">
           <Link
@@ -121,7 +121,7 @@ export default async function RelatoriosIndexPage(props: {
       </section>
 
       <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorios por paciente</h2>
+        <h2 className="text-lg font-bold text-[var(--marrom)]">Relatórios por paciente</h2>
         <p className="mt-1 text-sm text-gray-600">
           Busque o paciente pelo nome ou ID para abrir o relatorio desejado.
         </p>
@@ -168,7 +168,7 @@ export default async function RelatoriosIndexPage(props: {
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
                 <th className="px-3 py-2">Paciente</th>
-                <th className="px-3 py-2">Acoes</th>
+                <th className="px-3 py-2">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -183,13 +183,13 @@ export default async function RelatoriosIndexPage(props: {
                         href={`/relatorios/evolutivo?pacienteId=${row.id}`}
                         className="inline-flex rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
                       >
-                        Relatorio Evolutivo
+                        Relatório Evolutivo
                       </Link>
                       <Link
                         href={`/relatorios/devolutiva-dia?pacienteId=${row.id}`}
                         className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                       >
-                        Devolutiva diaria
+                        Devolutiva diária
                       </Link>
                       <Link
                         href={`/relatorios/devolutiva-mensal?pacienteId=${row.id}`}
@@ -202,7 +202,7 @@ export default async function RelatoriosIndexPage(props: {
                         target="_blank"
                         className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                       >
-                        Relatorio para impressao
+                        Relatório para impressao
                       </Link>
                     </div>
                   </td>
@@ -223,3 +223,5 @@ export default async function RelatoriosIndexPage(props: {
     </main>
   );
 }
+
+

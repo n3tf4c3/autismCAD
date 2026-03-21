@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { DailyTimeline } from "@/components/reports/daily-timeline";
@@ -347,14 +347,14 @@ export function DevolutivaMensalClient(props: {
       setCopyMsg("Resumo do periodo copiado.");
       setTimeout(() => setCopyMsg(null), 1800);
     } catch {
-      setCopyMsg("Nao foi possivel copiar.");
+      setCopyMsg("Nao foi possível copiar.");
       setTimeout(() => setCopyMsg(null), 2200);
     }
   }
 
   async function consultar() {
     if (!selectedRange) {
-      setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
+      setMsg(periodPreset === "custom" ? "Período inválido." : "Referência inválida.");
       return;
     }
     setLoading(true);
@@ -386,7 +386,7 @@ export function DevolutivaMensalClient(props: {
       <section className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-600">Periodo</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-600">Período</h2>
             <p className="hidden text-sm text-gray-700 sm:block">
               Escolha o mes de referencia ou use intervalo personalizado.
             </p>
@@ -481,7 +481,7 @@ export function DevolutivaMensalClient(props: {
               { id: "habilidades", label: "Habilidades", badge: desempenhoMensal.rowsBySkill.length },
               { id: "devolutivas", label: "Devolutivas", badge: feedbackItems.length },
               { id: "comportamentos", label: "Comport.", badge: comportamentoMensal.total },
-              { id: "evolucao", label: "Evolucao", badge: desempenhoMensal.rowsByDay.length },
+              { id: "evolucao", label: "Evolução", badge: desempenhoMensal.rowsByDay.length },
             ]}
           />
 
@@ -523,12 +523,12 @@ export function DevolutivaMensalClient(props: {
 
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
               <p className="text-sm text-gray-700">
-                Periodo: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}.
+                Período: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}.
                 {report.indicadores.primeiroAtendimento ? (
                   <> Primeiro atendimento: {fmtDate(report.indicadores.primeiroAtendimento)}.</>
                 ) : null}
                 {report.indicadores.ultimoAtendimento ? (
-                  <> Ultimo atendimento: {fmtDate(report.indicadores.ultimoAtendimento)}.</>
+                  <> Último atendimento: {fmtDate(report.indicadores.ultimoAtendimento)}.</>
                 ) : null}
               </p>
               <details className="mt-3">
@@ -544,7 +544,7 @@ export function DevolutivaMensalClient(props: {
             rows={desempenhoMensal.rowsBySkill}
             title="Habilidades trabalhadas"
             subtitle="Cards compactos com barra empilhada para comparar rapidamente o desempenho em cada habilidade."
-            emptyMessage="Nao ha habilidades suficientes para montar o grafico deste periodo."
+            emptyMessage="Não há habilidades suficientes para montar o grafico deste periodo."
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -635,7 +635,7 @@ export function DevolutivaMensalClient(props: {
               </div>
             ) : (
               <p className="mt-3 text-sm text-gray-700">
-                Nao ha comportamentos estruturados registrados nas devolutivas deste periodo.
+                Não há comportamentos estruturados registrados nas devolutivas deste periodo.
               </p>
             )}
           </section>
@@ -643,7 +643,7 @@ export function DevolutivaMensalClient(props: {
           <section id="evolucao" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Evolucao por dia</h2>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Evolução por dia</h2>
                 <p className="mt-1 text-sm text-gray-700">
                   No celular a distribuicao vira uma timeline compacta; no desktop a leitura analitica continua em tabela.
                 </p>
@@ -654,7 +654,7 @@ export function DevolutivaMensalClient(props: {
               <DailyTimeline
                 rows={desempenhoMensal.rowsByDay}
                 formatDate={fmtDate}
-                emptyMessage="Nao ha distribuicao diaria para este periodo."
+                emptyMessage="Não há distribuicao diaria para este periodo."
               />
             </div>
           </section>
@@ -663,3 +663,7 @@ export function DevolutivaMensalClient(props: {
     </main>
   );
 }
+
+
+
+

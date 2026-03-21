@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -219,7 +219,7 @@ export function CalendarioClient(props: {
         throw new Error("Selecione um profissional");
       }
       if (inicio >= fim) {
-        throw new Error("Horario inicial deve ser menor que o final");
+        throw new Error("Horário inicial deve ser menor que o final");
       }
 
       const bloqueiosProfissional = bloqueios.filter((b) => b.profissionalId === profissionalNum);
@@ -261,8 +261,8 @@ export function CalendarioClient(props: {
         } else {
           const ini = parseYmdToLocalDate(periodoInicio);
           const fimDt = parseYmdToLocalDate(periodoFim);
-          if (!ini || !fimDt) throw new Error("Periodo invalido");
-          if (ini > fimDt) throw new Error("Periodo inicial maior que final");
+          if (!ini || !fimDt) throw new Error("Período inválido");
+          if (ini > fimDt) throw new Error("Período inicial maior que final");
           for (let dt = new Date(ini); dt <= fimDt; dt.setDate(dt.getDate() + 1)) {
             const dow = dt.getDay();
             if (!diasSemana.has(dow)) continue;
@@ -280,18 +280,18 @@ export function CalendarioClient(props: {
       }
 
       if (reservaModo === "dia" && hasBlockConflict(data)) {
-        throw new Error("Horario bloqueado na agenda");
+        throw new Error("Horário bloqueado na agenda");
       }
       if (reservaModo === "periodo") {
         const ini = parseYmdToLocalDate(periodoInicio);
         const fimDt = parseYmdToLocalDate(periodoFim);
-        if (!ini || !fimDt) throw new Error("Periodo invalido");
-        if (ini > fimDt) throw new Error("Periodo inicial maior que final");
+        if (!ini || !fimDt) throw new Error("Período inválido");
+        if (ini > fimDt) throw new Error("Período inicial maior que final");
         for (let dt = new Date(ini); dt <= fimDt; dt.setDate(dt.getDate() + 1)) {
           const dow = dt.getDay();
           if (!diasSemana.has(dow)) continue;
           if (hasBlockConflict(ymdLocal(dt))) {
-            throw new Error(`Horario bloqueado em ${ymdLocal(dt)}`);
+            throw new Error(`Horário bloqueado em ${ymdLocal(dt)}`);
           }
         }
       }
@@ -517,7 +517,7 @@ export function CalendarioClient(props: {
                                 <div className="text-xs font-semibold text-amber-800">
                                   {entry.item.horaInicio} - {entry.item.horaFim}
                                 </div>
-                                <div className="text-xs text-amber-700">Horario bloqueado</div>
+                                <div className="text-xs text-amber-700">Horário bloqueado</div>
                                 {entry.item.observacoes ? (
                                   <div className="mt-1 text-[11px] text-amber-700">
                                     {entry.item.observacoes}
@@ -574,7 +574,7 @@ export function CalendarioClient(props: {
               <>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block text-gray-700">
-                    Periodo - inicio
+                    Período - inicio
                     <input
                       type="date"
                       className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -583,7 +583,7 @@ export function CalendarioClient(props: {
                     />
                   </label>
                   <label className="block text-gray-700">
-                    Periodo - fim
+                    Período - fim
                     <input
                       type="date"
                       className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -670,7 +670,7 @@ export function CalendarioClient(props: {
               </label>
             ) : null}
             <label className="block text-gray-700">
-              Observacoes {bloquearHorario ? "(motivo do bloqueio)" : ""}
+              Observações {bloquearHorario ? "(motivo do bloqueio)" : ""}
               <textarea
                 rows={2}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -701,3 +701,5 @@ export function CalendarioClient(props: {
     </main>
   );
 }
+
+

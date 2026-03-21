@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -434,7 +434,7 @@ export function EvolucaoFormClient(props: {
       } else {
         unwrapAction(await criarEvolucaoAction(props.pacienteId, body));
       }
-      setMsg(isEdit ? "Evolucao atualizada." : "Evolucao registrada.");
+      setMsg(isEdit ? "Evolução atualizada." : "Evolução registrada.");
       setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
     } catch (e) {
       const err = e as { message?: string };
@@ -451,7 +451,7 @@ export function EvolucaoFormClient(props: {
     setMsg(null);
     try {
       unwrapAction(await excluirEvolucaoAction(props.evolucaoId));
-      setMsg("Evolucao excluida.");
+      setMsg("Evolução excluida.");
       setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
     } catch (e) {
       const err = e as { message?: string };
@@ -575,7 +575,7 @@ export function EvolucaoFormClient(props: {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[var(--marrom)]">Titulo da sessao</label>
+            <label className="text-sm font-semibold text-[var(--marrom)]">Título da sessao</label>
             <div className="flex flex-col gap-2">
               <select
                 value={showTituloCustom ? "__outro__" : tituloIsKnown ? titulo.trim() : ""}
@@ -655,13 +655,13 @@ export function EvolucaoFormClient(props: {
         ) : null}
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-[var(--marrom)]">Descricao clinica</label>
+          <label className="text-sm font-semibold text-[var(--marrom)]">Descrição clinica</label>
           <textarea
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             rows={4}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-            placeholder="Evolucao da sessao, respostas a intervencoes, pontos de alerta."
+            placeholder="Evolução da sessao, respostas a intervencoes, pontos de alerta."
           />
         </div>
 
@@ -1009,7 +1009,7 @@ export function EvolucaoFormClient(props: {
           </div>
 
           <div className="mt-5 flex flex-col gap-2">
-            <p className="text-sm font-semibold text-[var(--marrom)]">Descricao do comportamento</p>
+            <p className="text-sm font-semibold text-[var(--marrom)]">Descrição do comportamento</p>
             <textarea
               value={compDescricao}
               onChange={(e) => setCompDescricao(e.target.value)}
@@ -1049,3 +1049,6 @@ export function EvolucaoFormClient(props: {
     </section>
   );
 }
+
+
+

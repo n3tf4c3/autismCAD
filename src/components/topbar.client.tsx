@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
@@ -8,9 +8,9 @@ function roleLabel(role?: string | null): string {
   const key = String(role || "").trim().toUpperCase();
   if (key === "ADMIN" || key === "ADMIN_GERAL") return "Administrador";
   if (key === "PROFISSIONAL") return "Profissional";
-  if (key === "RECEPCAO") return "Recepcao";
-  if (key === "RESPONSAVEL") return "Responsavel";
-  return role ? String(role) : "Usuario";
+  if (key === "RECEPCAO") return "Recepção";
+  if (key === "RESPONSAVEL") return "Responsável";
+  return role ? String(role) : "Usuário";
 }
 
 function pageMeta(pathname: string): { kicker: string; title: string } {
@@ -27,24 +27,24 @@ function pageMeta(pathname: string): { kicker: string; title: string } {
     return { kicker: "Cadastro", title: "Editar profissional" };
   }
   if (pathname.startsWith("/profissionais/")) return { kicker: "Cadastro", title: "Profissional" };
-  if (pathname.startsWith("/consultas")) return { kicker: "Agenda", title: "Consultas / Sessoes" };
-  if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendario" };
-  if (pathname.startsWith("/prontuario")) return { kicker: "Clinico", title: "Prontuario" };
-  if (pathname.startsWith("/anamnese")) return { kicker: "Clinico", title: "Anamnese" };
+  if (pathname.startsWith("/consultas")) return { kicker: "Agenda", title: "Consultas / Sessões" };
+  if (pathname.startsWith("/calendario")) return { kicker: "Agenda", title: "Calendário" };
+  if (pathname.startsWith("/prontuario")) return { kicker: "Clínico", title: "Prontuário" };
+  if (pathname.startsWith("/anamnese")) return { kicker: "Clínico", title: "Anamnese" };
   if (pathname.startsWith("/relatorios/devolutiva-dia")) {
-    return { kicker: "Acompanhamento", title: "Devolutiva diaria" };
+    return { kicker: "Acompanhamento", title: "Devolutiva diária" };
   }
   if (pathname.startsWith("/relatorios/evolutivo")) {
-    return { kicker: "Relatorio evolutivo", title: "Paciente" };
+    return { kicker: "Relatório evolutivo", title: "Paciente" };
   }
   if (pathname.startsWith("/relatorios/assiduidade")) {
-    return { kicker: "Relatorios", title: "Assiduidade e presenca" };
+    return { kicker: "Relatórios", title: "Assiduidade e presença" };
   }
-  if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatorios" };
+  if (pathname.startsWith("/relatorios")) return { kicker: "Indicadores", title: "Relatórios" };
   if (pathname.startsWith("/configuracoes")) {
-    return { kicker: "Administracao", title: "Permissoes por papel" };
+    return { kicker: "Administração", title: "Permissões por papel" };
   }
-  return { kicker: "Sistema", title: "Clinica Girassois" };
+  return { kicker: "Sistema", title: "Clínica Girassóis" };
 }
 
 export function TopbarClient(props: { userName: string; userRole?: string | null; initials: string }) {
@@ -72,7 +72,7 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
       <div className="flex items-center gap-3">
         <div className="text-right">
           <p className="text-sm text-gray-500">
-            Ola, <span className="font-medium">{props.userName}</span>
+            Olá, <span className="font-medium">{props.userName}</span>
           </p>
           <p className="text-sm font-semibold text-[var(--texto)]">{role}</p>
         </div>
@@ -83,3 +83,7 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
     </header>
   );
 }
+
+
+
+

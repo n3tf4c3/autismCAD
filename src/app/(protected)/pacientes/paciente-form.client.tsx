@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -164,7 +164,7 @@ function unwrapAction<T>(
 async function openSignedUrl(pacienteId: number, kind: Kind) {
   const data = unwrapAction(await obterArquivoPacienteReadUrlAction(pacienteId, kind));
   const url = data.url;
-  if (!url) throw new Error("Arquivo nao encontrado");
+  if (!url) throw new Error("Arquivo não encontrado");
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -178,7 +178,7 @@ async function presignUpload(pacienteId: number, kind: Kind, file: File) {
   );
   const key = data.key;
   const url = data.url;
-  if (!key || !url) throw new Error("Resposta invalida ao preparar upload");
+  if (!key || !url) throw new Error("Resposta inválida ao preparar upload");
   return { key, url };
 }
 
@@ -298,7 +298,7 @@ export function PacienteFormClient(props: {
         if (!result.ok) throw new Error(result.error || "Erro ao salvar paciente");
 
         const id = result.data.id;
-        if (!id) throw new Error("Resposta invalida: id ausente");
+        if (!id) throw new Error("Resposta inválida: id ausente");
 
         const reaproveitado = !isEdit ? result.data.reaproveitado : null;
         if (reaproveitado) {
@@ -444,7 +444,7 @@ export function PacienteFormClient(props: {
               setValueAs: (value) => (typeof value === "string" && value.trim() === "" ? null : value),
             })}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-            placeholder="Responsavel materno"
+            placeholder="Responsável materno"
           />
         </label>
 
@@ -455,7 +455,7 @@ export function PacienteFormClient(props: {
               setValueAs: (value) => (typeof value === "string" && value.trim() === "" ? null : value),
             })}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-            placeholder="Responsavel paterno"
+            placeholder="Responsável paterno"
           />
         </label>
 
@@ -674,3 +674,5 @@ export function PacienteFormClient(props: {
     </section>
   );
 }
+
+

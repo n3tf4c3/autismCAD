@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-[1.35rem] leading-none text-[#9b5c00]">🔎</span>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F50E}"}</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
             <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-[1.35rem] leading-none text-[#9b5c00]">👦</span>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F466}"}</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
             <p className="text-sm text-gray-600">Registre novos pacientes, contatos e perfis profissionais.</p>
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-[1.35rem] leading-none text-[#9b5c00]">🧑‍⚕️</span>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F9D1}\u200D\u2695\uFE0F"}</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Profissionais</h3>
             <p className="text-sm text-gray-600">Cadastre profissionais, especialidades e agendas.</p>
@@ -181,9 +181,9 @@ export default async function DashboardPage() {
 
       <section className="flex h-full flex-col gap-4 rounded-xl bg-white p-5 shadow-sm xl:h-[540px]">
         <div className="flex items-center gap-3">
-          <span className="text-[1.35rem] leading-none text-[#9b5c00]">🔎</span>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F50E}"}</span>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessoes</h3>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessões</h3>
             <p className="text-sm text-gray-600">Organize sessoes, confirme presenca e acompanhe evolucoes.</p>
           </div>
         </div>
@@ -227,9 +227,9 @@ export default async function DashboardPage() {
 
       <section className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-[1.35rem] leading-none text-[#9b5c00]">📅</span>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F4C5}"}</span>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendario rapido</h3>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendário rapido</h3>
             <p className="text-sm text-gray-600">Visao mensal com sessoes marcadas.</p>
           </div>
         </div>
@@ -239,12 +239,12 @@ export default async function DashboardPage() {
 
           <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-600">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--verde)]" />
-            <span>Sessao marcada</span>
+            <span>Sessão marcada</span>
           </div>
         </div>
 
         <Link className={ctaButtonClass} href="/calendario">
-          Abrir Calendario completo
+          Abrir Calendário completo
         </Link>
       </section>
 
@@ -311,3 +311,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
 import { SidebarClient } from "@/components/sidebar/sidebar.client";
 import { TopbarClient } from "@/components/topbar.client";
@@ -24,7 +24,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
     redirect("/login");
   }
 
-  const userName = session.user.name || "Usuario";
+  const userName = session.user.name || "Usuário";
   const initials = initialsFromName(userName);
 
   return (
@@ -46,3 +46,4 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
     </ShellProvider>
   );
 }
+

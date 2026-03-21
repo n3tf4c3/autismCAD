@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
@@ -25,8 +25,8 @@ export default async function RelatorioAssiduidadePage() {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gray-500">Relatorios</p>
-            <h2 className="text-xl font-semibold text-[var(--marrom)]">Assiduidade e presenca</h2>
+            <p className="text-sm text-gray-500">Relatórios</p>
+            <h2 className="text-xl font-semibold text-[var(--marrom)]">Assiduidade e presença</h2>
           </div>
           <Link href="/relatorios" className="text-sm font-semibold text-[var(--laranja)]">
             &larr; Voltar
@@ -41,3 +41,5 @@ export default async function RelatorioAssiduidadePage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -104,7 +104,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
       {isResponsavel && !pacientesVinculados.length ? (
         <section className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-red-600">
-            Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
+            Seu perfil ainda não possui paciente vinculado. Solicite ao administrador.
           </p>
         </section>
       ) : (
@@ -146,7 +146,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
                   <p className="text-base font-semibold text-[var(--marrom)]">
                     {pacienteAtivo.nome} #{pacienteAtivo.id}
                   </p>
-                  <p className="hidden text-sm text-gray-700 sm:block">Periodo selecionado no cliente, com a mesma consolidacao atual.</p>
+                  <p className="hidden text-sm text-gray-700 sm:block">Período selecionado no cliente, com a mesma consolidacao atual.</p>
                 </div>
               </div>
             ) : null
@@ -178,3 +178,5 @@ export default async function RelatorioDevolutivaMensalPage(props: {
     </div>
   );
 }
+
+

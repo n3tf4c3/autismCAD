@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { PlanoEnsinoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client";
@@ -21,7 +21,7 @@ export default async function PlanoEnsinoPage(props: {
   if (!id) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente invalido.</p>
+        <p className="text-sm text-red-600">Paciente inválido.</p>
       </main>
     );
   }
@@ -46,7 +46,7 @@ export default async function PlanoEnsinoPage(props: {
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente nao encontrado.</p>
+        <p className="text-sm text-red-600">Paciente não encontrado.</p>
       </main>
     );
   }
@@ -55,7 +55,7 @@ export default async function PlanoEnsinoPage(props: {
   if (sourceDocumentId && !sourceDoc) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Documento de origem nao encontrado.</p>
+        <p className="text-sm text-red-600">Documento de origem não encontrado.</p>
       </main>
     );
   }
@@ -63,7 +63,7 @@ export default async function PlanoEnsinoPage(props: {
   if (sourceDoc && (Number(sourceDoc.pacienteId) !== id || sourceDoc.tipo !== "PLANO_ENSINO")) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Documento informado nao pode ser usado para editar este plano.</p>
+        <p className="text-sm text-red-600">Documento informado não pode ser usado para editar este plano.</p>
       </main>
     );
   }
@@ -96,3 +96,5 @@ export default async function PlanoEnsinoPage(props: {
     </main>
   );
 }
+
+

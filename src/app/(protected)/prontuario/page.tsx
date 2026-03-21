@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { asc, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -13,7 +13,7 @@ export default async function ProntuarioIndexPage() {
 
   return (
     <main className="rounded-2xl bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-bold text-[var(--marrom)]">Prontuario</h1>
+      <h1 className="text-2xl font-bold text-[var(--marrom)]">Prontuário</h1>
       <p className="mt-1 text-sm text-gray-600">
         Selecione um paciente para abrir a timeline.
       </p>
@@ -23,7 +23,7 @@ export default async function ProntuarioIndexPage() {
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
               <th className="px-3 py-2">Paciente</th>
-              <th className="px-3 py-2">Acoes</th>
+              <th className="px-3 py-2">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -55,4 +55,6 @@ export default async function ProntuarioIndexPage() {
     </main>
   );
 }
+
+
 

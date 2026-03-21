@@ -1,4 +1,4 @@
-import { requireAdminGeral } from "@/server/auth/auth";
+﻿import { requireAdminGeral } from "@/server/auth/auth";
 import { ConfiguracoesPermissoesClient } from "@/app/(protected)/configuracoes/permissoes.client";
 import Link from "next/link";
 import { toAppError } from "@/server/shared/errors";
@@ -12,13 +12,13 @@ export default async function ConfiguracoesPage() {
   } catch (error) {
     const err = toAppError(error);
     const message =
-      err.status === 403 ? "Acesso negado." : err.status === 401 ? "Nao autenticado." : err.message;
+      err.status === 403 ? "Acesso negado." : err.status === 401 ? "Não autenticado." : err.message;
 
     return (
       <main className="rounded-xl bg-white p-6 shadow-sm">
         <div>
-          <p className="text-sm text-gray-500">Administracao</p>
-          <h1 className="text-2xl font-bold text-[var(--marrom)]">Configuracoes</h1>
+          <p className="text-sm text-gray-500">Administração</p>
+          <h1 className="text-2xl font-bold text-[var(--marrom)]">Configurações</h1>
           <p className="mt-2 text-sm text-red-600">{message}</p>
         </div>
         <div className="mt-4">
@@ -36,8 +36,8 @@ export default async function ConfiguracoesPage() {
     <div className="space-y-4">
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <div>
-          <p className="text-sm text-gray-500">Administracao</p>
-          <h1 className="text-2xl font-bold text-[var(--marrom)]">Permissoes por papel</h1>
+          <p className="text-sm text-gray-500">Administração</p>
+          <h1 className="text-2xl font-bold text-[var(--marrom)]">Permissões por papel</h1>
           <p className="mt-2 text-sm text-gray-600">
             Crie usuarios e ajuste permissoes por papel. (Acesso restrito ao admin-geral.)
           </p>
@@ -48,3 +48,6 @@ export default async function ConfiguracoesPage() {
     </div>
   );
 }
+
+
+

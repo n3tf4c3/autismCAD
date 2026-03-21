@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
@@ -316,7 +316,7 @@ function SkillDistributionChart(props: {
   }>;
 }) {
   if (!props.rows.length) {
-    return <p className="text-sm leading-7 text-slate-700">Nao ha habilidades suficientes para gerar o grafico neste periodo.</p>;
+    return <p className="text-sm leading-7 text-slate-700">Não há habilidades suficientes para gerar o grafico neste periodo.</p>;
   }
 
   const chartHeight = 220;
@@ -355,7 +355,7 @@ function SkillDistributionChart(props: {
         className="block w-full"
         preserveAspectRatio="xMinYMin meet"
         role="img"
-        aria-label="Grafico de barras por habilidade trabalhada"
+        aria-label="Gráfico de barras por habilidade trabalhada"
       >
         <rect x="0" y="0" width={svgWidth} height={svgHeight} rx="18" fill="#fcfaf7" />
 
@@ -445,7 +445,7 @@ function BehaviorHorizontalChart(props: {
   }>;
 }) {
   if (!props.rows.length) {
-    return <p className="text-sm leading-7 text-slate-700">Nao ha comportamentos estruturados suficientes para gerar o grafico neste periodo.</p>;
+    return <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para gerar o grafico neste periodo.</p>;
   }
 
   const maxValue = Math.max(...props.rows.map((row) => row.value), 1);
@@ -466,7 +466,7 @@ function BehaviorHorizontalChart(props: {
         className="block w-full"
         preserveAspectRatio="xMinYMin meet"
         role="img"
-        aria-label="Grafico horizontal de comportamentos observados"
+        aria-label="Gráfico horizontal de comportamentos observados"
       >
         <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="14" fill="#fcfaf7" />
 
@@ -678,7 +678,7 @@ export function DevolutivaImpressaoClient(props: {
 
   async function consultar() {
     if (!selectedRange) {
-      setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
+      setMsg(periodPreset === "custom" ? "Período inválido." : "Referência inválida.");
       return;
     }
     setLoading(true);
@@ -702,7 +702,7 @@ export function DevolutivaImpressaoClient(props: {
 
   async function exportDocx() {
     if (!query) {
-      setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
+      setMsg(periodPreset === "custom" ? "Período inválido." : "Referência inválida.");
       return;
     }
 
@@ -854,9 +854,9 @@ export function DevolutivaImpressaoClient(props: {
           <header className="document-header px-6 pb-4 pt-5 sm:px-8">
             <div className="flex items-start justify-between gap-4 border-b border-[#e8ddd2] pb-4">
               <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d1a06c]">Clinica Girassois</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d1a06c]">Clínica Girassóis</p>
                 <h1 className="max-w-3xl text-2xl font-semibold uppercase tracking-[0.06em] text-[#4d392a] sm:text-3xl">
-                  Relatorio devolutivo interdisciplinar
+                  Relatório devolutivo interdisciplinar
                 </h1>
               </div>
 
@@ -864,7 +864,7 @@ export function DevolutivaImpressaoClient(props: {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/girassois.svg"
-                  alt="Clinica Girassois"
+                  alt="Clínica Girassóis"
                   className="h-20 w-auto max-w-[180px] object-contain sm:h-24 sm:max-w-[220px]"
                 />
               </div>
@@ -876,7 +876,7 @@ export function DevolutivaImpressaoClient(props: {
                 value={<p className="text-base font-semibold text-[#3d3127]">{report.paciente.nome}</p>}
               />
               <DocumentField
-                label="Periodo avaliado"
+                label="Período avaliado"
                 value={fmtPeriodLabel(report.periodo.from, report.periodo.to)}
                 helper={`${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`}
               />
@@ -885,7 +885,7 @@ export function DevolutivaImpressaoClient(props: {
           </header>
 
           <div className="space-y-4 px-6 pb-5 sm:px-8">
-            <DocumentSection title="Sintese clinica do periodo">
+            <DocumentSection title="Síntese clinica do periodo">
               <div className="space-y-2 text-sm leading-6 text-slate-700">
                 {sinteseClinica.map((paragraph, index) => (
                   <p key={`${paragraph}-${index}`}>{paragraph}</p>
@@ -951,7 +951,7 @@ export function DevolutivaImpressaoClient(props: {
                       </div>
                     ))
                   ) : (
-                    <p className="leading-7">Nao houve faltas com motivo estruturado registrado no periodo.</p>
+                    <p className="leading-7">Não houve faltas com motivo estruturado registrado no periodo.</p>
                   )}
                 </div>
               </DocumentSection>
@@ -988,7 +988,7 @@ export function DevolutivaImpressaoClient(props: {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm leading-7 text-slate-700">Nao ha habilidades com volume suficiente para consolidacao neste recorte.</p>
+                <p className="text-sm leading-7 text-slate-700">Não há habilidades com volume suficiente para consolidacao neste recorte.</p>
               )}
             </DocumentSection>
 
@@ -1047,11 +1047,11 @@ export function DevolutivaImpressaoClient(props: {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm leading-7 text-slate-700">Nao ha comportamentos estruturados suficientes para consolidacao neste periodo.</p>
+                <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para consolidacao neste periodo.</p>
               )}
             </DocumentSection>
 
-            <DocumentSection title="Observacoes clinicas selecionadas">
+            <DocumentSection title="Observações clinicas selecionadas">
               {feedbackItems.length ? (
                 <div className="space-y-3">
                   {feedbackItems.map((item, index) => (
@@ -1117,3 +1117,7 @@ export function DevolutivaImpressaoClient(props: {
     </main>
   );
 }
+
+
+
+

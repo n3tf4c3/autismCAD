@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -193,7 +193,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
           if (!resp.ok) throw new Error("Falha ao consultar CEP");
           if (!data || data.erro) {
             setCepStatus("error");
-            setCepHint("CEP nao encontrado.");
+            setCepHint("CEP não encontrado.");
             return;
           }
 
@@ -231,11 +231,11 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
             cidade: nextCidade,
           };
           setCepStatus("ok");
-          setCepHint("Endereco preenchido pelo CEP.");
+          setCepHint("Endereço preenchido pelo CEP.");
         } catch (error) {
           if ((error as { name?: string }).name === "AbortError") return;
           setCepStatus("error");
-          setCepHint("Nao foi possivel consultar o CEP.");
+          setCepHint("Não foi possível consultar o CEP.");
         }
       })();
     }, 350);
@@ -291,7 +291,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
         setBusy(false);
       }
     },
-    () => setMsg("Confira os campos obrigatorios.")
+    () => setMsg("Confira os campos obrigatórios.")
   );
 
   return (
@@ -300,7 +300,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
         <section className="rounded-xl bg-white p-6 shadow-sm xl:col-span-2">
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Dados do profissional</h3>
-            <p className="text-sm text-gray-600">Preencha as informacoes do profissional.</p>
+            <p className="text-sm text-gray-600">Preencha as informações do profissional.</p>
           </div>
 
           <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={submit} autoComplete="off">
@@ -430,7 +430,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="numero">
-                  Numero
+                  Número
                 </label>
                 <input
                   id="numero"
@@ -508,12 +508,12 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
 
             <div className="flex flex-col gap-2 md:col-span-2">
               <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="observacao">
-                Observacao
+                Observação
               </label>
               <textarea
                 id="observacao"
                 rows={4}
-                placeholder="Observacoes adicionais sobre o profissional"
+                placeholder="Observações adicionais sobre o profissional"
                 className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
                 {...register("observacao")}
               />
@@ -569,7 +569,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
                 <strong className="text-[var(--texto)]">{telefone || "-"}</strong>
               </div>
               <div className="flex flex-col border-b border-gray-100 pb-3 sm:col-span-2">
-                <span className="text-gray-500">Endereco</span>
+                <span className="text-gray-500">Endereço</span>
                 <strong className="text-[var(--texto)]">{enderecoResumo}</strong>
               </div>
               <div className="flex flex-col border-b border-gray-100 pb-3">
@@ -586,13 +586,13 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
               <strong className="text-[var(--texto)]">{String(email ?? "").trim() || "-"}</strong>
             </div>
             <div className="flex flex-col border-b border-gray-100 pb-3">
-              <span className="text-gray-500">Observacao</span>
+              <span className="text-gray-500">Observação</span>
               <strong className="text-[var(--texto)] whitespace-pre-wrap break-words">
                 {String(observacao ?? "").trim() || "-"}
               </strong>
             </div>
             <div className="rounded-lg border border-[#f1e1c7] bg-[#fff6e6] p-3 text-xs leading-relaxed text-[var(--marrom)]">
-              Os dados sao salvos na base de profissionais e podem ser consultados ou editados pela equipe.
+              Os dados são salvos na base de profissionais e podem ser consultados ou editados pela equipe.
             </div>
           </div>
         </aside>
@@ -600,3 +600,6 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
     </main>
   );
 }
+
+
+

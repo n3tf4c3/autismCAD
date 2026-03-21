@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -83,7 +83,7 @@ export default async function DevolutivaImpressaoPage(props: {
       {isResponsavel && !pacientesVinculados.length ? (
         <section className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm text-red-600">
-            Seu perfil ainda nao possui paciente vinculado. Solicite ao administrador.
+            Seu perfil ainda não possui paciente vinculado. Solicite ao administrador.
           </p>
         </section>
       ) : null}
@@ -94,14 +94,14 @@ export default async function DevolutivaImpressaoPage(props: {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
-                  Relatorio devolutivo
+                  Relatório devolutivo
                 </p>
                 <h1 className="mt-2 text-2xl font-bold text-[var(--marrom)]">
                   Versao para impressao, PDF e DOCX
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm text-gray-600">
                   Layout separado das devolutivas atuais, pensado para imprimir ou salvar em PDF e compartilhar com
-                  neuro, psiquiatra e responsaveis. Quando houver permissao de exportacao, tambem sera possivel baixar
+                  neuro, psiquiatra e responsaveis. Quando houver permissao de exportacao, tambem sera possível baixar
                   em DOCX.
                 </p>
               </div>
@@ -141,3 +141,6 @@ export default async function DevolutivaImpressaoPage(props: {
     </main>
   );
 }
+
+
+

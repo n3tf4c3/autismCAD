@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { MouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -196,7 +196,7 @@ export function QuickCalendarClient(props: {
                 <div key={a.id} className="mb-2 last:mb-0">
                   <p className="font-semibold text-[var(--marrom)]">{a.pacienteNome || "Paciente"}</p>
                   <p className="text-gray-700">
-                    Horario: {hi}
+                    Horário: {hi}
                     {hf ? ` - ${hf}` : ""}
                   </p>
                   <p className="text-gray-600">Profissional: {a.profissionalNome || ""}</p>
@@ -290,3 +290,4 @@ export function QuickCalendarClient(props: {
     </div>
   );
 }
+

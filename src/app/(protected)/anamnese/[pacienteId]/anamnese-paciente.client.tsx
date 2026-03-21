@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -623,7 +623,7 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
               }
             />
             <div className="md:col-span-2">
-              <Textarea label="Observacoes escolares" value={form.observacoesEscolares} rows={3} onChange={(v) => setField("observacoesEscolares", v)} />
+              <Textarea label="Observações escolares" value={form.observacoesEscolares} rows={3} onChange={(v) => setField("observacoesEscolares", v)} />
             </div>
           </Section>
 
@@ -669,7 +669,7 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
                 <th className="px-3 py-2">Versao</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Criada</th>
-                <th className="px-3 py-2">Acoes</th>
+                <th className="px-3 py-2">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -716,3 +716,4 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
     </main>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { ReportFilters } from "@/components/reports/report-filters";
@@ -166,7 +166,7 @@ export function DevolutivaDiaClient(props: {
       .filter(Boolean);
 
     if (!devolutivas.length) {
-      return `${base} Nao houve devolutiva textual registrada pelos profissionais neste dia.`;
+      return `${base} Não houve devolutiva textual registrada pelos profissionais neste dia.`;
     }
 
     return `${base} Resumo clinico: ${devolutivas.join(" ")}`;
@@ -335,7 +335,7 @@ export function DevolutivaDiaClient(props: {
       setCopyMsg("Resumo copiado.");
       setTimeout(() => setCopyMsg(null), 1800);
     } catch {
-      setCopyMsg("Nao foi possivel copiar.");
+      setCopyMsg("Nao foi possível copiar.");
       setTimeout(() => setCopyMsg(null), 2200);
     }
   }
@@ -368,7 +368,7 @@ export function DevolutivaDiaClient(props: {
   return (
     <main className="space-y-4">
       <ReportFilters
-        title="Periodo"
+        title="Período"
         description="Selecione o dia para atualizar o resumo, as habilidades e os comentarios."
         label="Dia"
         type="date"
@@ -449,7 +449,7 @@ export function DevolutivaDiaClient(props: {
             rows={desempenhoResumo.rowsBySkill}
             title="Habilidades trabalhadas"
             subtitle="Cards mais compactos para leitura rapida no celular, mantendo comparacao clara entre os tres status."
-            emptyMessage="Nao ha habilidades suficientes para montar o grafico deste dia."
+            emptyMessage="Não há habilidades suficientes para montar o grafico deste dia."
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -472,7 +472,7 @@ export function DevolutivaDiaClient(props: {
           <section id="comportamentos" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Grafico de comportamento</h2>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Gráfico de comportamento</h2>
                 <p className="mt-1 text-sm text-gray-700">
                   Distribuicao dos comportamentos registrados nas evolucoes do dia.
                 </p>
@@ -571,7 +571,7 @@ export function DevolutivaDiaClient(props: {
               </div>
             ) : (
               <p className="mt-3 text-sm text-gray-700">
-                Nao ha registros de comportamentos estruturados nas evolucoes deste dia.
+                Não há registros de comportamentos estruturados nas evolucoes deste dia.
               </p>
             )}
           </section>
@@ -614,9 +614,9 @@ export function DevolutivaDiaClient(props: {
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left">Horario</th>
+                    <th className="px-4 py-2 text-left">Horário</th>
                     <th className="px-4 py-2 text-left">Profissional</th>
-                    <th className="px-4 py-2 text-left">Presenca</th>
+                    <th className="px-4 py-2 text-left">Presença</th>
                     <th className="px-4 py-2 text-left">Duracao (min)</th>
                     <th className="px-4 py-2 text-left">Feedback</th>
                   </tr>
@@ -651,3 +651,6 @@ export function DevolutivaDiaClient(props: {
     </main>
   );
 }
+
+
+

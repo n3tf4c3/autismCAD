@@ -4,12 +4,12 @@ export const ESPECIALIDADES_PROFISSIONAL = [
   "Fonoaudiologia",
   "Fisioterapia",
   "Psicopedagogia",
-  "Acompanhante Terapeutico (AT)",
+  "Acompanhante Terapêutico (AT)",
   "Musicoterapia",
   "Psicomotricidade",
   "Recepcionista",
-  "Secretaria",
-  "Servicos Gerais",
+  "Secretária",
+  "Serviços Gerais",
   "Outro",
 ] as const;
 

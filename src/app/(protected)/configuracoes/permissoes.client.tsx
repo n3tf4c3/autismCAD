@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -235,7 +235,7 @@ export function ConfiguracoesPermissoesClient() {
         })
       );
       await refreshRolePermissions(roleSelected);
-      setStatusMsg("Permissoes salvas com sucesso.");
+      setStatusMsg("Permissões salvas com sucesso.");
       setStatusTone("success");
     } catch (err) {
       setStatusMsg(normalizeApiError(err));
@@ -258,7 +258,7 @@ export function ConfiguracoesPermissoesClient() {
       return;
     }
     if (!isAllowedRole(role)) {
-      setCreateMsg("Papel invalido. Use admin, recepcao, profissional ou responsavel.");
+      setCreateMsg("Papel inválido. Use admin, recepcao, profissional ou responsavel.");
       setCreateTone("error");
       return;
     }
@@ -275,7 +275,7 @@ export function ConfiguracoesPermissoesClient() {
     setCreateTone("neutral");
     try {
       unwrapAction(await createUserAction({ nome, email, senha, role, pacienteIdVinculado }));
-      setCreateMsg("Usuario criado/atualizado com sucesso.");
+      setCreateMsg("Usuário criado/atualizado com sucesso.");
       setCreateTone("success");
       setCreateNome("");
       setCreateEmail("");
@@ -306,12 +306,12 @@ export function ConfiguracoesPermissoesClient() {
       return;
     }
     if (!isAllowedRole(role)) {
-      setUserListMsg("Papel invalido para este sistema.");
+      setUserListMsg("Papel inválido para este sistema.");
       setUserListTone("error");
       return;
     }
     if (role === "responsavel" && !pacienteIdVinculado) {
-      setUserListMsg("Usuario responsavel precisa de paciente vinculado.");
+      setUserListMsg("Usuário responsavel precisa de paciente vinculado.");
       setUserListTone("error");
       return;
     }
@@ -329,7 +329,7 @@ export function ConfiguracoesPermissoesClient() {
           pacienteIdVinculado,
         })
       );
-      setUserListMsg("Usuario atualizado.");
+      setUserListMsg("Usuário atualizado.");
       setUserListTone("success");
       await refreshUsers();
     } catch (err) {
@@ -351,7 +351,7 @@ export function ConfiguracoesPermissoesClient() {
     setUserListTone("neutral");
     try {
       unwrapAction(await deleteUserAction(userId));
-      setUserListMsg("Usuario excluido.");
+      setUserListMsg("Usuário excluido.");
       setUserListTone("success");
       await refreshUsers();
     } catch (err) {
@@ -504,7 +504,7 @@ export function ConfiguracoesPermissoesClient() {
                 <th className="px-2 py-2">Papel</th>
                 <th className="px-2 py-2">Paciente vinculado</th>
                 <th className="px-2 py-2">Nova senha (opcional)</th>
-                <th className="px-2 py-2 text-center">Acoes</th>
+                <th className="px-2 py-2 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -642,7 +642,7 @@ export function ConfiguracoesPermissoesClient() {
           </div>
 
           <div className="flex-1 text-sm text-slate-500">
-            {isSuper ? "Admin-geral tem todas as permissoes e nao pode ser restringido." : ""}
+            {isSuper ? "Admin-geral tem todas as permissoes e não pode ser restringido." : ""}
           </div>
 
           <button
@@ -651,7 +651,7 @@ export function ConfiguracoesPermissoesClient() {
             onClick={() => void savePermissions()}
             className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Salvar Permissoes
+            Salvar Permissões
           </button>
         </div>
 
@@ -714,3 +714,6 @@ export function ConfiguracoesPermissoesClient() {
     </main>
   );
 }
+
+
+

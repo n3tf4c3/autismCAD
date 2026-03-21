@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -155,7 +155,7 @@ export function EvolutivoReportClient(props: {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase text-gray-500">Filtros</p>
-            <h1 className="text-lg font-semibold text-[var(--marrom)]">Periodo e profissional</h1>
+            <h1 className="text-lg font-semibold text-[var(--marrom)]">Período e profissional</h1>
           </div>
           <button
             type="button"
@@ -240,7 +240,7 @@ export function EvolutivoReportClient(props: {
               (!pacienteId ? "pointer-events-none opacity-50" : "")
             }
           >
-            Devolutiva diaria
+            Devolutiva diária
           </Link>
           <Link
             href={pacienteId ? `/relatorios/devolutiva-mensal?pacienteId=${pacienteId}` : "/relatorios/devolutiva-mensal"}
@@ -261,7 +261,7 @@ export function EvolutivoReportClient(props: {
               (!pacienteId ? "pointer-events-none opacity-50" : "")
             }
           >
-            Relatorio para impressao
+            Relatório para impressao
           </Link>
         </div>
 
@@ -275,7 +275,7 @@ export function EvolutivoReportClient(props: {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lg font-semibold text-[var(--marrom)]">Indicadores</h2>
               <p className="text-sm text-gray-600">
-                Paciente: <span className="font-semibold">{report.paciente.nome}</span> (#{report.paciente.id}) - Periodo{" "}
+                Paciente: <span className="font-semibold">{report.paciente.nome}</span> (#{report.paciente.id}) - Período{" "}
                 {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}
               </p>
             </div>
@@ -310,7 +310,7 @@ export function EvolutivoReportClient(props: {
 
           <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-[var(--marrom)]">Ultimas observacoes</h3>
+              <h3 className="text-lg font-semibold text-[var(--marrom)]">Últimas observacoes</h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
                 {(report.destaques.ultimasObservacoes || []).length ? (
                   report.destaques.ultimasObservacoes.map((o, idx) => (
@@ -365,9 +365,9 @@ export function EvolutivoReportClient(props: {
                   <tr>
                     <th className="px-4 py-2 text-left">Data</th>
                     <th className="px-4 py-2 text-left">Profissional</th>
-                    <th className="px-4 py-2 text-left">Presenca</th>
+                    <th className="px-4 py-2 text-left">Presença</th>
                     <th className="px-4 py-2 text-left">Duracao (min)</th>
-                    <th className="px-4 py-2 text-left">Observacao</th>
+                    <th className="px-4 py-2 text-left">Observação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -398,3 +398,6 @@ export function EvolutivoReportClient(props: {
     </main>
   );
 }
+
+
+

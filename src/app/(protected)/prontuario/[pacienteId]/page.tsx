@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -17,7 +17,7 @@ export default async function ProntuarioPacientePage(props: {
   if (!id) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente invalido.</p>
+        <p className="text-sm text-red-600">Paciente inválido.</p>
       </main>
     );
   }
@@ -46,7 +46,7 @@ export default async function ProntuarioPacientePage(props: {
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente nao encontrado.</p>
+        <p className="text-sm text-red-600">Paciente não encontrado.</p>
       </main>
     );
   }
@@ -56,7 +56,7 @@ export default async function ProntuarioPacientePage(props: {
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gray-500">Prontuario multiprofissional</p>
+            <p className="text-sm text-gray-500">Prontuário multiprofissional</p>
             <h1 className="text-2xl font-bold text-[var(--marrom)]">
               {paciente.nome} <span className="text-gray-500">#{paciente.id}</span>
             </h1>
@@ -66,13 +66,13 @@ export default async function ProntuarioPacientePage(props: {
               href={`/prontuario/${paciente.id}/evolucao/nova`}
               className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
             >
-              Nova Evolucao
+              Nova Evolução
             </Link>
             <Link
               href={`/relatorios/evolutivo?pacienteId=${paciente.id}`}
               className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
             >
-              Relatorio Evolutivo
+              Relatório Evolutivo
             </Link>
             <Link
               href={`/prontuario/${paciente.id}/plano-ensino`}
@@ -88,3 +88,7 @@ export default async function ProntuarioPacientePage(props: {
     </main>
   );
 }
+
+
+
+

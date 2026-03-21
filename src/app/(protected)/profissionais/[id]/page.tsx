@@ -1,4 +1,4 @@
-import { idParamSchema } from "@/lib/zod/api";
+﻿import { idParamSchema } from "@/lib/zod/api";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
@@ -72,7 +72,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
     canEditAny || !canEditSelf ? Promise.resolve(null) : obterProfissionalPorUsuario(Number(user.id)),
   ]);
 
-  if (!row) throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
+  if (!row) throw new AppError("Profissional não encontrado", 404, "NOT_FOUND");
 
   const canEdit = canEditAny || Boolean(self && self.id === row.id);
 
@@ -169,7 +169,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-4 md:col-span-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Endereco</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Endereço</p>
           {enderecoLines.length ? (
             <div className="mt-2 space-y-1 text-sm font-semibold text-gray-800">
               {enderecoLines.map((l) => (
@@ -182,7 +182,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-4 md:col-span-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Observacao</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Observação</p>
           <p className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-800">
             {row.observacao || "-"}
           </p>
@@ -190,7 +190,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
       </div>
 
       <div className="border-t border-gray-100 px-6 py-5">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes administrativas</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Ações administrativas</p>
         <ProfissionalActionsClient
           profissionalId={row.id}
           profissionalNome={row.nome}
@@ -202,3 +202,5 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
     </main>
   );
 }
+
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -113,7 +113,7 @@ export function AssiduidadeClient(props: {
           <div className="flex items-center gap-3">
             <div className="text-2xl">AS</div>
             <div>
-              <h2 className="text-lg font-bold text-[var(--marrom)]">Relatorio de assiduidade</h2>
+              <h2 className="text-lg font-bold text-[var(--marrom)]">Relatório de assiduidade</h2>
               <p className="text-sm text-gray-600">
                 Filtre por paciente, profissional e periodo para acompanhar presenca e faltas.
               </p>
@@ -166,7 +166,7 @@ export function AssiduidadeClient(props: {
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-[var(--marrom)]">Presenca</span>
+            <span className="text-sm font-semibold text-[var(--marrom)]">Presença</span>
             <select
               value={presenca}
               onChange={(e) => setPresenca(e.target.value)}
@@ -235,7 +235,7 @@ export function AssiduidadeClient(props: {
           </p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-2">
-          <p className="text-sm text-gray-500">Periodo</p>
+          <p className="text-sm text-gray-500">Período</p>
           <p className="text-sm font-semibold text-[var(--marrom)]">
             {report ? `${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}` : "-"}
           </p>
@@ -261,7 +261,7 @@ export function AssiduidadeClient(props: {
                 <th className="px-6 py-3">Ausencias</th>
                 <th className="px-6 py-3">Taxa</th>
                 <th className="px-6 py-3">Sem registro</th>
-                <th className="px-6 py-3">Ultimo atendimento</th>
+                <th className="px-6 py-3">Último atendimento</th>
                 <th className="px-6 py-3">Profissionais envolvidos</th>
               </tr>
             </thead>
@@ -305,3 +305,5 @@ export function AssiduidadeClient(props: {
     </main>
   );
 }
+
+

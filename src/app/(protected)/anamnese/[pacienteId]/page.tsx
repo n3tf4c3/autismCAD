@@ -1,4 +1,4 @@
-import { requirePermission } from "@/server/auth/auth";
+﻿import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { toAppError } from "@/server/shared/errors";
 import AnamnesePacienteClient from "./anamnese-paciente.client";
@@ -13,7 +13,7 @@ export default async function AnamnesePacientePage(props: {
   if (!Number.isFinite(id) || id <= 0) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente invalido.</p>
+        <p className="text-sm text-red-600">Paciente inválido.</p>
       </main>
     );
   }
@@ -31,3 +31,4 @@ export default async function AnamnesePacientePage(props: {
 
   return <AnamnesePacienteClient pacienteId={id} />;
 }
+

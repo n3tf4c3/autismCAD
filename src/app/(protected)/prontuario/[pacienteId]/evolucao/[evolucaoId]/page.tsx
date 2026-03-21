@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -29,7 +29,7 @@ export default async function EditarEvolucaoPage(props: {
   if (!evolucao) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Evolucao nao encontrada.</p>
+        <p className="text-sm text-red-600">Evolução nao encontrada.</p>
       </main>
     );
   }
@@ -37,7 +37,7 @@ export default async function EditarEvolucaoPage(props: {
   if (Number(evolucao.pacienteId) !== pid) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Evolucao nao pertence ao paciente.</p>
+        <p className="text-sm text-red-600">Evolução não pertence ao paciente.</p>
       </main>
     );
   }
@@ -74,7 +74,7 @@ export default async function EditarEvolucaoPage(props: {
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente nao encontrado.</p>
+        <p className="text-sm text-red-600">Paciente não encontrado.</p>
       </main>
     );
   }
@@ -125,3 +125,6 @@ export default async function EditarEvolucaoPage(props: {
     </main>
   );
 }
+
+
+

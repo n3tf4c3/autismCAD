@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -141,7 +141,7 @@ export function ProfissionaisPageClient(props: { initialItems: Profissional[] })
               <th className="px-3 py-2">Especialidade</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Contato</th>
-              <th className="px-3 py-2">Acoes</th>
+              <th className="px-3 py-2">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -200,3 +200,4 @@ export function ProfissionaisPageClient(props: { initialItems: Profissional[] })
     </main>
   );
 }
+

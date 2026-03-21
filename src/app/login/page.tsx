@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
@@ -84,12 +84,12 @@ export default function LoginPage() {
               height={80}
               className="h-20 w-20 rounded-2xl bg-white p-3 shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
             />
-            <h1 className="mt-6 text-3xl font-bold">Clinica Girassois</h1>
+            <h1 className="mt-6 text-3xl font-bold">Clínica Girassóis</h1>
             <p className="mt-4 font-medium leading-relaxed text-white/95">
               Plataforma de cuidado e desenvolvimento.
             </p>
             <p className="mt-2 max-w-xs leading-relaxed text-white/90">
-              Acompanhe cada passo da evolucao com carinho e precisao.
+              Acompanhe cada passo da evolucao com carinho e precisão.
             </p>
           </div>
           <p className="relative z-10 text-base font-bold text-white">Suporte: girassoisclinica@gmail.com</p>
@@ -144,3 +144,5 @@ export default function LoginPage() {
     </main>
   );
 }
+
+

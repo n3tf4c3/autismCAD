@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -80,7 +80,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
   const logoutItem: NavItem = {
     key: "logout",
     label: "Sair",
-    icon: "🚪",
+    icon: "\u{1F6AA}",
     kind: "action",
     onClick: () => {
       shell.closeSidebar();
@@ -93,7 +93,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "relatorios",
           label: "Acompanhamento",
-          icon: "📊",
+          icon: "\u{1F4CA}",
           href: "/relatorios",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/relatorios", p),
@@ -105,7 +105,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "dashboard",
           label: "Dashboard",
-          icon: "🏠",
+          icon: "\u{1F3E0}",
           href: "/",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/", p),
@@ -113,7 +113,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "calendario",
           label: "Agenda",
-          icon: "📅",
+          icon: "\u{1F4C5}",
           href: "/calendario",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/calendario", p),
@@ -121,7 +121,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "pacientes",
           label: "Pacientes",
-          icon: "👦",
+          icon: "\u{1F466}",
           href: "/pacientes",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/pacientes", p),
@@ -129,7 +129,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "profissionais",
           label: "Profissionais",
-          icon: "🧑‍⚕️",
+          icon: "\u{1F9D1}\u200D\u2695\uFE0F",
           href: "/profissionais",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/profissionais", p),
@@ -137,15 +137,15 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "consultas",
           label: "Consultas",
-          icon: "🔎",
+          icon: "\u{1F50E}",
           href: "/consultas",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/consultas", p),
         },
         {
           key: "relatorios",
-          label: "Relatorios",
-          icon: "📊",
+          label: "Relatórios",
+          icon: "\u{1F4CA}",
           href: "/relatorios",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/relatorios", p),
@@ -154,7 +154,7 @@ export function SidebarClient(props: { userRole?: string | null }) {
         {
           key: "configuracoes",
           label: "Controle",
-          icon: "⚙",
+          icon: "\u2699",
           href: "/configuracoes",
           kind: "link",
           activeWhen: (p) => isActivePrefix("/configuracoes", p),
@@ -299,3 +299,4 @@ export function SidebarClient(props: { userRole?: string | null }) {
     </>
   );
 }
+

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { formatDateBr } from "@/lib/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { requirePermission } from "@/server/auth/auth";
@@ -23,7 +23,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
   if (!docId) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Documento invalido.</p>
+        <p className="text-sm text-red-600">Documento inválido.</p>
       </main>
     );
   }
@@ -32,7 +32,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
   if (!doc) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Documento nao encontrado.</p>
+        <p className="text-sm text-red-600">Documento não encontrado.</p>
       </main>
     );
   }
@@ -83,7 +83,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
         </div>
 
         <p className="mt-3 text-sm text-gray-600">
-          Autor: {doc.autorNome || doc.createdByRole || "Usuario"}
+          Autor: {doc.autorNome || doc.createdByRole || "Usuário"}
         </p>
 
         {planoEnsino ? (
@@ -157,3 +157,5 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
     </main>
   );
 }
+
+

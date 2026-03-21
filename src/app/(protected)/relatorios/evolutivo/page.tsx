@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
@@ -47,15 +47,15 @@ export default async function RelatorioEvolutivoPage(props: {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gray-500">Relatorio evolutivo</p>
-            <h2 className="text-xl font-semibold text-[var(--marrom)]">Relatorio Evolutivo</h2>
+            <p className="text-sm text-gray-500">Relatório evolutivo</p>
+            <h2 className="text-xl font-semibold text-[var(--marrom)]">Relatório Evolutivo</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={devolutivaDiaHref}
               className="rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
             >
-              Devolutiva diaria
+              Devolutiva diária
             </Link>
             <Link
               href={devolutivaMensalHref}
@@ -80,3 +80,5 @@ export default async function RelatorioEvolutivoPage(props: {
     </div>
   );
 }
+
+
