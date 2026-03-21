@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { gerarRelatorioPlanoEnsinoAction } from "@/app/(protected)/relatorios/relatorios.actions";
 import {
-  gerarRelatorioPlanoEnsinoAction,
-  type ActionResult,
-} from "@/app/(protected)/relatorios/relatorios.actions";
+  normalizeRelatorioApiError,
+  unwrapRelatorioAction,
+} from "@/lib/relatorios/client-errors";
 
 type PeriodPreset = "1m" | "custom";
 
@@ -117,16 +118,6 @@ function fmtDate(value?: string | null): string {
   return d.toLocaleDateString("pt-BR");
 }
 
-function normalizeApiError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Erro ao carregar relatorio de plano de ensino";
-}
-
-function unwrapAction<T>(result: ActionResult<T>): T {
-  if (!result.ok) throw new Error(result.error || "Erro ao carregar relatorio de plano de ensino");
-  return result.data;
-}
-
 function readApiError(json: unknown): string | null {
   if (!json || typeof json !== "object") return null;
   const record = json as Record<string, unknown>;
@@ -184,17 +175,18 @@ export function PlanoEnsinoImpressaoClient(props: {
     setMsg(null);
 
     try {
-      const data = unwrapAction(
+      const data = unwrapRelatorioAction(
         await gerarRelatorioPlanoEnsinoAction({
           pacienteId: props.pacienteId,
           from: selectedRange.from,
           to: selectedRange.to,
-        })
+        }),
+        "Erro ao carregar relatorio de plano de ensino"
       );
       setReport(data.report as PlanoEnsinoReport);
     } catch (error) {
       setReport(null);
-      setMsg(normalizeApiError(error));
+      setMsg(normalizeRelatorioApiError(error, "Erro ao carregar relatorio de plano de ensino"));
     } finally {
       setLoading(false);
     }
@@ -226,7 +218,7 @@ export function PlanoEnsinoImpressaoClient(props: {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
     } catch (error) {
-      setMsg(normalizeApiError(error));
+      setMsg(normalizeRelatorioApiError(error, "Falha ao gerar DOCX"));
     } finally {
       setExportingDocx(false);
     }

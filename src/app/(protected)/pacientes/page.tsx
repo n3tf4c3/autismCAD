@@ -11,7 +11,7 @@ export default async function PacientesPage() {
   let profissionais: Array<{ id: number; nome: string }> = [];
   try {
     await requirePermission("profissionais:view");
-    const profissionaisRows = await listarProfissionais({});
+    const profissionaisRows = await listarProfissionais({ somenteAssistencial: true });
     profissionais = profissionaisRows.map((item) => ({ id: item.id, nome: item.nome }));
   } catch {
     profissionais = [];

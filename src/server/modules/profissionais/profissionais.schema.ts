@@ -11,6 +11,7 @@ export const profissionaisQuerySchema = z.object({
   nome: z.string().trim().max(120).optional(),
   cpf: z.string().trim().max(20).optional(),
   especialidade: z.string().trim().max(80).optional(),
+  somenteAssistencial: z.coerce.boolean().optional(),
 });
 
 export const saveProfissionalSchema = z.object({

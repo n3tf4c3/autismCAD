@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 import {
   gerarRelatorioEvolutivoAction,
-  type ActionResult,
 } from "@/app/(protected)/relatorios/relatorios.actions";
+import {
+  normalizeRelatorioApiError,
+  unwrapRelatorioAction,
+} from "@/lib/relatorios/client-errors";
 
 type PeriodPreset = "1m" | "custom";
 type ComportamentoResultado = "negativo" | "positivo" | "parcial";
@@ -125,16 +128,6 @@ function fmtNowPtBr(): string {
     month: "2-digit",
     year: "numeric",
   });
-}
-
-function normalizeApiError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Erro ao carregar relatorio de impressao";
-}
-
-function unwrapAction<T>(result: ActionResult<T>): T {
-  if (!result.ok) throw new Error(result.error || "Erro ao carregar relatorio de impressao");
-  return result.data;
 }
 
 function readApiError(json: unknown): string | null {
@@ -684,17 +677,18 @@ export function DevolutivaImpressaoClient(props: {
     setLoading(true);
     setMsg(null);
     try {
-      const data = unwrapAction(
+      const data = unwrapRelatorioAction(
         await gerarRelatorioEvolutivoAction({
           pacienteId: props.pacienteId,
           from: selectedRange.from,
           to: selectedRange.to,
-        })
+        }),
+        "Erro ao carregar relatorio de impressao"
       );
       setReport(data.report as ImpressaoReport);
     } catch (error) {
       setReport(null);
-      setMsg(normalizeApiError(error));
+      setMsg(normalizeRelatorioApiError(error, "Erro ao carregar relatorio de impressao"));
     } finally {
       setLoading(false);
     }
@@ -726,7 +720,7 @@ export function DevolutivaImpressaoClient(props: {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
     } catch (error) {
-      setMsg(normalizeApiError(error));
+      setMsg(normalizeRelatorioApiError(error, "Falha ao gerar DOCX"));
     } finally {
       setExportingDocx(false);
     }

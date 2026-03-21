@@ -15,6 +15,7 @@ import {
   normalizeDateOnlyLoose,
   normalizeOptionalText,
 } from "@/server/shared/normalize";
+import { isEspecialidadeQuadroAdministrativo } from "@/lib/profissionais/especialidades";
 
 function normalizeCep(value?: string | null): string | null {
   if (!value) return null;
@@ -97,7 +98,7 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
     rows = await queryRows(false);
   }
 
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
     id: row.id,
     nome: row.nome,
     cpf: row.cpf,
@@ -114,6 +115,12 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
     observacao: row.observacao,
     ativo: row.ativo,
   }));
+
+  if (filters.somenteAssistencial) {
+    return mapped.filter((row) => !isEspecialidadeQuadroAdministrativo(row.especialidade));
+  }
+
+  return mapped;
 }
 
 export async function obterProfissionalDetalhe(id: number) {

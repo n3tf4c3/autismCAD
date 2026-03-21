@@ -17,6 +17,7 @@ import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/norma
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
+import { isEspecialidadeQuadroAdministrativo } from "@/lib/profissionais/especialidades";
 import {
   sanitizePlanoEnsinoPayload,
   type PlanoEnsinoBloco,
@@ -112,9 +113,10 @@ async function resolveProfissionalFiltro(params: {
   if (params.roleCanon === "PROFISSIONAL") {
     const profissional = await obterProfissionalPorUsuario(params.userId);
     if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
-    return profissional.id;
+    return assertProfissionalAssistencial(Number(profissional.id));
   }
-  return params.profissionalId ? Number(params.profissionalId) : null;
+  if (!params.profissionalId) return null;
+  return assertProfissionalAssistencial(Number(params.profissionalId));
 }
 
 function overlapDateRange(params: {
@@ -134,6 +136,31 @@ function toIsoDateKey(value: unknown): string | null {
   const date = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString().slice(0, 10);
+}
+
+async function assertProfissionalAssistencial(profissionalId: number): Promise<number> {
+  const [profissional] = await db
+    .select({
+      id: profissionaisTabela.id,
+      especialidade: profissionaisTabela.especialidade,
+    })
+    .from(profissionaisTabela)
+    .where(and(eq(profissionaisTabela.id, profissionalId), isNull(profissionaisTabela.deletedAt)))
+    .limit(1);
+
+  if (!profissional) {
+    throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
+  }
+
+  if (isEspecialidadeQuadroAdministrativo(profissional.especialidade)) {
+    throw new AppError(
+      "Profissional do quadro administrativo nao pode ser usado neste relatorio",
+      400,
+      "INVALID_INPUT"
+    );
+  }
+
+  return Number(profissional.id);
 }
 
 export async function consolidateEvolutivoReport(params: {

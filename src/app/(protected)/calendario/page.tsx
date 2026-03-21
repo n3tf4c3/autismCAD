@@ -19,7 +19,7 @@ export default async function CalendarioPage(props: {
   let profissionais: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
   try {
     await requirePermission("profissionais:view");
-    const profissionaisRows = await listarProfissionais({});
+    const profissionaisRows = await listarProfissionais({ somenteAssistencial: true });
     profissionais = profissionaisRows.map((item) => ({
       id: item.id,
       nome: item.nome,

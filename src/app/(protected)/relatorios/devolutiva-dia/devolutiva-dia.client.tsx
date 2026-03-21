@@ -9,8 +9,11 @@ import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 import {
   gerarRelatorioEvolutivoAction,
-  type ActionResult,
 } from "@/app/(protected)/relatorios/relatorios.actions";
+import {
+  normalizeRelatorioApiError,
+  unwrapRelatorioAction,
+} from "@/lib/relatorios/client-errors";
 
 type DiaReport = {
   paciente: { id: number; nome: string };
@@ -68,16 +71,6 @@ function fmtHour(value?: string | null): string {
   const raw = String(value);
   if (/^\d{2}:\d{2}/.test(raw)) return raw.slice(0, 5);
   return raw;
-}
-
-function normalizeApiError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Erro ao consultar devolutiva do dia";
-}
-
-function unwrapAction<T>(result: ActionResult<T>): T {
-  if (!result.ok) throw new Error(result.error || "Erro ao consultar devolutiva do dia");
-  return result.data;
 }
 
 type ComportamentoLado = "negativo" | "positivo";
@@ -350,11 +343,14 @@ export function DevolutivaDiaClient(props: {
         from: dataRef,
         to: dataRef,
       };
-      const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
+      const data = unwrapRelatorioAction(
+        await gerarRelatorioEvolutivoAction(filters),
+        "Erro ao consultar devolutiva do dia"
+      );
       setReport(data.report as DiaReport);
     } catch (err) {
       setReport(null);
-      setMsg(normalizeApiError(err));
+      setMsg(normalizeRelatorioApiError(err, "Erro ao consultar devolutiva do dia"));
     } finally {
       setLoading(false);
     }

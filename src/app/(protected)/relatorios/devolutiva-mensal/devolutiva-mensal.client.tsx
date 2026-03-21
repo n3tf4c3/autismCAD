@@ -9,8 +9,11 @@ import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
 import {
   gerarRelatorioEvolutivoAction,
-  type ActionResult,
 } from "@/app/(protected)/relatorios/relatorios.actions";
+import {
+  normalizeRelatorioApiError,
+  unwrapRelatorioAction,
+} from "@/lib/relatorios/client-errors";
 
 type MensalReport = {
   paciente: { id: number; nome: string };
@@ -120,16 +123,6 @@ function fmtPeriodLabel(from?: string | null, to?: string | null): string {
   const toMonth = to.slice(0, 7);
   if (fromMonth === toMonth) return fmtMonth(fromMonth);
   return `${fmtMonth(fromMonth)} a ${fmtMonth(toMonth)}`;
-}
-
-function normalizeApiError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Erro ao consultar devolutiva do periodo";
-}
-
-function unwrapAction<T>(result: ActionResult<T>): T {
-  if (!result.ok) throw new Error(result.error || "Erro ao consultar devolutiva do periodo");
-  return result.data;
 }
 
 function normalizeComportamentoResultado(value: unknown): ComportamentoResultado | null {
@@ -366,11 +359,14 @@ export function DevolutivaMensalClient(props: {
         from: selectedRange.from,
         to: selectedRange.to,
       };
-      const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
+      const data = unwrapRelatorioAction(
+        await gerarRelatorioEvolutivoAction(filters),
+        "Erro ao consultar devolutiva do periodo"
+      );
       setReport(data.report as MensalReport);
     } catch (err) {
       setReport(null);
-      setMsg(normalizeApiError(err));
+      setMsg(normalizeRelatorioApiError(err, "Erro ao consultar devolutiva do periodo"));
     } finally {
       setLoading(false);
     }

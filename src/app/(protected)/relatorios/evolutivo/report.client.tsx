@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { gerarRelatorioEvolutivoAction } from "@/app/(protected)/relatorios/relatorios.actions";
 import {
-  gerarRelatorioEvolutivoAction,
-  type ActionResult,
-} from "@/app/(protected)/relatorios/relatorios.actions";
+  normalizeRelatorioApiError,
+  unwrapRelatorioAction,
+} from "@/lib/relatorios/client-errors";
 
 type Profissional = { id: number; nome: string };
 
@@ -69,16 +70,6 @@ function fmtDate(d?: string | null): string {
   return dt.toLocaleDateString("pt-BR");
 }
 
-function normalizeApiError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Erro ao gerar relatorio";
-}
-
-function unwrapAction<T>(result: ActionResult<T>): T {
-  if (!result.ok) throw new Error(result.error || "Erro ao gerar relatorio");
-  return result.data;
-}
-
 export function EvolutivoReportClient(props: {
   initialPacienteId?: number | null;
   canChooseProfissional: boolean;
@@ -116,10 +107,10 @@ export function EvolutivoReportClient(props: {
         profissionalId:
           props.canChooseProfissional && profissionalId ? Number(profissionalId) : undefined,
       };
-      const data = unwrapAction(await gerarRelatorioEvolutivoAction(filters));
+      const data = unwrapRelatorioAction(await gerarRelatorioEvolutivoAction(filters), "Erro ao gerar relatorio");
       setReport(data.report as EvolutivoReport);
     } catch (err) {
-      setMsg(normalizeApiError(err));
+      setMsg(normalizeRelatorioApiError(err, "Erro ao gerar relatorio"));
     } finally {
       setLoading(false);
     }
@@ -145,7 +136,7 @@ export function EvolutivoReportClient(props: {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
     } catch (err) {
-      setMsg(normalizeApiError(err));
+      setMsg(normalizeRelatorioApiError(err, "Falha ao gerar PDF"));
     }
   }
 
