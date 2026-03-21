@@ -191,6 +191,7 @@ export function EvolucaoFormClient(props: {
   const [conduta, setConduta] = useState<string>(pickString(initialPayload.conduta));
   const [descricao, setDescricao] = useState<string>(pickString(initialPayload.descricao));
   const [atendimentos, setAtendimentos] = useState<AtendimentoOption[]>([]);
+  const [atendimentosLoaded, setAtendimentosLoaded] = useState(false);
   const [profissionais] = useState<ProfissionalOption[]>(() => props.initialProfissionais ?? []);
   const [tituloModo, setTituloModo] = useState<"lista" | "outro">(() => {
     const t = pickString(initialPayload.titulo).trim();
@@ -360,6 +361,7 @@ export function EvolucaoFormClient(props: {
   useEffect(() => {
     let alive = true;
     async function loadAtendimentos() {
+      if (alive) setAtendimentosLoaded(false);
       try {
         const qs = {
           pacienteId: String(props.pacienteId),
@@ -380,6 +382,8 @@ export function EvolucaoFormClient(props: {
         setAtendimentos(mapped.filter((row) => row.id > 0));
       } catch {
         // ignore
+      } finally {
+        if (alive) setAtendimentosLoaded(true);
       }
     }
     loadAtendimentos();
@@ -391,9 +395,10 @@ export function EvolucaoFormClient(props: {
   useEffect(() => {
     if (isEdit) return;
     if (!atendimentoId) return;
+    if (!atendimentosLoaded) return;
     const has = atendimentos.some((a) => String(a.id) === String(atendimentoId));
     if (!has) setAtendimentoId("");
-  }, [atendimentoId, atendimentos, isEdit]);
+  }, [atendimentoId, atendimentos, atendimentosLoaded, isEdit]);
 
   useEffect(() => {
     if (isProfissional) return;
