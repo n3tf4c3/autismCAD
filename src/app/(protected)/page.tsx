@@ -142,7 +142,7 @@ export default async function DashboardPage() {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F50E}"}</span>
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F465}"}</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
             <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
