@@ -28,6 +28,12 @@ function normalizeEspecialidade(value: string): string {
   return parsed || "Nao informado";
 }
 
+function isMissingObservacaoColumnError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = String(error.message || "").toLowerCase();
+  return msg.includes("observacao") && (msg.includes("does not exist") || msg.includes("nao existe"));
+}
+
 function composeEndereco(input: SaveProfissionalInput): string | null {
   const joined = [
     normalizeOptionalText(input.logradouro),
@@ -58,27 +64,38 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
     }
   }
 
-  const rows = await db
-    .select({
-      id: profissionaisTabela.id,
-      nome: profissionaisTabela.nome,
-      cpf: profissionaisTabela.cpf,
-      dataNascimento: profissionaisTabela.dataNascimento,
-      email: profissionaisTabela.email,
-      telefone: profissionaisTabela.telefone,
-      endereco: profissionaisTabela.endereco,
-      logradouro: profissionaisTabela.logradouro,
-      numero: profissionaisTabela.numero,
-      bairro: profissionaisTabela.bairro,
-      cidade: profissionaisTabela.cidade,
-      cep: profissionaisTabela.cep,
-      especialidade: profissionaisTabela.especialidade,
-      observacao: profissionaisTabela.observacao,
-      ativo: profissionaisTabela.ativo,
-    })
-    .from(profissionaisTabela)
-    .where(and(...where))
-    .orderBy(asc(profissionaisTabela.nome));
+  const queryRows = async (includeObservacao: boolean) =>
+    db
+      .select({
+        id: profissionaisTabela.id,
+        nome: profissionaisTabela.nome,
+        cpf: profissionaisTabela.cpf,
+        dataNascimento: profissionaisTabela.dataNascimento,
+        email: profissionaisTabela.email,
+        telefone: profissionaisTabela.telefone,
+        endereco: profissionaisTabela.endereco,
+        logradouro: profissionaisTabela.logradouro,
+        numero: profissionaisTabela.numero,
+        bairro: profissionaisTabela.bairro,
+        cidade: profissionaisTabela.cidade,
+        cep: profissionaisTabela.cep,
+        especialidade: profissionaisTabela.especialidade,
+        observacao: includeObservacao
+          ? profissionaisTabela.observacao
+          : sql<string | null>`null`.as("observacao"),
+        ativo: profissionaisTabela.ativo,
+      })
+      .from(profissionaisTabela)
+      .where(and(...where))
+      .orderBy(asc(profissionaisTabela.nome));
+
+  let rows: Awaited<ReturnType<typeof queryRows>>;
+  try {
+    rows = await queryRows(true);
+  } catch (error) {
+    if (!isMissingObservacaoColumnError(error)) throw error;
+    rows = await queryRows(false);
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -128,28 +145,38 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
     updatedAt: sql`now()`,
   };
 
-  return runDbTransaction(
-    async (tx) => {
-      if (id) {
-        const [updated] = await tx
-          .update(profissionaisTabela)
-          .set(payload)
-          .where(and(eq(profissionaisTabela.id, id), isNull(profissionaisTabela.deletedAt)))
-          .returning({ id: profissionaisTabela.id });
-        if (!updated) {
-          throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
+  const persist = (payloadToSave: Record<string, unknown>) =>
+    runDbTransaction(
+      async (tx) => {
+        if (id) {
+          const [updated] = await tx
+            .update(profissionaisTabela)
+            .set(payloadToSave as never)
+            .where(and(eq(profissionaisTabela.id, id), isNull(profissionaisTabela.deletedAt)))
+            .returning({ id: profissionaisTabela.id });
+          if (!updated) {
+            throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
+          }
+          return updated.id;
         }
-        return updated.id;
-      }
 
-      const [saved] = await tx
-        .insert(profissionaisTabela)
-        .values(payload)
-        .returning({ id: profissionaisTabela.id });
-      return saved.id;
-    },
-    { operation: "profissionais.salvarProfissional", mode: "required" }
-  );
+        const [saved] = await tx
+          .insert(profissionaisTabela)
+          .values(payloadToSave as never)
+          .returning({ id: profissionaisTabela.id });
+        return saved.id;
+      },
+      { operation: "profissionais.salvarProfissional", mode: "required" }
+    );
+
+  try {
+    return await persist(payload);
+  } catch (error) {
+    if (!isMissingObservacaoColumnError(error)) throw error;
+    const legacyPayload: Record<string, unknown> = { ...payload };
+    delete legacyPayload.observacao;
+    return persist(legacyPayload);
+  }
 }
 
 export async function obterProfissionalPorUsuario(userId: number) {
