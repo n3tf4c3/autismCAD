@@ -31,9 +31,9 @@ export default async function RelatoriosIndexPage(props: {
 
         {pacientesVinculados.length ? (
           <section className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutivas (diaria e periodo)</h2>
+            <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutivas e plano de ensino</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Escolha o paciente para acompanhar desempenho e feedback do profissional.
+              Escolha o paciente para acompanhar devolutivas e gerar o relatorio de plano de ensino.
             </p>
             <ul className="mt-4 space-y-2">
               {pacientesVinculados.map((paciente) => (
@@ -56,6 +56,13 @@ export default async function RelatoriosIndexPage(props: {
                       className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                     >
                       Devolutiva periodo
+                    </Link>
+                    <Link
+                      href={`/impressao/plano-ensino?pacienteId=${paciente.id}`}
+                      target="_blank"
+                      className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                    >
+                      Plano de ensino
                     </Link>
                   </div>
                 </li>
@@ -203,6 +210,13 @@ export default async function RelatoriosIndexPage(props: {
                         className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                       >
                         Relatório para impressao
+                      </Link>
+                      <Link
+                        href={`/impressao/plano-ensino?pacienteId=${row.id}`}
+                        target="_blank"
+                        className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                      >
+                        Relatório plano de ensino
                       </Link>
                     </div>
                   </td>

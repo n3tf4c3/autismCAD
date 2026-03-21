@@ -12,6 +12,15 @@ export const evolutivoQuerySchema = z
 
 export type EvolutivoQueryInput = z.infer<typeof evolutivoQuerySchema>;
 
+export const planoEnsinoQuerySchema = z
+  .object({
+    pacienteId: z.coerce.number().int().positive(),
+    from: z.string().trim().optional(),
+    to: z.string().trim().optional(),
+  });
+
+export type PlanoEnsinoQueryInput = z.infer<typeof planoEnsinoQuerySchema>;
+
 export const assiduidadeQuerySchema = z
   .object({
     pacienteNome: z.string().trim().optional(),

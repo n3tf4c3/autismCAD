@@ -2,7 +2,14 @@ import "server-only";
 
 import { and, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, evolucoes, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import {
+  atendimentos,
+  evolucoes,
+  pacientes,
+  prontuarioDocumentos,
+  terapeutas as profissionaisTabela,
+  users,
+} from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
@@ -10,9 +17,14 @@ import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/norma
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
+import {
+  sanitizePlanoEnsinoPayload,
+  type PlanoEnsinoBloco,
+} from "@/server/modules/prontuario/plano-ensino";
 import type {
   AssiduidadeQueryInput,
   EvolutivoQueryInput,
+  PlanoEnsinoQueryInput,
 } from "@/server/modules/relatorios/relatorios.schema";
 
 type EvolutivoAtendimentoInternal = {
@@ -103,6 +115,25 @@ async function resolveProfissionalFiltro(params: {
     return profissional.id;
   }
   return params.profissionalId ? Number(params.profissionalId) : null;
+}
+
+function overlapDateRange(params: {
+  targetFrom: string;
+  targetTo: string;
+  sourceFrom: string | null;
+  sourceTo: string | null;
+}): boolean {
+  const from = params.sourceFrom ?? params.sourceTo;
+  const to = params.sourceTo ?? params.sourceFrom;
+  if (!from || !to) return false;
+  return from <= params.targetTo && to >= params.targetFrom;
+}
+
+function toIsoDateKey(value: unknown): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
 }
 
 export async function consolidateEvolutivoReport(params: {
@@ -383,6 +414,149 @@ export async function consolidateEvolutivoReport(params: {
         resumo_repasse: a.resumo_repasse,
       })
     ),
+  };
+}
+
+type PlanoEnsinoBlocoReport = {
+  habilidade: string | null;
+  ensino: string | null;
+  objetivoEnsino: string | null;
+  recursos: string | null;
+  procedimento: string | null;
+  suportes: string | null;
+  objetivoEspecifico: string | null;
+  criterioSucesso: string | null;
+};
+
+function toPlanoBlocoReport(bloco: PlanoEnsinoBloco): PlanoEnsinoBlocoReport {
+  return {
+    habilidade: bloco.habilidade,
+    ensino: bloco.ensino,
+    objetivoEnsino: bloco.objetivoEnsino,
+    recursos: bloco.recursos,
+    procedimento: bloco.procedimento,
+    suportes: bloco.suportes,
+    objetivoEspecifico: bloco.objetivoEspecifico,
+    criterioSucesso: bloco.criterioSucesso,
+  };
+}
+
+export async function consolidatePlanoEnsinoReport(params: {
+  query: PlanoEnsinoQueryInput;
+  user: { id: number | string; role?: string | null };
+}) {
+  const pacienteId = Number(params.query.pacienteId);
+  if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
+
+  const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
+  const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
+  if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
+
+  await assertPacienteAccess(params.user, pacienteId);
+
+  const [paciente] = await db
+    .select({
+      id: pacientes.id,
+      nome: pacientes.nome,
+      cpf: pacientes.cpf,
+      dataNascimento: pacientes.dataNascimento,
+    })
+    .from(pacientes)
+    .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
+    .limit(1);
+
+  if (!paciente) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+
+  const rawRows = await db
+    .select({
+      id: prontuarioDocumentos.id,
+      version: prontuarioDocumentos.version,
+      status: prontuarioDocumentos.status,
+      titulo: prontuarioDocumentos.titulo,
+      payload: prontuarioDocumentos.payload,
+      createdAt: prontuarioDocumentos.createdAt,
+      updatedAt: prontuarioDocumentos.updatedAt,
+      autorNome: users.nome,
+      createdByRole: prontuarioDocumentos.createdByRole,
+    })
+    .from(prontuarioDocumentos)
+    .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
+    .where(
+      and(
+        eq(prontuarioDocumentos.pacienteId, pacienteId),
+        eq(prontuarioDocumentos.tipo, "PLANO_ENSINO"),
+        isNull(prontuarioDocumentos.deletedAt)
+      )
+    )
+    .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
+
+  const planos = rawRows
+    .map((row) => {
+      const payload = sanitizePlanoEnsinoPayload(row.payload);
+      const createdAtDate = toIsoDateKey(row.createdAt);
+      const dataInicio = payload.dataInicio ?? createdAtDate;
+      const dataFinal = payload.dataFinal ?? dataInicio;
+      return {
+        id: row.id,
+        version: row.version,
+        status: row.status,
+        titulo: row.titulo || "Plano de Ensino",
+        especialidade: payload.especialidade || null,
+        dataInicio,
+        dataFinal,
+        totalBlocos: payload.blocos.length,
+        blocos: payload.blocos.map(toPlanoBlocoReport),
+        autorNome: row.autorNome || row.createdByRole || "Usuario",
+        createdAt: row.createdAt ? String(row.createdAt) : null,
+        updatedAt: row.updatedAt ? String(row.updatedAt) : null,
+      };
+    })
+    .filter((plano) =>
+      overlapDateRange({
+        targetFrom: from,
+        targetTo: to,
+        sourceFrom: plano.dataInicio,
+        sourceTo: plano.dataFinal,
+      })
+    );
+
+  const statusMap = new Map<string, number>();
+  const especialidadeMap = new Map<string, number>();
+  let totalBlocos = 0;
+
+  planos.forEach((plano) => {
+    totalBlocos += plano.totalBlocos;
+    const status = String(plano.status || "-");
+    statusMap.set(status, (statusMap.get(status) || 0) + 1);
+    const especialidade = (plano.especialidade || "Nao informado").trim();
+    especialidadeMap.set(especialidade, (especialidadeMap.get(especialidade) || 0) + 1);
+  });
+
+  const resumo = {
+    totalPlanos: planos.length,
+    totalBlocos,
+    status: Array.from(statusMap.entries())
+      .map(([label, total]) => ({ label, total }))
+      .sort((a, b) => b.total - a.total),
+    especialidades: Array.from(especialidadeMap.entries())
+      .map(([label, total]) => ({ label, total }))
+      .sort((a, b) => b.total - a.total),
+    ultimoPlano:
+      planos.find((plano) => plano.status === "Finalizado") ??
+      planos[0] ??
+      null,
+  };
+
+  return {
+    paciente: {
+      id: paciente.id,
+      nome: paciente.nome,
+      cpf: paciente.cpf,
+      dataNascimento: paciente.dataNascimento,
+    },
+    periodo: { from, to },
+    resumo,
+    planos,
   };
 }
 

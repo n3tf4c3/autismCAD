@@ -4,10 +4,12 @@ import { requirePermission } from "@/server/auth/auth";
 import {
   assiduidadeQuerySchema,
   evolutivoQuerySchema,
+  planoEnsinoQuerySchema,
 } from "@/server/modules/relatorios/relatorios.schema";
 import {
   consolidateAssiduidadeReport,
   consolidateEvolutivoReport,
+  consolidatePlanoEnsinoReport,
 } from "@/server/modules/relatorios/relatorios.service";
 import { toAppError } from "@/server/shared/errors";
 
@@ -59,6 +61,21 @@ export async function gerarRelatorioAssiduidadeAction(
     const { user } = await requirePermission("relatorios_admin:view");
     const parsed = assiduidadeQuerySchema.parse(filters ?? {});
     const report = await consolidateAssiduidadeReport({ query: parsed, user });
+    return { ok: true, data: { report } };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function gerarRelatorioPlanoEnsinoAction(
+  filters: unknown
+): Promise<
+  ActionResult<{ report: Awaited<ReturnType<typeof consolidatePlanoEnsinoReport>> }>
+> {
+  try {
+    const { user } = await requirePermission("relatorios_clinicos:view");
+    const parsed = planoEnsinoQuerySchema.parse(filters ?? {});
+    const report = await consolidatePlanoEnsinoReport({ query: parsed, user });
     return { ok: true, data: { report } };
   } catch (error) {
     return actionErrorResult(error);
