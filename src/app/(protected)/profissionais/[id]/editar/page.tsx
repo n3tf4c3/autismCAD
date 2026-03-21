@@ -46,6 +46,7 @@ export default async function EditarProfissionalPage(props: PageProps) {
         cidade: row.cidade,
         email: row.email,
         especialidade: row.especialidade,
+        observacao: row.observacao,
       }}
     />
   );

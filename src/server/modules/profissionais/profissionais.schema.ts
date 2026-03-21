@@ -31,6 +31,7 @@ export const saveProfissionalSchema = z.object({
   cidade: z.string().trim().max(120).optional().nullable(),
   cep: z.string().trim().max(12).optional().nullable(),
   especialidade: z.string().trim().min(1).max(80),
+  observacao: z.string().trim().max(4000).optional().nullable(),
 });
 
 export type ProfissionaisQueryInput = z.infer<typeof profissionaisQuerySchema>;

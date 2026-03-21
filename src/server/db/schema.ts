@@ -189,6 +189,7 @@ export const terapeutas = pgTable(
     cidade: varchar("cidade", { length: 120 }),
     cep: varchar("cep", { length: 8 }),
     especialidade: varchar("especialidade", { length: 80 }).notNull(),
+    observacao: text("observacao"),
     ativo: boolean("ativo").notNull().default(true),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(() => users.id, {

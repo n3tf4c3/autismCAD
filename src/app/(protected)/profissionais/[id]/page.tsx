@@ -180,6 +180,13 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
             <p className="mt-2 text-sm font-semibold text-gray-800">-</p>
           )}
         </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 md:col-span-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Observacao</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-800">
+            {row.observacao || "-"}
+          </p>
+        </div>
       </div>
 
       <div className="border-t border-gray-100 px-6 py-5">

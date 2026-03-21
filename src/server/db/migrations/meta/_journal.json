@@ -134,6 +134,13 @@
       "when": 1773972000000,
       "tag": "0018_drop_legacy_terapeuta_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774080000000,
+      "tag": "0019_profissionais_observacao",
+      "breakpoints": true
     }
   ]
 }

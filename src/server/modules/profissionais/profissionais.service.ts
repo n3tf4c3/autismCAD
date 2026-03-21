@@ -73,6 +73,7 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
       cidade: profissionaisTabela.cidade,
       cep: profissionaisTabela.cep,
       especialidade: profissionaisTabela.especialidade,
+      observacao: profissionaisTabela.observacao,
       ativo: profissionaisTabela.ativo,
     })
     .from(profissionaisTabela)
@@ -93,6 +94,7 @@ export async function listarProfissionais(filters: ProfissionaisQueryInput) {
     cidade: row.cidade,
     cep: row.cep,
     especialidade: row.especialidade,
+    observacao: row.observacao,
     ativo: row.ativo,
   }));
 }
@@ -122,6 +124,7 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
     cidade: normalizeOptionalText(input.cidade),
     cep: normalizeCep(input.cep),
     especialidade: normalizeEspecialidade(input.especialidade),
+    observacao: normalizeOptionalText(input.observacao),
     updatedAt: sql`now()`,
   };
 

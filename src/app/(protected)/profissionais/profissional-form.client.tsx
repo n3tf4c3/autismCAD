@@ -22,6 +22,7 @@ type ProfissionalFormInitial = {
   cidade?: string | null;
   email?: string | null;
   especialidade?: string | null;
+  observacao?: string | null;
 };
 
 type ViaCepResp = {
@@ -46,6 +47,7 @@ const EMPTY_FORM_VALUES: ProfissionalFormValues = {
   cidade: "",
   cep: "",
   especialidade: "",
+  observacao: "",
 };
 
 function digitsOnly(value: string): string {
@@ -116,6 +118,7 @@ function buildFormValues(initial?: ProfissionalFormInitial): ProfissionalFormVal
     cidade: String(initial?.cidade ?? ""),
     cep: formatCep(String(initial?.cep ?? "")),
     especialidade: String(initial?.especialidade ?? ""),
+    observacao: String(initial?.observacao ?? ""),
   };
 }
 
@@ -154,6 +157,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
   const cidade = watch("cidade") ?? "";
   const email = watch("email") ?? "";
   const especialidade = watch("especialidade") ?? "";
+  const observacao = watch("observacao") ?? "";
 
   const enderecoResumo = useMemo(
     () =>
@@ -267,6 +271,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
           cidade: String(values.cidade ?? "").trim() || null,
           email: String(values.email ?? "").trim() || null,
           especialidade: values.especialidade.trim(),
+          observacao: String(values.observacao ?? "").trim() || null,
           endereco: null,
         };
 
@@ -501,6 +506,20 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
               {errors.especialidade ? <p className="text-xs text-red-600">{errors.especialidade.message}</p> : null}
             </div>
 
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="observacao">
+                Observacao
+              </label>
+              <textarea
+                id="observacao"
+                rows={4}
+                placeholder="Observacoes adicionais sobre o profissional"
+                className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                {...register("observacao")}
+              />
+              {errors.observacao ? <p className="text-xs text-red-600">{errors.observacao.message}</p> : null}
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4 md:col-span-2">
               {msg ? <p className="text-sm text-red-600">{msg}</p> : <span />}
               <div className="flex items-center gap-3">
@@ -565,6 +584,12 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
             <div className="flex flex-col border-b border-gray-100 pb-3">
               <span className="text-gray-500">Email</span>
               <strong className="text-[var(--texto)]">{String(email ?? "").trim() || "-"}</strong>
+            </div>
+            <div className="flex flex-col border-b border-gray-100 pb-3">
+              <span className="text-gray-500">Observacao</span>
+              <strong className="text-[var(--texto)] whitespace-pre-wrap break-words">
+                {String(observacao ?? "").trim() || "-"}
+              </strong>
             </div>
             <div className="rounded-lg border border-[#f1e1c7] bg-[#fff6e6] p-3 text-xs leading-relaxed text-[var(--marrom)]">
               Os dados sao salvos na base de profissionais e podem ser consultados ou editados pela equipe.
