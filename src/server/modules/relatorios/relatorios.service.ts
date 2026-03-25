@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
@@ -468,6 +468,111 @@ function toPlanoBlocoReport(bloco: PlanoEnsinoBloco): PlanoEnsinoBlocoReport {
   };
 }
 
+type PlanoEnsinoDesempenhoKey = "ajuda" | "nao_fez" | "independente";
+
+type PlanoEnsinoDesempenhoItemReport = {
+  evolucaoId: number;
+  data: string;
+  ensino: string | null;
+  desempenho: PlanoEnsinoDesempenhoKey | null;
+  ajuda: string | null;
+  tentativas: number;
+  acertos: number;
+};
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function pickStringValue(value: unknown): string | null {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text || null;
+}
+
+function normalizeToken(value: unknown): string {
+  const text = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return text.replace(/[\s-]+/g, "_");
+}
+
+function normalizePlanoDesempenho(value: unknown): PlanoEnsinoDesempenhoKey | null {
+  const token = normalizeToken(value);
+  if (!token) return null;
+  if (token === "ajuda") return "ajuda";
+  if (token === "independente" || token === "independencia") return "independente";
+  if (token === "nao_faz" || token === "nao_fez" || token === "naofaz" || token === "naofez") return "nao_fez";
+  return null;
+}
+
+function normalizeAjudaCode(value: unknown, desempenho: PlanoEnsinoDesempenhoKey | null): string | null {
+  const token = normalizeToken(value);
+  if (!token) {
+    if (desempenho === "independente") return "MOD";
+    return null;
+  }
+  if (token === "mod" || token === "modelo" || token === "model") return "MOD";
+  if (token === "sv" || token === "verbal") return "SV";
+  if (token === "svg" || token === "verbal_gestual" || token === "verbal_e_gestual") return "SVG";
+  if (token === "sg" || token === "gestual") return "SG";
+  if (token === "sfp" || token === "fisica_parcial" || token === "fisico_parcial") return "SFP";
+  if (token === "sft" || token === "fisica_total" || token === "fisico_total") return "SFT";
+  return token.toUpperCase();
+}
+
+function toNonNegativeInt(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.trunc(n));
+}
+
+function resolveEnsinoLabel(item: Record<string, unknown>): string | null {
+  return (
+    pickStringValue(item.ensino) ??
+    pickStringValue(item.opcao) ??
+    pickStringValue(item.meta) ??
+    pickStringValue(item.habilidade) ??
+    pickStringValue(item.skill)
+  );
+}
+
+function extractPlanoDesempenhoItems(args: {
+  evolucaoId: number;
+  data: string;
+  payload: Record<string, unknown>;
+}): PlanoEnsinoDesempenhoItemReport[] {
+  const baseItems =
+    (Array.isArray(args.payload.itensDesempenho) ? args.payload.itensDesempenho : null) ??
+    (Array.isArray(args.payload.itens) ? args.payload.itens : null) ??
+    [];
+
+  return baseItems.flatMap((entry) => {
+    if (!isObjectRecord(entry)) return [];
+    const desempenho = normalizePlanoDesempenho(entry.desempenho ?? entry.performance);
+    const ajudaRaw = entry.tipoAjuda ?? entry.tipo_ajuda ?? entry.ajuda;
+    const tentativas = toNonNegativeInt(entry.tentativas ?? entry.tentativa);
+    const acertos = toNonNegativeInt(entry.acertos);
+    const ensino = resolveEnsinoLabel(entry);
+    const ajuda = normalizeAjudaCode(ajudaRaw, desempenho);
+    const hasPayloadValue = desempenho || ajuda || ensino || tentativas > 0 || acertos > 0;
+    if (!hasPayloadValue) return [];
+    return [
+      {
+        evolucaoId: args.evolucaoId,
+        data: args.data,
+        ensino,
+        desempenho,
+        ajuda,
+        tentativas,
+        acertos,
+      },
+    ];
+  });
+}
+
 export async function consolidatePlanoEnsinoReport(params: {
   query: PlanoEnsinoQueryInput;
   user: { id: number | string; role?: string | null };
@@ -547,6 +652,32 @@ export async function consolidatePlanoEnsinoReport(params: {
       })
     );
 
+  const evolucoesPlanoRows = await db
+    .select({
+      id: evolucoes.id,
+      data: evolucoes.data,
+      payload: evolucoes.payload,
+    })
+    .from(evolucoes)
+    .where(
+      and(
+        eq(evolucoes.pacienteId, pacienteId),
+        isNull(evolucoes.deletedAt),
+        gte(evolucoes.data, from),
+        lte(evolucoes.data, to)
+      )
+    )
+    .orderBy(asc(evolucoes.data), asc(evolucoes.id));
+
+  const desempenhoEnsino = evolucoesPlanoRows.flatMap((row) => {
+    const payload = sanitizeEvolucaoPayload(row.payload).payload;
+    return extractPlanoDesempenhoItems({
+      evolucaoId: Number(row.id),
+      data: String(row.data).slice(0, 10),
+      payload,
+    });
+  });
+
   const statusMap = new Map<string, number>();
   const especialidadeMap = new Map<string, number>();
   let totalBlocos = 0;
@@ -584,6 +715,7 @@ export async function consolidatePlanoEnsinoReport(params: {
     periodo: { from, to },
     resumo,
     planos,
+    desempenhoEnsino,
   };
 }
 

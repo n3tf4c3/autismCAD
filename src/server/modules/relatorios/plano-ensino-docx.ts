@@ -18,49 +18,14 @@ export type PlanoEnsinoReport = {
     dataNascimento: string | null;
   };
   periodo: { from: string; to: string };
-  resumo: {
-    totalPlanos: number;
-    totalBlocos: number;
-    status: Array<{ label: string; total: number }>;
-    especialidades: Array<{ label: string; total: number }>;
-    ultimoPlano:
-      | {
-          id: number;
-          version: number;
-          status: string;
-          titulo: string;
-          especialidade: string | null;
-          dataInicio: string | null;
-          dataFinal: string | null;
-          totalBlocos: number;
-          autorNome: string;
-          createdAt: string | null;
-          updatedAt: string | null;
-        }
-      | null;
-  };
-  planos: Array<{
-    id: number;
-    version: number;
-    status: string;
-    titulo: string;
-    especialidade: string | null;
-    dataInicio: string | null;
-    dataFinal: string | null;
-    totalBlocos: number;
-    autorNome: string;
-    createdAt: string | null;
-    updatedAt: string | null;
-    blocos: Array<{
-      habilidade: string | null;
-      ensino: string | null;
-      objetivoEnsino: string | null;
-      recursos: string | null;
-      procedimento: string | null;
-      suportes: string | null;
-      objetivoEspecifico: string | null;
-      criterioSucesso: string | null;
-    }>;
+  desempenhoEnsino: Array<{
+    evolucaoId: number;
+    data: string;
+    ensino: string | null;
+    desempenho: "ajuda" | "nao_fez" | "independente" | null;
+    ajuda: string | null;
+    tentativas: number;
+    acertos: number;
   }>;
 };
 
@@ -82,6 +47,28 @@ function fmtNowPtBr(): string {
     year: "numeric",
     timeZone: env.APP_TIMEZONE,
   });
+}
+
+function fmtMonth(ym: string): string {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return ym;
+  const [y, m] = ym.split("-");
+  const d = new Date(Number(y), Number(m) - 1, 1);
+  return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: env.APP_TIMEZONE });
+}
+
+function fmtPeriodLabel(from?: string | null, to?: string | null): string {
+  if (!from || !to) return "periodo selecionado";
+  const fromMonth = from.slice(0, 7);
+  const toMonth = to.slice(0, 7);
+  if (fromMonth === toMonth) return fmtMonth(fromMonth);
+  return `${fmtMonth(fromMonth)} a ${fmtMonth(toMonth)}`;
+}
+
+function desempenhoLabel(value: "ajuda" | "nao_fez" | "independente" | null): string {
+  if (value === "nao_fez") return "Nao faz";
+  if (value === "ajuda") return "Ajuda";
+  if (value === "independente") return "Independente";
+  return "-";
 }
 
 function sectionTitle(text: string) {
@@ -109,7 +96,17 @@ function bulletParagraph(text: string) {
 }
 
 export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<Buffer> {
-  const latest = report.resumo.ultimoPlano;
+  const rows = report.desempenhoEnsino ?? [];
+  const counters = rows.reduce(
+    (acc, row) => {
+      if (row.desempenho === "nao_fez") acc.naoFez += 1;
+      if (row.desempenho === "ajuda") acc.ajuda += 1;
+      if (row.desempenho === "independente") acc.independente += 1;
+      return acc;
+    },
+    { naoFez: 0, ajuda: 0, independente: 0 }
+  );
+
   const children: Paragraph[] = [
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -135,74 +132,36 @@ export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<B
         }),
       ],
     }),
-    bodyParagraph(`Paciente: ${report.paciente.nome} (ID ${report.paciente.id})`),
-    bodyParagraph(`CPF: ${report.paciente.cpf || "-"}`),
-    bodyParagraph(`Periodo avaliado: ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`),
+    bodyParagraph(`Paciente: ${report.paciente.nome}`),
+    bodyParagraph(`Periodo avaliado: ${fmtPeriodLabel(report.periodo.from, report.periodo.to)}`),
+    bodyParagraph(`Recorte: ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`),
     bodyParagraph(`Emissao: ${fmtNowPtBr()}`),
-    sectionTitle("Resumo do periodo"),
-    bulletParagraph(`Planos encontrados: ${report.resumo.totalPlanos}`),
-    bulletParagraph(`Total de blocos: ${report.resumo.totalBlocos}`),
+    sectionTitle("Desempenho do ensino"),
+    bodyParagraph(
+      "Consolidado a partir das evolucoes do periodo com foco em desempenho, tipo de ajuda, tentativas e acertos."
+    ),
+    bodyParagraph(
+      "Legenda de ajuda: MOD - Modelo | SV - Suporte Verbal | SVG - Suporte Verbal Gestual | SG - Suporte Gestual | SFP - Suporte Fisico Parcial | SFT - Suporte Fisico Total"
+    ),
   ];
 
-  if (latest) {
-    children.push(
-      bulletParagraph(
-        `Ultimo plano: versao ${latest.version} (${latest.status}) - ${latest.especialidade || "Nao informado"}`
-      )
-    );
-  }
-
-  if (report.resumo.status.length) {
-    children.push(bodyParagraph("Distribuicao por status:"));
-    children.push(
-      ...report.resumo.status.map((item) => bulletParagraph(`${item.label}: ${item.total}`))
-    );
-  }
-
-  if (report.resumo.especialidades.length) {
-    children.push(bodyParagraph("Especialidades com mais registros:"));
-    children.push(
-      ...report.resumo.especialidades
-        .slice(0, 8)
-        .map((item) => bulletParagraph(`${item.label}: ${item.total}`))
-    );
-  }
-
-  children.push(sectionTitle("Planos de ensino consolidados"));
-
-  if (!report.planos.length) {
-    children.push(bodyParagraph("Nenhum plano de ensino encontrado para o periodo informado."));
+  if (!rows.length) {
+    children.push(bodyParagraph("Sem evolucoes com metas de desempenho no periodo selecionado."));
   } else {
-    report.planos.forEach((plano) => {
+    children.push(
+      bulletParagraph(`Registros consolidados: ${rows.length}`),
+      bulletParagraph(`Nao faz: ${counters.naoFez}`),
+      bulletParagraph(`Ajuda: ${counters.ajuda}`),
+      bulletParagraph(`Independencia: ${counters.independente}`),
+      sectionTitle("Registros detalhados")
+    );
+
+    rows.forEach((row) => {
       children.push(
         bodyParagraph(
-          `Plano #${plano.id} | Versao ${plano.version} | ${plano.status} | ${plano.especialidade || "Nao informado"}`
+          `${fmtDate(row.data)} | Ensino: ${row.ensino || "-"} | Desempenho: ${desempenhoLabel(row.desempenho)} | Ajuda: ${row.ajuda || "-"} | Tentativas: ${row.tentativas} | Acertos: ${row.acertos}`
         )
       );
-      children.push(
-        bulletParagraph(`Titulo: ${plano.titulo || "Plano de Ensino"}`),
-        bulletParagraph(`Autor: ${plano.autorNome || "Usuario"}`),
-        bulletParagraph(`Inicio: ${fmtDate(plano.dataInicio)} | Fim: ${fmtDate(plano.dataFinal)}`),
-        bulletParagraph(`Criado em: ${fmtDate(plano.createdAt)} | Atualizado em: ${fmtDate(plano.updatedAt)}`),
-        bulletParagraph(`Total de blocos: ${plano.totalBlocos}`)
-      );
-
-      if (!plano.blocos.length) {
-        children.push(bulletParagraph("Sem blocos preenchidos."));
-      } else {
-        plano.blocos.forEach((bloco, index) => {
-          children.push(
-            bulletParagraph(`Bloco ${index + 1}: ${bloco.habilidade || "Sem habilidade"}`),
-            bulletParagraph(`Ensino: ${bloco.ensino || "-"}`),
-            bulletParagraph(`Objetivo de ensino: ${bloco.objetivoEnsino || "-"}`),
-            bulletParagraph(`Procedimento: ${bloco.procedimento || "-"}`),
-            bulletParagraph(`Recursos: ${bloco.recursos || "-"}`),
-            bulletParagraph(`Suportes: ${bloco.suportes || "-"}`),
-            bulletParagraph(`Objetivo especifico: ${bloco.objetivoEspecifico || "-"}`),
-            bulletParagraph(`Criterio de sucesso: ${bloco.criterioSucesso || "-"}`)
-          );
-        });
-      }
     });
   }
 

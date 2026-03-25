@@ -8,6 +8,16 @@ import {
 } from "@/lib/relatorios/client-errors";
 
 type PeriodPreset = "1m" | "custom";
+type DesempenhoKey = "ajuda" | "nao_fez" | "independente";
+type EnsinoDesempenhoRow = {
+  evolucaoId: number;
+  data: string;
+  ensino: string | null;
+  desempenho: DesempenhoKey | null;
+  ajuda: string | null;
+  tentativas: number;
+  acertos: number;
+};
 
 type PlanoEnsinoReport = {
   paciente: {
@@ -61,6 +71,7 @@ type PlanoEnsinoReport = {
       criterioSucesso: string | null;
     }>;
   }>;
+  desempenhoEnsino: EnsinoDesempenhoRow[];
 };
 
 function ymdFromLocalDate(d: Date): string {
@@ -118,10 +129,208 @@ function fmtDate(value?: string | null): string {
   return d.toLocaleDateString("pt-BR");
 }
 
+function fmtMonth(ym: string): string {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return ym;
+  const [y, m] = ym.split("-");
+  const d = new Date(Number(y), Number(m) - 1, 1);
+  return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
+function fmtPeriodLabel(from?: string | null, to?: string | null): string {
+  if (!from || !to) return "periodo selecionado";
+  const fromMonth = from.slice(0, 7);
+  const toMonth = to.slice(0, 7);
+  if (fromMonth === toMonth) return fmtMonth(fromMonth);
+  return `${fmtMonth(fromMonth)} a ${fmtMonth(toMonth)}`;
+}
+
+function fmtNowPtBr(): string {
+  return new Date().toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 function readApiError(json: unknown): string | null {
   if (!json || typeof json !== "object") return null;
   const record = json as Record<string, unknown>;
   return typeof record.error === "string" ? record.error : null;
+}
+
+const AJUDA_LEGENDA = [
+  { code: "MOD", label: "Modelo" },
+  { code: "SV", label: "Suporte Verbal" },
+  { code: "SVG", label: "Suporte Verbal Gestual" },
+  { code: "SG", label: "Suporte Gestual" },
+  { code: "SFP", label: "Suporte Fisico Parcial" },
+  { code: "SFT", label: "Suporte Fisico Total" },
+] as const;
+
+function fmtDateCompact(value?: string | null): string {
+  if (!value) return "-";
+  const dateOnly = String(value).slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOnly);
+  if (!match) return fmtDate(value);
+  const month = Number(match[2]);
+  const labels = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const monthLabel = labels[month - 1] ?? match[2];
+  return `${match[3]}/${monthLabel}`;
+}
+
+function desempenhoLabel(value: DesempenhoKey | null): string {
+  if (value === "nao_fez") return "Nao faz";
+  if (value === "ajuda") return "Ajuda";
+  if (value === "independente") return "Independente";
+  return "-";
+}
+
+function AcertividadeChart(props: { rows: EnsinoDesempenhoRow[] }) {
+  if (!props.rows.length) {
+    return <p className="text-sm text-slate-700">Sem dados de desempenho para gerar grafico de acertividade.</p>;
+  }
+
+  const rows = props.rows.slice(-10);
+  const maxValue = Math.max(...rows.map((row) => row.tentativas + row.acertos), 1);
+  const axisMax = Math.max(10, Math.ceil(maxValue / 2) * 2);
+  const tickStep = axisMax <= 16 ? 2 : axisMax <= 30 ? 5 : 10;
+  const ticks: number[] = [];
+  for (let value = 0; value <= axisMax; value += tickStep) {
+    ticks.push(value);
+  }
+
+  const leftPad = 36;
+  const rightPad = 28;
+  const topPad = 18;
+  const bottomPad = 30;
+  const rowGap = 24;
+  const barHeight = 10;
+  const chartWidth = 740;
+  const chartHeight = topPad + rowGap * rows.length + bottomPad;
+  const plotWidth = chartWidth - leftPad - rightPad;
+  const xFor = (value: number) => leftPad + (Math.max(0, value) / axisMax) * plotWidth;
+
+  return (
+    <div className="avoid-break rounded-xl border border-[#e7ddd2] bg-[#fcfaf7] p-3">
+      <h3 className="text-center text-lg font-semibold text-[#4d392a]">Desempenho de Acertividade</h3>
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className="mt-3 block w-full"
+        preserveAspectRatio="xMinYMin meet"
+        role="img"
+        aria-label="Grafico horizontal de tentativas e acertos"
+      >
+        <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="10" fill="#fcfaf7" />
+
+        {ticks.map((tick) => {
+          const x = xFor(tick);
+          return (
+            <g key={`tick-${tick}`}>
+              <line x1={x} y1={topPad - 8} x2={x} y2={chartHeight - bottomPad + 4} stroke="#ddd1c4" strokeWidth="1" />
+              <text x={x} y={chartHeight - 6} textAnchor="middle" fontSize="11" fill="#7c6a58">
+                {tick}
+              </text>
+            </g>
+          );
+        })}
+
+        {rows.map((row, index) => {
+          const y = topPad + index * rowGap;
+          const seq = rows.length - index;
+          const tentWidth = Math.max(0, xFor(row.tentativas) - leftPad);
+          const acertosX = xFor(row.tentativas);
+          const acertosWidth = Math.max(0, xFor(row.tentativas + row.acertos) - acertosX);
+          return (
+            <g key={`${row.evolucaoId}-${row.data}-${index}`}>
+              <text x={leftPad - 10} y={y + barHeight - 1} textAnchor="end" fontSize="12" fill="#4d392a" fontWeight="600">
+                {seq}
+              </text>
+              <rect x={leftPad} y={y} width={tentWidth} height={barHeight} fill="#f2bd28" rx="2" />
+              <rect x={acertosX} y={y} width={acertosWidth} height={barHeight} fill="#1376bf" rx="2" />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="mt-3 flex flex-wrap justify-center gap-4 text-xs text-slate-700">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm bg-[#f2bd28]" />
+          Tentativas
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm bg-[#1376bf]" />
+          Acertos
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function NivelIndependenciaChart(props: { naoFez: number; ajuda: number; independente: number }) {
+  const values = [
+    { key: "nao-faz", label: "Nao faz", value: props.naoFez },
+    { key: "ajuda", label: "Ajuda", value: props.ajuda },
+    { key: "independente", label: "Independencia", value: props.independente },
+  ];
+  const maxValue = Math.max(...values.map((item) => item.value), 1);
+  const axisMax = Math.max(4, maxValue + 1);
+  const ticks = [0, 1, 2, 3, 4].filter((tick) => tick <= axisMax);
+  if (ticks[ticks.length - 1] !== axisMax) ticks.push(axisMax);
+
+  const chartWidth = 620;
+  const chartHeight = 320;
+  const leftPad = 36;
+  const rightPad = 16;
+  const topPad = 24;
+  const bottomPad = 52;
+  const plotHeight = chartHeight - topPad - bottomPad;
+  const slotWidth = (chartWidth - leftPad - rightPad) / values.length;
+  const barWidth = 70;
+  const yFor = (value: number) => topPad + plotHeight - (Math.max(0, value) / axisMax) * plotHeight;
+
+  return (
+    <div className="avoid-break rounded-xl border border-[#e7ddd2] bg-[#fcfaf7] p-3">
+      <h3 className="text-center text-lg font-semibold text-[#4d392a]">Nivel de Independencia</h3>
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className="mt-4 block w-full"
+        preserveAspectRatio="xMidYMin meet"
+        role="img"
+        aria-label="Grafico de colunas do nivel de independencia"
+      >
+        <rect x="0" y="0" width={chartWidth} height={chartHeight} rx="10" fill="#fcfaf7" />
+
+        {ticks.map((tick) => {
+          const y = yFor(tick);
+          return (
+            <g key={`niv-tick-${tick}`}>
+              <line x1={leftPad} y1={y} x2={chartWidth - rightPad} y2={y} stroke="#ddd1c4" strokeWidth="1" />
+              <text x={leftPad - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#7c6a58">
+                {tick}
+              </text>
+            </g>
+          );
+        })}
+
+        {values.map((item, index) => {
+          const centerX = leftPad + slotWidth * index + slotWidth / 2;
+          const barX = centerX - barWidth / 2;
+          const barY = yFor(item.value);
+          const barHeight = topPad + plotHeight - barY;
+          return (
+            <g key={item.key}>
+              <text x={centerX} y={barY - 8} textAnchor="middle" fontSize="18" fontWeight="700" fill="#4d392a">
+                {item.value}
+              </text>
+              <rect x={barX} y={barY} width={barWidth} height={barHeight} rx="2" fill="#1f6b89" />
+              <text x={centerX} y={chartHeight - 14} textAnchor="middle" fontSize="12.5" fontWeight="600" fill="#6b5a49">
+                {item.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }
 
 function SummaryCard(props: { label: string; value: string | number; helper?: string }) {
@@ -164,6 +373,20 @@ export function PlanoEnsinoImpressaoClient(props: {
     search.set("to", selectedRange.to);
     return search.toString();
   }, [props.pacienteId, selectedRange]);
+
+  const desempenhoRows = useMemo(() => report?.desempenhoEnsino ?? [], [report]);
+
+  const nivelIndependencia = useMemo(() => {
+    return desempenhoRows.reduce(
+      (acc, row) => {
+        if (row.desempenho === "nao_fez") acc.naoFez += 1;
+        if (row.desempenho === "ajuda") acc.ajuda += 1;
+        if (row.desempenho === "independente") acc.independente += 1;
+        return acc;
+      },
+      { naoFez: 0, ajuda: 0, independente: 0 }
+    );
+  }, [desempenhoRows]);
 
   async function consultar() {
     if (!selectedRange) {
@@ -363,118 +586,74 @@ export function PlanoEnsinoImpressaoClient(props: {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1.6fr_1fr_1fr]">
-              <SummaryCard label="Paciente" value={report.paciente.nome} helper={`ID ${report.paciente.id}`} />
+              <SummaryCard label="Paciente" value={report.paciente.nome} />
               <SummaryCard
                 label="Periodo avaliado"
-                value={`${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`}
+                value={fmtPeriodLabel(report.periodo.from, report.periodo.to)}
+                helper={`${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`}
               />
-              <SummaryCard label="CPF" value={report.paciente.cpf || "-"} />
+              <SummaryCard label="Emissao" value={fmtNowPtBr()} />
             </div>
           </header>
 
           <div className="space-y-4 px-6 pb-5 sm:px-8">
             <section className="rounded-2xl border border-[#ece2d8] bg-[#fcfaf7] p-4">
-              <h2 className="text-base font-semibold uppercase tracking-[0.08em] text-[#5e4632]">Resumo do periodo</h2>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <SummaryCard label="Planos" value={report.resumo.totalPlanos} />
-                <SummaryCard label="Blocos" value={report.resumo.totalBlocos} />
-                <SummaryCard
-                  label="Ultima versao"
-                  value={report.resumo.ultimoPlano ? report.resumo.ultimoPlano.version : "-"}
-                  helper={report.resumo.ultimoPlano ? report.resumo.ultimoPlano.status : "Sem plano finalizado"}
-                />
-                <SummaryCard
-                  label="Especialidade"
-                  value={report.resumo.ultimoPlano?.especialidade || "-"}
-                  helper="Plano mais recente"
-                />
+              <h2 className="text-base font-semibold uppercase tracking-[0.08em] text-[#5e4632]">Desempenho do ensino</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Consolidado a partir das evolucoes do periodo com foco em desempenho, tipo de ajuda, tentativas e acertos.
+              </p>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {AJUDA_LEGENDA.map((item) => (
+                  <div key={item.code} className="rounded-lg border border-[#e7ddd2] bg-white px-3 py-2 text-sm text-[#4d392a]">
+                    <span className="font-semibold">{item.code}</span> - {item.label}
+                  </div>
+                ))}
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-xl border border-[#e7ddd2] bg-white p-3">
-                  <p className="text-sm font-semibold text-[#4d392a]">Status</p>
-                  <div className="mt-2 space-y-1 text-sm text-slate-700">
-                    {report.resumo.status.length ? (
-                      report.resumo.status.map((item) => (
-                        <p key={item.label}>
-                          {item.label}: <span className="font-semibold">{item.total}</span>
-                        </p>
-                      ))
-                    ) : (
-                      <p>Sem registros.</p>
-                    )}
+              {desempenhoRows.length ? (
+                <div className="mt-4 space-y-4">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse text-sm text-slate-700">
+                      <thead>
+                        <tr className="bg-[#fbf6f0] text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-[#907b68]">
+                          <th className="px-3 py-2">Data</th>
+                          <th className="px-3 py-2">Ensino</th>
+                          <th className="px-3 py-2">Desempenho</th>
+                          <th className="px-3 py-2">Ajuda</th>
+                          <th className="px-3 py-2">Tentativas</th>
+                          <th className="px-3 py-2">Acertos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ece2d8] bg-white">
+                        {desempenhoRows.map((row, index) => (
+                          <tr key={`${row.evolucaoId}-${row.data}-${index}`}>
+                            <td className="px-3 py-2">{fmtDateCompact(row.data)}</td>
+                            <td className="px-3 py-2">{row.ensino || "-"}</td>
+                            <td className="px-3 py-2">{desempenhoLabel(row.desempenho)}</td>
+                            <td className="px-3 py-2">{row.ajuda || "-"}</td>
+                            <td className="px-3 py-2">{row.tentativas}</td>
+                            <td className="px-3 py-2">{row.acertos}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    <AcertividadeChart rows={desempenhoRows} />
+                    <NivelIndependenciaChart
+                      naoFez={nivelIndependencia.naoFez}
+                      ajuda={nivelIndependencia.ajuda}
+                      independente={nivelIndependencia.independente}
+                    />
                   </div>
                 </div>
-
-                <div className="rounded-xl border border-[#e7ddd2] bg-white p-3">
-                  <p className="text-sm font-semibold text-[#4d392a]">Especialidades</p>
-                  <div className="mt-2 space-y-1 text-sm text-slate-700">
-                    {report.resumo.especialidades.length ? (
-                      report.resumo.especialidades.slice(0, 10).map((item) => (
-                        <p key={item.label}>
-                          {item.label}: <span className="font-semibold">{item.total}</span>
-                        </p>
-                      ))
-                    ) : (
-                      <p>Sem registros.</p>
-                    )}
-                  </div>
+              ) : (
+                <div className="mt-3 rounded-xl border border-[#e7ddd2] bg-white p-4 text-sm text-slate-700">
+                  Sem evolucoes com metas de desempenho no periodo selecionado.
                 </div>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h2 className="text-base font-semibold uppercase tracking-[0.08em] text-[#5e4632]">Planos encontrados</h2>
-
-              {!report.planos.length ? (
-                <div className="rounded-xl border border-[#e7ddd2] bg-white p-4 text-sm text-slate-700">
-                  Nenhum plano de ensino encontrado para esse periodo.
-                </div>
-              ) : null}
-
-              {report.planos.map((plano) => (
-                <article key={plano.id} className="avoid-break rounded-xl border border-[#ddd1c4] bg-white p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ece2d8] pb-2">
-                    <p className="text-sm font-semibold text-[#4d392a]">
-                      Plano #{plano.id} | Versao {plano.version}
-                    </p>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9c8a78]">{plano.status}</p>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <SummaryCard label="Especialidade" value={plano.especialidade || "-"} />
-                    <SummaryCard label="Inicio" value={fmtDate(plano.dataInicio)} />
-                    <SummaryCard label="Fim" value={fmtDate(plano.dataFinal)} />
-                    <SummaryCard label="Blocos" value={plano.totalBlocos} />
-                  </div>
-
-                  <p className="mt-2 text-xs text-slate-600">
-                    Autor: {plano.autorNome} | Criado: {fmtDate(plano.createdAt)} | Atualizado: {fmtDate(plano.updatedAt)}
-                  </p>
-
-                  <div className="mt-3 space-y-2">
-                    {plano.blocos.length ? (
-                      plano.blocos.map((bloco, index) => (
-                        <div key={`${plano.id}-${index + 1}`} className="rounded-lg border border-[#ece2d8] bg-[#fcfaf7] p-3">
-                          <p className="text-sm font-semibold text-[#4d392a]">Bloco {index + 1}</p>
-                          <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-slate-700 lg:grid-cols-2">
-                            <p><span className="font-semibold">Habilidade:</span> {bloco.habilidade || "-"}</p>
-                            <p><span className="font-semibold">Ensino:</span> {bloco.ensino || "-"}</p>
-                            <p className="lg:col-span-2"><span className="font-semibold">Objetivo de ensino:</span> {bloco.objetivoEnsino || "-"}</p>
-                            <p className="lg:col-span-2"><span className="font-semibold">Procedimento:</span> {bloco.procedimento || "-"}</p>
-                            <p className="lg:col-span-2"><span className="font-semibold">Recursos:</span> {bloco.recursos || "-"}</p>
-                            <p className="lg:col-span-2"><span className="font-semibold">Suportes:</span> {bloco.suportes || "-"}</p>
-                            <p className="lg:col-span-2"><span className="font-semibold">Objetivo especifico:</span> {bloco.objetivoEspecifico || "-"}</p>
-                            <p className="lg:col-span-2"><span className="font-semibold">Criterio de sucesso:</span> {bloco.criterioSucesso || "-"}</p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-slate-700">Sem blocos cadastrados.</p>
-                    )}
-                  </div>
-                </article>
-              ))}
+              )}
             </section>
           </div>
         </article>
@@ -492,6 +671,11 @@ export function PlanoEnsinoImpressaoClient(props: {
         }
 
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
           html,
           body {
             background: #ffffff !important;

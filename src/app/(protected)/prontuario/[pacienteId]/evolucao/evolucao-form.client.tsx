@@ -22,7 +22,14 @@ type AtendimentoOption = {
 type ProfissionalOption = { id: number; nome: string };
 
 type DesempenhoChoice = "" | "ajuda" | "nao_fez" | "independente";
-type AjudaChoice = "" | "verbal" | "gestual" | "verbal_gestual" | "fisica_parcial" | "fisica_total";
+type AjudaChoice =
+  | ""
+  | "modelo"
+  | "verbal"
+  | "verbal_gestual"
+  | "gestual"
+  | "fisica_parcial"
+  | "fisica_total";
 
 type MetaRow = {
   id: string;
@@ -96,11 +103,12 @@ const DESEMPENHO_OPTIONS: Array<{ value: DesempenhoChoice; label: string }> = [
 
 const AJUDA_OPTIONS: Array<{ value: AjudaChoice; label: string }> = [
   { value: "", label: "Selecione" },
-  { value: "verbal", label: "Verbal" },
-  { value: "gestual", label: "Gestual" },
-  { value: "verbal_gestual", label: "Verbal e Gestual" },
-  { value: "fisica_parcial", label: "Fisica Parcial" },
-  { value: "fisica_total", label: "Fisica Total" },
+  { value: "modelo", label: "MOD - Modelo" },
+  { value: "verbal", label: "SV - Suporte Verbal" },
+  { value: "verbal_gestual", label: "SVG - Suporte Verbal Gestual" },
+  { value: "gestual", label: "SG - Suporte Gestual" },
+  { value: "fisica_parcial", label: "SFP - Suporte Fisico Parcial" },
+  { value: "fisica_total", label: "SFT - Suporte Fisico Total" },
 ];
 
 const BEHAVIOR_OPTIONS: Record<BehaviorTipo, Array<{ value: string; label: string }>> = {
@@ -136,6 +144,19 @@ function behaviorLabel(tipo: BehaviorTipo, value: string): string {
   return opt?.label ?? value;
 }
 
+function normalizeAjudaChoice(value: unknown): AjudaChoice {
+  if (typeof value !== "string") return "";
+  const token = value.toLowerCase().trim().replace(/\s+/g, "_");
+  if (!token) return "";
+  if (token === "mod" || token === "modelo" || token === "model") return "modelo";
+  if (token === "sv" || token === "verbal") return "verbal";
+  if (token === "svg" || token === "verbal_gestual" || token === "verbal_e_gestual") return "verbal_gestual";
+  if (token === "sg" || token === "gestual") return "gestual";
+  if (token === "sfp" || token === "fisica_parcial" || token === "fisico_parcial") return "fisica_parcial";
+  if (token === "sft" || token === "fisica_total" || token === "fisico_total") return "fisica_total";
+  return "";
+}
+
 function normalizeMetaFromAny(item: unknown, stableId?: string): MetaRow {
   const obj = (item ?? {}) as Record<string, unknown>;
   const toChoice = <T extends string>(value: unknown, allowed: readonly T[]): T => {
@@ -150,14 +171,7 @@ function normalizeMetaFromAny(item: unknown, stableId?: string): MetaRow {
     habilidade: pickString(obj.habilidade ?? obj.skill),
     opcao: pickString(obj.opcao ?? obj.meta),
     desempenho: toChoice(obj.desempenho ?? obj.performance, ["", "ajuda", "nao_fez", "independente"]),
-    tipoAjuda: toChoice(obj.tipoAjuda ?? obj.tipo_ajuda ?? obj.ajuda, [
-      "",
-      "verbal",
-      "gestual",
-      "verbal_gestual",
-      "fisica_parcial",
-      "fisica_total",
-    ]),
+    tipoAjuda: normalizeAjudaChoice(obj.tipoAjuda ?? obj.tipo_ajuda ?? obj.ajuda),
     tentativas: tent == null ? "" : String(tent),
     acertos: obj.acertos == null ? "" : String(obj.acertos),
     reforcador: pickString(obj.reforcador ?? obj.reforco),
@@ -674,9 +688,9 @@ export function EvolucaoFormClient(props: {
                 reforcador.
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> Verbal, Gestual, Verbal e Gestual,
-                Fisica Parcial, Fisica Total. <span className="font-semibold text-[var(--marrom)]">Tentativas:</span>{" "}
-                numero de apresentacoes.
+                <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> MOD - Modelo, SV - Suporte Verbal,
+                SVG - Suporte Verbal Gestual, SG - Suporte Gestual, SFP - Suporte Fisico Parcial, SFT - Suporte Fisico Total.{" "}
+                <span className="font-semibold text-[var(--marrom)]">Tentativas:</span> numero de apresentacoes.
               </p>
             </div>
             <button
