@@ -124,7 +124,6 @@ export default async function DashboardPage() {
     const cancelado = String(a.presenca ?? "").toLowerCase() === "ausente";
     return !a.realizado && !cancelado;
   });
-  const pendentesHoje = pendentesAll.slice(0, 6);
   const monthItems = monthAtendimentos.map((a) => ({
     id: Number(a.id),
     data: String(a.data).slice(0, 10),
@@ -194,7 +193,7 @@ export default async function DashboardPage() {
             <span className="text-xs text-gray-600">{pendentesAll.length ? `${pendentesAll.length} restante(s)` : ""}</span>
           </div>
           <ul className="dashboard-pendencias-list max-h-[296px] space-y-2 overflow-y-auto pr-1.5">
-            {pendentesHoje.map((a) => {
+            {pendentesAll.map((a) => {
               const ini = String(a.horaInicio ?? "").slice(0, 5);
               const fim = String(a.horaFim ?? "").slice(0, 5);
               const faixa = ini && fim ? `${ini} - ${fim}` : "";
@@ -214,9 +213,6 @@ export default async function DashboardPage() {
               );
             })}
             {!pendentesAll.length ? <li className="text-xs text-gray-600">Nenhuma consulta pendente hoje.</li> : null}
-            {pendentesAll.length > pendentesHoje.length ? (
-              <li className="text-xs text-gray-600">+{pendentesAll.length - pendentesHoje.length} consulta(s)</li>
-            ) : null}
           </ul>
         </div>
 
