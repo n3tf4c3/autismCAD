@@ -222,7 +222,7 @@ export const atendimentos = pgTable(
       .references(() => pacientes.id, { onDelete: "cascade" }),
     profissionalId: bigint("profissional_id", { mode: "number" }).references(
       () => terapeutas.id,
-      { onDelete: "set null" }
+      { onDelete: "restrict" }
     ),
     data: date("data").notNull(),
     horaInicio: time("hora_inicio").notNull(),
