@@ -144,6 +144,18 @@ export const authOptions: NextAuthOptions = {
         token.sub = user.id;
         token.role = user.role;
       }
+
+      const userId = Number(token.sub);
+      if (Number.isFinite(userId) && userId > 0) {
+        const [freshUser] = await db
+          .select({ role: users.role })
+          .from(users)
+          .where(and(eq(users.id, userId), eq(users.ativo, true), isNull(users.deletedAt)))
+          .limit(1);
+        if (freshUser?.role) {
+          token.role = freshUser.role;
+        }
+      }
       return token;
     },
     async session({ session, token }) {

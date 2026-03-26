@@ -42,7 +42,6 @@ export const saveAtendimentoSchema = z
     periodoInicio: z.string().trim().optional().nullable(),
     periodoFim: z.string().trim().optional().nullable(),
     presenca: z.string().trim().optional(),
-    realizado: z.union([z.boolean(), z.number(), z.string()]).optional(),
     motivo: z.string().trim().optional().nullable(),
     observacoes: z.string().trim().optional().nullable(),
   })

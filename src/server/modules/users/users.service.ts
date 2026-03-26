@@ -249,7 +249,14 @@ export async function updateUser(id: number, input: UpdateUserInput) {
       if (!updated) {
         throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
       }
-      if (isResponsavelRole(roleName) && pacienteIdsVinculados.length) {
+      if (isResponsavelRole(roleName)) {
+        if (!pacienteIdsVinculados.length) {
+          throw new AppError(
+            "Perfil responsavel exige paciente vinculado",
+            400,
+            "INVALID_INPUT"
+          );
+        }
         await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
         await tx
           .insert(userPacienteVinculos)

@@ -214,9 +214,10 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
   }
 
   const convenioParsed = normalizeOptionalText(input.convenio) ?? "Particular";
-  const convenio = conveniosPermitidos.has(convenioParsed)
-    ? convenioParsed
-    : "Particular";
+  if (!conveniosPermitidos.has(convenioParsed)) {
+    throw new AppError("Convenio invalido", 400, "INVALID_INPUT");
+  }
+  const convenio = convenioParsed;
 
   const ativo =
     String(input.ativo ?? "1") === "0" || input.ativo === false ? false : true;
