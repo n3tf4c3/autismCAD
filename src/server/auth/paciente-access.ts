@@ -43,9 +43,7 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
   if (isProfissional) {
     const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) {
-      if (!isResponsavel) {
-        throw new AppError("Profissional sem vinculo", 403, "FORBIDDEN");
-      }
+      throw new AppError("Profissional sem vinculo", 403, "FORBIDDEN");
     } else {
       const vinculado = await profissionalAtendePaciente(pacienteId, profissional.id);
       if (vinculado) {
@@ -55,9 +53,7 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
           profissionalId: profissional.id,
         };
       }
-      if (!isResponsavel) {
-        throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
-      }
+      throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
     }
   }
 
