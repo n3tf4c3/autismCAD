@@ -49,9 +49,7 @@ export async function requireAdminGeral() {
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
   }
-  const isAdminGeral = access.roles.some(
-    (role) => (canonicalRoleName(role) ?? role) === "ADMIN_GERAL"
-  );
+  const isAdminGeral = (access.canonicalRole ?? access.role) === "ADMIN_GERAL";
   if (!isAdminGeral) {
     throw new AppError("Acesso restrito ao admin-geral", 403, "FORBIDDEN");
   }

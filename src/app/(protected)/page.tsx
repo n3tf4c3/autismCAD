@@ -39,8 +39,9 @@ export default async function DashboardPage() {
     redirect("/relatorios");
   }
   assertHasPermission(access, ["consultas:view", "atendimentos:view"]);
-  const isAdmin = access.roles.some((role) => ADMIN_ROLES.has(canonicalRoleName(role) ?? role));
-  const isProfissional = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "PROFISSIONAL");
+  const accessRole = access.canonicalRole ?? access.role;
+  const isAdmin = accessRole ? ADMIN_ROLES.has(accessRole) : false;
+  const isProfissional = accessRole === "PROFISSIONAL";
 
   let profissionalId: number | null = null;
   if (!isAdmin && isProfissional) {

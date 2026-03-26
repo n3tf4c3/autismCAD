@@ -1,6 +1,6 @@
 import "server-only";
 
-import { canonicalRoleName, ADMIN_ROLES } from "@/server/auth/permissions";
+import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { loadUserAccess } from "@/server/auth/access";
 import { AppError } from "@/server/shared/errors";
 import {
@@ -28,7 +28,8 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
   }
 
-  const isAdmin = access.roles.some((role) => ADMIN_ROLES.has(canonicalRoleName(role) ?? role));
+  const roleCanon = access.canonicalRole ?? access.role;
+  const isAdmin = roleCanon ? ADMIN_ROLES.has(roleCanon) : false;
   if (isAdmin) {
     return {
       userId,
@@ -37,11 +38,8 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
     };
   }
 
-  const isResponsavel = access.roles.some(
-    (role) => (canonicalRoleName(role) ?? role) === "RESPONSAVEL"
-  );
-
-  const isProfissional = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "PROFISSIONAL");
+  const isResponsavel = roleCanon === "RESPONSAVEL";
+  const isProfissional = roleCanon === "PROFISSIONAL";
   if (isProfissional) {
     const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) {

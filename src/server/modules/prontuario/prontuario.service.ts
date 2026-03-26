@@ -24,7 +24,10 @@ import {
   SalvarDocumentoInput,
 } from "@/server/modules/prontuario/prontuario.schema";
 import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
-import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
+import {
+  obterProfissionalPorUsuario,
+  profissionalAtendePaciente,
+} from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 
 function toIsoDate(value: string): string {
@@ -66,6 +69,36 @@ async function obterProfissionalIdDoAtendimento(
     throw new AppError("Atendimento nao pertence ao paciente", 400, "INVALID_INPUT");
   }
   return row.profissionalId == null ? null : Number(row.profissionalId);
+}
+
+async function assertProfissionalPacienteValido(
+  pacienteId: number,
+  profissionalId: number,
+  atendimentoId?: number | null
+) {
+  if (!Number.isFinite(profissionalId) || profissionalId <= 0) {
+    throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
+  }
+
+  if (atendimentoId) {
+    const profissionalFromAtendimento = await obterProfissionalIdDoAtendimento(
+      pacienteId,
+      atendimentoId
+    );
+    if (!profissionalFromAtendimento || Number(profissionalFromAtendimento) !== Number(profissionalId)) {
+      throw new AppError(
+        "Profissional nao corresponde ao atendimento informado",
+        400,
+        "INVALID_INPUT"
+      );
+    }
+    return;
+  }
+
+  const vinculado = await profissionalAtendePaciente(pacienteId, profissionalId);
+  if (!vinculado) {
+    throw new AppError("Profissional sem vinculo com o paciente", 403, "FORBIDDEN");
+  }
 }
 
 async function marcarRepasseConcluido(executor: typeof db, atendimentoId: number) {
@@ -241,6 +274,7 @@ export async function criarEvolucao(
   if (!profissionalId) {
     throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
+  await assertProfissionalPacienteValido(pacienteId, profissionalId, atendimentoId);
 
   try {
     const saved = await runDbTransaction(
@@ -338,6 +372,7 @@ export async function atualizarEvolucao(
   if (!profissionalId) {
     throw new AppError("Profissional obrigatorio para evolucao", 400, "INVALID_INPUT");
   }
+  await assertProfissionalPacienteValido(Number(current.pacienteId), profissionalId, atendimentoId);
 
   const atendimentoAnteriorId = current.atendimentoId == null ? null : Number(current.atendimentoId);
   const atendimentoNovoId = atendimentoId == null ? null : Number(atendimentoId);

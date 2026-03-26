@@ -11,8 +11,8 @@ import { AppError } from "@/server/shared/errors";
 
 export type UserAccess = {
   exists: boolean;
-  roles: string[];
-  primaryRole: string | null;
+  role: string | null;
+  canonicalRole: string | null;
   permissions: Set<string>;
   user: {
     id: number;
@@ -25,8 +25,8 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
   if (!Number.isFinite(userId) || userId <= 0) {
     return {
       exists: false,
-      roles: [],
-      primaryRole: null,
+      role: null,
+      canonicalRole: null,
       permissions: new Set<string>(),
       user: null,
     };
@@ -46,15 +46,14 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
   if (!user) {
     return {
       exists: false,
-      roles: [],
-      primaryRole: null,
+      role: null,
+      canonicalRole: null,
       permissions: new Set<string>(),
       user: null,
     };
   }
 
-  const primaryRole = canonicalRoleName(user.role) ?? user.role;
-  const rolesResolved = Array.from(new Set([primaryRole, user.role].filter(Boolean)));
+  const canonicalRole = canonicalRoleName(user.role) ?? user.role;
 
   const permissionRows = await db
     .select({
@@ -73,8 +72,8 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
 
   return {
     exists: true,
-    roles: rolesResolved,
-    primaryRole,
+    role: user.role,
+    canonicalRole,
     permissions: permissionsSet,
     user: {
       id: user.id,
@@ -88,9 +87,8 @@ export function assertHasPermission(
   access: UserAccess,
   permissionKeys: string[]
 ): void {
-  const isAdmin = access.roles.some((role) =>
-    ADMIN_ROLES.has(canonicalRoleName(role) ?? role)
-  );
+  const roleForCheck = access.canonicalRole ?? access.role;
+  const isAdmin = roleForCheck ? ADMIN_ROLES.has(roleForCheck) : false;
   if (isAdmin) return;
 
   const ok = permissionKeys.some((key) => hasPermissionKey(access.permissions, key));

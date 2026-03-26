@@ -1,12 +1,13 @@
 import { requirePermission } from "@/server/auth/auth";
-import { ADMIN_ROLES, canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
+import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { ConsultasClient } from "@/app/(protected)/consultas/consultas.client";
 
 export default async function ConsultasPage() {
   const { access } = await requirePermission("consultas:view");
-  const isAdmin = access.roles.some((role) => ADMIN_ROLES.has(canonicalRoleName(role) ?? role));
+  const accessRole = access.canonicalRole ?? access.role;
+  const isAdmin = accessRole ? ADMIN_ROLES.has(accessRole) : false;
   const canEditAtendimento =
     isAdmin ||
     hasPermissionKey(access.permissions, "consultas:edit") ||
