@@ -46,9 +46,19 @@
     background-color: var(--surface-muted) !important;
   }
 
+  .bg-slate-50 {
+    background-color: var(--surface-muted) !important;
+  }
+
   .border-gray-100,
   .border-gray-200,
   .border-gray-300 {
+    border-color: var(--border) !important;
+  }
+
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300 {
     border-color: var(--border) !important;
   }
 
@@ -66,6 +76,22 @@
 
   .text-gray-900 {
     color: #f3f6fb !important;
+  }
+
+  .text-slate-500 {
+    color: #9eabc2 !important;
+  }
+
+  .text-slate-600 {
+    color: #b8c1cf !important;
+  }
+
+  .text-slate-700 {
+    color: #d5d9e1 !important;
+  }
+
+  .text-slate-800 {
+    color: #e4e9f3 !important;
   }
 
   .hover\:text-gray-900:hover {
