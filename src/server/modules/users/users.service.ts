@@ -15,6 +15,7 @@ import {
   permissions,
   rolePermissions,
   roles,
+  userPacienteVinculosAudit,
   userPacienteVinculos,
   users,
 } from "@/server/db/schema";
@@ -310,14 +311,31 @@ export async function updateUser(
     const reason = isResponsavelRole(roleName)
       ? "responsavel_links_replaced"
       : "role_no_longer_responsavel";
-    console.warn("[audit] users.updateUser removed paciente vinculos", {
-      actorUserId,
-      targetUserId: id,
-      previousRole: previousRoleForAudit,
-      nextRole: roleName,
-      removedPacienteIds: removedPacienteIdsForAudit,
-      reason,
-    });
+    try {
+      await runDbTransaction(
+        async (tx) => {
+          await tx.insert(userPacienteVinculosAudit).values({
+            actorUserId,
+            targetUserId: id,
+            previousRole: previousRoleForAudit,
+            nextRole: roleName,
+            removedPacienteIds: removedPacienteIdsForAudit,
+            reason,
+          });
+        },
+        { operation: "users.recordVinculoAudit", mode: "allow-fallback" }
+      );
+    } catch (error) {
+      console.error("Falha ao registrar auditoria de remocao de vinculos de paciente", {
+        actorUserId,
+        targetUserId: id,
+        previousRole: previousRoleForAudit,
+        nextRole: roleName,
+        removedPacienteIds: removedPacienteIdsForAudit,
+        reason,
+        error,
+      });
+    }
   }
 
   return {

@@ -173,6 +173,29 @@ export const userPacienteVinculos = pgTable(
   ]
 );
 
+export const userPacienteVinculosAudit = pgTable(
+  "user_paciente_vinculos_audit",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    actorUserId: bigint("actor_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    targetUserId: bigint("target_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    previousRole: varchar("previous_role", { length: 32 }),
+    nextRole: varchar("next_role", { length: 32 }).notNull(),
+    removedPacienteIds: jsonb("removed_paciente_ids").notNull(),
+    reason: varchar("reason", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_user_paciente_vinc_audit_target").on(table.targetUserId),
+    index("idx_user_paciente_vinc_audit_actor").on(table.actorUserId),
+    index("idx_user_paciente_vinc_audit_created_at").on(table.createdAt),
+  ]
+);
+
 export const terapeutas = pgTable(
   "terapeutas",
   {
