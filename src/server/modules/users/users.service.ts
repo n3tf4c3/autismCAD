@@ -202,7 +202,11 @@ export async function createUser(input: CreateUserInput) {
   }
 }
 
-export async function updateUser(id: number, input: UpdateUserInput) {
+export async function updateUser(
+  id: number,
+  input: UpdateUserInput,
+  requesterUserId?: number | null
+) {
   const roleName = input.role.trim();
   const [roleRow] = await db
     .select({ slug: roles.slug })
@@ -239,8 +243,34 @@ export async function updateUser(id: number, input: UpdateUserInput) {
     ...(senha ? { senhaHash: await hashPassword(senha) } : {}),
   };
 
+  let removedPacienteIdsForAudit: number[] = [];
+  let previousRoleForAudit: string | null = null;
+
   await runDbTransaction(
     async (tx) => {
+      const [current] = await tx
+        .select({ id: users.id, role: users.role })
+        .from(users)
+        .where(and(eq(users.id, id), isNull(users.deletedAt)))
+        .limit(1);
+      if (!current) {
+        throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+      }
+
+      previousRoleForAudit = current.role ?? null;
+      const currentVinculos = await tx
+        .select({ pacienteId: userPacienteVinculos.pacienteId })
+        .from(userPacienteVinculos)
+        .where(eq(userPacienteVinculos.userId, id));
+      const currentPacienteIds = currentVinculos
+        .map((item) => Number(item.pacienteId))
+        .filter((pacienteId) => Number.isFinite(pacienteId) && pacienteId > 0);
+      const nextPacienteIds = isResponsavelRole(roleName) ? pacienteIdsVinculados : [];
+      const nextPacienteIdsSet = new Set(nextPacienteIds);
+      removedPacienteIdsForAudit = currentPacienteIds.filter(
+        (pacienteId) => !nextPacienteIdsSet.has(pacienteId)
+      );
+
       const [updated] = await tx
         .update(users)
         .set(setData)
@@ -273,6 +303,22 @@ export async function updateUser(id: number, input: UpdateUserInput) {
     },
     { operation: "users.updateUser", mode: "required" }
   );
+
+  if (removedPacienteIdsForAudit.length > 0) {
+    const actorParsed = Number(requesterUserId);
+    const actorUserId = Number.isFinite(actorParsed) && actorParsed > 0 ? actorParsed : null;
+    const reason = isResponsavelRole(roleName)
+      ? "responsavel_links_replaced"
+      : "role_no_longer_responsavel";
+    console.warn("[audit] users.updateUser removed paciente vinculos", {
+      actorUserId,
+      targetUserId: id,
+      previousRole: previousRoleForAudit,
+      nextRole: roleName,
+      removedPacienteIds: removedPacienteIdsForAudit,
+      reason,
+    });
+  }
 
   return {
     ok: true,

@@ -152,9 +152,9 @@ export async function updateUserAction(
     if (!Number.isFinite(parsedId) || parsedId <= 0) {
       throw new AppError("Usuario invalido", 400, "INVALID_INPUT");
     }
-    await requireAdminGeral();
+    const { user } = await requireAdminGeral();
     const parsed = updateUserSchema.parse(input);
-    const result = await updateUser(parsedId, parsed);
+    const result = await updateUser(parsedId, parsed, Number(user.id));
     return { ok: true, data: result };
   } catch (error) {
     return actionErrorResult(error);
