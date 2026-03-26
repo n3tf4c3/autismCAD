@@ -37,28 +37,32 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
     };
   }
 
+  const isResponsavel = access.roles.some(
+    (role) => (canonicalRoleName(role) ?? role) === "RESPONSAVEL"
+  );
+
   const isProfissional = access.roles.some((role) => (canonicalRoleName(role) ?? role) === "PROFISSIONAL");
   if (isProfissional) {
     const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) {
-      throw new AppError("Profissional sem vinculo", 403, "FORBIDDEN");
+      if (!isResponsavel) {
+        throw new AppError("Profissional sem vinculo", 403, "FORBIDDEN");
+      }
+    } else {
+      const vinculado = await profissionalAtendePaciente(pacienteId, profissional.id);
+      if (vinculado) {
+        return {
+          userId,
+          access,
+          profissionalId: profissional.id,
+        };
+      }
+      if (!isResponsavel) {
+        throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
+      }
     }
-
-    const vinculado = await profissionalAtendePaciente(pacienteId, profissional.id);
-    if (!vinculado) {
-      throw new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
-    }
-
-    return {
-      userId,
-      access,
-      profissionalId: profissional.id,
-    };
   }
 
-  const isResponsavel = access.roles.some(
-    (role) => (canonicalRoleName(role) ?? role) === "RESPONSAVEL"
-  );
   if (!isResponsavel) {
     throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
