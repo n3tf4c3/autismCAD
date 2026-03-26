@@ -35,6 +35,16 @@ function asBoolOrNumber(value: unknown): boolean | number {
   return false;
 }
 
+function asBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (["1", "true", "sim", "yes", "on"].includes(raw)) return true;
+  if (["0", "false", "nao", "não", "no", "off", ""].includes(raw)) return false;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed > 0 : false;
+}
+
 export type AtendimentoCompat = {
   id: number;
   paciente_id: number;
@@ -44,6 +54,7 @@ export type AtendimentoCompat = {
   data: string;
   hora_inicio: string;
   hora_fim: string;
+  is_grupo: boolean;
   turno: string;
   periodo_inicio: string | null;
   periodo_fim: string | null;
@@ -75,6 +86,7 @@ function normalizeAtendimentoRow(value: unknown): AtendimentoCompat | null {
     data: asStringOr(readValue(row, "data")),
     hora_inicio: asStringOr(readValue(row, "horaInicio")),
     hora_fim: asStringOr(readValue(row, "horaFim")),
+    is_grupo: asBoolean(readValue(row, "isGrupo")),
     turno: asStringOr(readValue(row, "turno")),
     periodo_inicio: asNullableString(readValue(row, "periodoInicio")),
     periodo_fim: asNullableString(readValue(row, "periodoFim")),

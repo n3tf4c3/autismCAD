@@ -147,6 +147,7 @@ export function CalendarioClient(props: {
   const [inicio, setInicio] = useState<string>("08:00");
   const [fim, setFim] = useState<string>("09:00");
   const [pacienteId, setPacienteId] = useState<string>("");
+  const [isGrupo, setIsGrupo] = useState(false);
   const [observacoes, setObservacoes] = useState<string>("");
   const [bloquearHorario, setBloquearHorario] = useState(false);
 
@@ -304,6 +305,7 @@ export function CalendarioClient(props: {
               profissionalId: profissionalId,
               horaInicio: inicio,
               horaFim: fim,
+              isGrupo,
               turno,
               periodoInicio,
               periodoFim,
@@ -318,6 +320,7 @@ export function CalendarioClient(props: {
               data,
               horaInicio: inicio,
               horaFim: fim,
+              isGrupo,
               turno,
               presenca: "Nao informado",
               observacoes: observacoes || null,
@@ -506,6 +509,9 @@ export function CalendarioClient(props: {
                               {String(entry.item.hora_inicio).slice(0, 5)} - {String(entry.item.hora_fim).slice(0, 5)}
                             </div>
                             <div className="text-xs text-gray-600">{entry.item.pacienteNome}</div>
+                            {entry.item.is_grupo ? (
+                              <div className="text-[11px] font-semibold text-indigo-700">Grupo</div>
+                            ) : null}
                           </div>
                         ) : (
                           <div
@@ -638,15 +644,28 @@ export function CalendarioClient(props: {
                 />
               </label>
             </div>
-            <label className="inline-flex items-center gap-2 text-gray-700">
-              <input
-                type="checkbox"
-                className="rounded text-[var(--laranja)]"
-                checked={bloquearHorario}
-                onChange={(e) => setBloquearHorario(e.target.checked)}
-              />
-              <span>Bloquear horario (sem paciente)</span>
-            </label>
+            <div className="flex items-center gap-4">
+              <label className="inline-flex items-center gap-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  className="rounded text-[var(--laranja)]"
+                  checked={bloquearHorario}
+                  onChange={(e) => setBloquearHorario(e.target.checked)}
+                />
+                <span>Bloquear horario (sem paciente)</span>
+              </label>
+              {!bloquearHorario ? (
+                <label className="ml-auto inline-flex items-center gap-2 text-gray-700">
+                  <input
+                    type="checkbox"
+                    className="rounded text-[var(--laranja)]"
+                    checked={isGrupo}
+                    onChange={(e) => setIsGrupo(e.target.checked)}
+                  />
+                  <span>Sessão em grupo</span>
+                </label>
+              ) : null}
+            </div>
             {bloquearHorario ? (
               <p className="text-xs text-amber-700">
                 Bloqueio local desta agenda (salvo neste navegador).

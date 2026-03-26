@@ -65,18 +65,32 @@ function resolveProfissionalId(input: { profissionalId?: number | null }) {
 
 type DbExecutor = typeof db;
 
-async function acquireAtendimentoScheduleLock(executor: DbExecutor, pacienteId: number, data: string) {
-  await executor.execute(sql`select pg_advisory_xact_lock(${pacienteId}, hashtext(${data}))`);
+async function acquireAtendimentoScheduleLock(executor: DbExecutor, params: {
+  pacienteId: number;
+  profissionalId: number;
+  data: string;
+  isGrupo: boolean;
+}) {
+  await executor.execute(
+    sql`select pg_advisory_xact_lock(${params.pacienteId}, hashtext(${`paciente:${params.data}`}))`
+  );
+  if (!params.isGrupo) {
+    await executor.execute(
+      sql`select pg_advisory_xact_lock(${params.profissionalId}, hashtext(${`profissional:${params.data}`}))`
+    );
+  }
 }
 
 async function existeConflitoHorario(executor: DbExecutor, params: {
   pacienteId: number;
+  profissionalId: number;
   data: string;
   horaInicio: string;
   horaFim: string;
+  isGrupo: boolean;
   ignoreId?: number | null;
 }) {
-  const where = [
+  const wherePaciente = [
     eq(atendimentos.pacienteId, params.pacienteId),
     eq(atendimentos.data, params.data),
     isNull(atendimentos.deletedAt),
@@ -84,16 +98,36 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
     sql`${params.horaFim}::time > ${atendimentos.horaInicio} AND ${params.horaInicio}::time < ${atendimentos.horaFim}`,
   ];
   if (params.ignoreId) {
-    where.push(sql`${atendimentos.id} <> ${params.ignoreId}`);
+    wherePaciente.push(sql`${atendimentos.id} <> ${params.ignoreId}`);
   }
 
-  const [row] = await executor
+  const [conflitoPaciente] = await executor
     .select({ id: atendimentos.id })
     .from(atendimentos)
-    .where(and(...where))
+    .where(and(...wherePaciente))
     .limit(1);
+  if (conflitoPaciente) return "paciente" as const;
 
-  return Boolean(row);
+  if (params.isGrupo) return null;
+
+  const whereProfissional = [
+    eq(atendimentos.profissionalId, params.profissionalId),
+    eq(atendimentos.data, params.data),
+    isNull(atendimentos.deletedAt),
+    sql`${params.horaFim}::time > ${atendimentos.horaInicio} AND ${params.horaInicio}::time < ${atendimentos.horaFim}`,
+  ];
+  if (params.ignoreId) {
+    whereProfissional.push(sql`${atendimentos.id} <> ${params.ignoreId}`);
+  }
+
+  const [conflitoProfissional] = await executor
+    .select({ id: atendimentos.id })
+    .from(atendimentos)
+    .where(and(...whereProfissional))
+    .limit(1);
+  if (conflitoProfissional) return "profissional" as const;
+
+  return null;
 }
 
 async function salvarAtendimentoDb(
@@ -105,6 +139,7 @@ async function salvarAtendimentoDb(
   const data = normalizeDateRequired(input.data);
   const horaInicio = normalizeTime(input.horaInicio);
   const horaFim = normalizeTime(input.horaFim);
+  const isGrupo = Boolean(input.isGrupo);
   const turno = normalizeTurno(input.turno);
   const presenca = normalizePresenca(input.presenca);
 
@@ -112,17 +147,27 @@ async function salvarAtendimentoDb(
     throw new AppError("Motivo e obrigatorio quando ausente", 400, "MOTIVO_REQUIRED");
   }
 
-  await acquireAtendimentoScheduleLock(executor, input.pacienteId, data);
+  await acquireAtendimentoScheduleLock(executor, {
+    pacienteId: input.pacienteId,
+    profissionalId,
+    data,
+    isGrupo,
+  });
 
   const conflito = await existeConflitoHorario(executor, {
     pacienteId: input.pacienteId,
+    profissionalId,
     data,
     horaInicio,
     horaFim,
+    isGrupo,
     ignoreId: id ?? null,
   });
-  if (conflito) {
+  if (conflito === "paciente") {
     throw new AppError("Conflito de horario para este paciente", 409, "SCHEDULE_CONFLICT");
+  }
+  if (conflito === "profissional") {
+    throw new AppError("Conflito de horario para este profissional", 409, "SCHEDULE_CONFLICT");
   }
 
   const realizado = presenca === "Presente";
@@ -145,6 +190,7 @@ async function salvarAtendimentoDb(
         data,
         horaInicio,
         horaFim,
+        isGrupo,
         turno,
         periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
         periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
@@ -170,6 +216,7 @@ async function salvarAtendimentoDb(
       data,
       horaInicio,
       horaFim,
+      isGrupo,
       turno,
       periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
       periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
@@ -199,6 +246,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
       data: atendimentos.data,
       horaInicio: atendimentos.horaInicio,
       horaFim: atendimentos.horaFim,
+      isGrupo: atendimentos.isGrupo,
       turno: atendimentos.turno,
       periodoInicio: atendimentos.periodoInicio,
       periodoFim: atendimentos.periodoFim,
@@ -228,6 +276,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
     data: row.data,
     horaInicio: row.horaInicio,
     horaFim: row.horaFim,
+    isGrupo: row.isGrupo,
     turno: row.turno,
     periodoInicio: row.periodoInicio,
     periodoFim: row.periodoFim,
@@ -306,6 +355,7 @@ export async function criarRecorrentes(payload: RecorrenteInput) {
             data,
             horaInicio: payload.horaInicio,
             horaFim: payload.horaFim,
+            isGrupo: payload.isGrupo,
             turno: payload.turno,
             periodoInicio: payload.periodoInicio,
             periodoFim: payload.periodoFim,

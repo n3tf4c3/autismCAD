@@ -227,6 +227,7 @@ export const atendimentos = pgTable(
     data: date("data").notNull(),
     horaInicio: time("hora_inicio").notNull(),
     horaFim: time("hora_fim").notNull(),
+    isGrupo: boolean("is_grupo").notNull().default(false),
     turno: varchar("turno", { length: 20 }).notNull().default("Matutino"),
     periodoInicio: date("periodo_inicio"),
     periodoFim: date("periodo_fim"),

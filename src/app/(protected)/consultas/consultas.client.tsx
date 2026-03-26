@@ -78,6 +78,7 @@ export function ConsultasClient(props: {
   const [editProfissionalId, setEditProfissionalId] = useState<string>("");
   const [editHoraInicio, setEditHoraInicio] = useState<string>("");
   const [editHoraFim, setEditHoraFim] = useState<string>("");
+  const [editIsGrupo, setEditIsGrupo] = useState(false);
   const [editTurno, setEditTurno] = useState<string>("Matutino");
   const [editPeriodoInicio, setEditPeriodoInicio] = useState<string>("");
   const [editPeriodoFim, setEditPeriodoFim] = useState<string>("");
@@ -118,6 +119,7 @@ export function ConsultasClient(props: {
     setEditProfissionalId(a.profissional_id ? String(a.profissional_id) : "");
     setEditHoraInicio(hhmmForInput(a.hora_inicio));
     setEditHoraFim(hhmmForInput(a.hora_fim));
+    setEditIsGrupo(Boolean(a.is_grupo));
     setEditTurno(a.turno || "Matutino");
     setEditPeriodoInicio(ymdForInput(a.periodo_inicio));
     setEditPeriodoFim(ymdForInput(a.periodo_fim));
@@ -164,6 +166,7 @@ export function ConsultasClient(props: {
         data: editData,
         horaInicio: editHoraInicio,
         horaFim: editHoraFim,
+        isGrupo: editIsGrupo,
         turno: editTurno || "Matutino",
         periodoInicio: editPeriodoInicio || null,
         periodoFim: editPeriodoFim || null,
@@ -371,6 +374,9 @@ export function ConsultasClient(props: {
                   <td className="px-3 py-3 text-gray-700">{a.profissionalNome || "-"}</td>
                   <td className="px-3 py-3 text-gray-700">
                     {String(a.hora_inicio).slice(0, 5)} - {String(a.hora_fim).slice(0, 5)}
+                    {a.is_grupo ? (
+                      <div className="text-xs font-semibold text-indigo-700">Sessão em grupo</div>
+                    ) : null}
                   </td>
                   <td className="px-3 py-3 text-gray-700">
                     <div>{a.presenca}</div>
@@ -524,6 +530,15 @@ export function ConsultasClient(props: {
                   <option value="Matutino">Matutino</option>
                   <option value="Vespertino">Vespertino</option>
                 </select>
+              </label>
+              <label className="inline-flex items-center gap-2 self-end pb-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  className="rounded text-[var(--laranja)]"
+                  checked={editIsGrupo}
+                  onChange={(e) => setEditIsGrupo(e.target.checked)}
+                />
+                <span>Sessão em grupo</span>
               </label>
               <label className="flex flex-col gap-2">
                 <span className="font-semibold text-gray-700">Período - inicio</span>

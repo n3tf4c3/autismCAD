@@ -59,6 +59,7 @@ export function PacientesPageClient(props: {
   const [consultaProfissionalId, setConsultaProfissionalId] = useState<string>("");
   const [consultaHoraInicio, setConsultaHoraInicio] = useState<string>("08:00");
   const [consultaHoraFim, setConsultaHoraFim] = useState<string>("09:00");
+  const [consultaIsGrupo, setConsultaIsGrupo] = useState(false);
   const [consultaTurno, setConsultaTurno] = useState<string>("Matutino");
   const [consultaPeriodoInicio, setConsultaPeriodoInicio] = useState<string>(ymdToday());
   const [consultaPeriodoFim, setConsultaPeriodoFim] = useState<string>(ymdToday());
@@ -94,6 +95,7 @@ export function PacientesPageClient(props: {
     setConsultaMsg(null);
     setConsultaMotivo("");
     setConsultaPresenca("Nao informado");
+    setConsultaIsGrupo(false);
     setConsultaTurno("Matutino");
     setConsultaHoraInicio("08:00");
     setConsultaHoraFim("09:00");
@@ -154,6 +156,7 @@ export function PacientesPageClient(props: {
         profissionalId: Number(consultaProfissionalId),
         horaInicio: consultaHoraInicio,
         horaFim: consultaHoraFim,
+        isGrupo: consultaIsGrupo,
         turno: consultaTurno || "Matutino",
         periodoInicio: consultaPeriodoInicio,
         periodoFim: consultaPeriodoFim,
@@ -346,6 +349,15 @@ export function PacientesPageClient(props: {
                   <option value="Matutino">Matutino</option>
                   <option value="Vespertino">Vespertino</option>
                 </select>
+              </label>
+              <label className="inline-flex items-center gap-2 self-end pb-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  className="rounded text-[var(--laranja)]"
+                  checked={consultaIsGrupo}
+                  onChange={(e) => setConsultaIsGrupo(e.target.checked)}
+                />
+                <span>Sessão em grupo</span>
               </label>
 
               <label className="flex flex-col gap-2">
