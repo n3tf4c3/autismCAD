@@ -2,6 +2,7 @@ import "server-only";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -89,6 +90,35 @@ export async function deleteObjectFromR2(key: string) {
       Key: key,
     })
   );
+}
+
+function isNotFoundR2Error(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as {
+    name?: string;
+    Code?: string;
+    code?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+  const status = candidate.$metadata?.httpStatusCode;
+  const code = String(candidate.name ?? candidate.Code ?? candidate.code ?? "");
+  return status === 404 || code === "NotFound" || code === "NoSuchKey";
+}
+
+export async function objectExistsInR2(key: string): Promise<boolean> {
+  const client = getR2Client();
+  try {
+    await client.send(
+      new HeadObjectCommand({
+        Bucket: env.R2_BUCKET!,
+        Key: key,
+      })
+    );
+    return true;
+  } catch (error) {
+    if (isNotFoundR2Error(error)) return false;
+    throw error;
+  }
 }
 
 export async function createSignedReadUrl(key: string, expiresInSeconds = 300) {

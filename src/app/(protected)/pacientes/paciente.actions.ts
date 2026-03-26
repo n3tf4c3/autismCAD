@@ -25,6 +25,7 @@ import {
   createSignedReadUrl,
   createSignedWriteUrl,
   deleteObjectFromR2,
+  objectExistsInR2,
 } from "@/server/storage/r2";
 
 type ActionError = {
@@ -257,6 +258,17 @@ export async function commitArquivoPacienteAction(
     const parsed = commitArquivoSchema.parse(input ?? {});
     const { user } = await requirePermission("pacientes:edit");
     await assertPacienteAccess(user, idNum);
+
+    if (parsed.key && looksLikeR2Key(parsed.key)) {
+      const exists = await objectExistsInR2(parsed.key);
+      if (!exists) {
+        throw new AppError(
+          "O upload na nuvem nao foi confirmado, tente novamente",
+          409,
+          "UPLOAD_NOT_CONFIRMED"
+        );
+      }
+    }
 
     const { previousKey } = await runDbTransaction(
       async (tx) => {
