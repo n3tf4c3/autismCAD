@@ -666,7 +666,11 @@ export function EvolucaoFormClient(props: {
               </div>
             )}
           </div>
-        ) : null}
+        ) : (
+          <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            Profissional definido automaticamente pela conta autenticada.
+          </p>
+        )}
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-semibold text-[var(--marrom)]">Descrição clinica</label>

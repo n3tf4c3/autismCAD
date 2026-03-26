@@ -267,6 +267,13 @@ export async function criarEvolucao(
   if (roleCanon === "PROFISSIONAL") {
     const profissional = await obterProfissionalPorUsuario(Number(user?.id));
     if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    if (profissionalRaw != null && Number(profissionalRaw) !== Number(profissional.id)) {
+      throw new AppError(
+        "Nao e permitido atribuir evolucao a outro profissional",
+        403,
+        "FORBIDDEN"
+      );
+    }
     profissionalId = profissional.id;
   } else if (!profissionalId && atendimentoId) {
     profissionalId = await obterProfissionalIdDoAtendimento(pacienteId, atendimentoId);
@@ -361,6 +368,13 @@ export async function atualizarEvolucao(
   if (roleCanon === "PROFISSIONAL") {
     const profissional = await obterProfissionalPorUsuario(Number(user?.id));
     if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    if (profissionalRaw != null && Number(profissionalRaw) !== Number(profissional.id)) {
+      throw new AppError(
+        "Nao e permitido atribuir evolucao a outro profissional",
+        403,
+        "FORBIDDEN"
+      );
+    }
     profissionalId = profissional.id;
   } else if (!profissionalExplicito && atendimentoRaw && atendimentoId) {
     const profissionalFromAtendimento = await obterProfissionalIdDoAtendimento(
