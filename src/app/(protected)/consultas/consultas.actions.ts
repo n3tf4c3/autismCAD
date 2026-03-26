@@ -40,6 +40,18 @@ function actionErrorResult(error: unknown): ActionError {
   };
 }
 
+function assertNoLegacyAtendimentoFields(input: unknown) {
+  if (!input || typeof input !== "object") return;
+  const payload = input as Record<string, unknown>;
+  if ("realizado" in payload) {
+    throw new AppError(
+      "Campo legado nao suportado. Use apenas presenca; realizado e calculado no servidor.",
+      400,
+      "INVALID_INPUT"
+    );
+  }
+}
+
 export async function listarAtendimentosAction(
   filters: unknown
 ): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarAtendimentos>> }>> {
@@ -63,6 +75,7 @@ export async function salvarAtendimentoAction(
     if (!Number.isFinite(idNum) || idNum <= 0) {
       throw new AppError("Atendimento invalido", 400, "INVALID_INPUT");
     }
+    assertNoLegacyAtendimentoFields(input);
     const parsed = saveAtendimentoSchema.parse(input);
     const savedId = await salvarAtendimento(parsed, idNum);
     return { ok: true, data: { id: savedId } };
@@ -76,6 +89,7 @@ export async function criarAtendimentoAction(
 ): Promise<ActionResult<{ id: number }>> {
   try {
     await requirePermission("consultas:create");
+    assertNoLegacyAtendimentoFields(input);
     const parsed = saveAtendimentoSchema.parse(input);
     const savedId = await salvarAtendimento(parsed, null);
     return { ok: true, data: { id: savedId } };

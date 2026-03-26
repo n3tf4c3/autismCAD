@@ -172,6 +172,7 @@ async function salvarAtendimentoDb(
     throw new AppError("Conflito de horario para este profissional", 409, "SCHEDULE_CONFLICT");
   }
 
+  // `realizado` is derived from `presenca` by business rule and DB constraint.
   const realizado = presenca === "Presente";
 
   if (id) {
