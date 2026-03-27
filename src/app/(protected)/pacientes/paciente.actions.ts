@@ -61,7 +61,8 @@ export async function salvarPacienteAction(
     const idNum = pacienteId ? Number(pacienteId) : null;
 
     if (idNum && Number.isFinite(idNum) && idNum > 0) {
-      await requirePermission("pacientes:edit");
+      const { user } = await requirePermission("pacientes:edit");
+      await assertPacienteAccess(user, idNum);
       const savedId = await salvarPaciente(parsed, idNum);
       revalidatePath("/pacientes");
       revalidatePath(`/pacientes/${savedId}`);
@@ -73,7 +74,8 @@ export async function salvarPacienteAction(
     await requirePermission("pacientes:create");
     const existing = await findPacienteByCpfAtivo(parsed.cpf);
     if (existing) {
-      await requirePermission("pacientes:edit");
+      const { user } = await requirePermission("pacientes:edit");
+      await assertPacienteAccess(user, existing.id);
       const savedId = await salvarPaciente(parsed, existing.id);
       revalidatePath("/pacientes");
       revalidatePath(`/pacientes/${savedId}`);
