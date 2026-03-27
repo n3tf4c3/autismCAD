@@ -265,7 +265,10 @@ export async function commitArquivoPacienteAction(
     const { user } = await requirePermission("pacientes:edit");
     await assertPacienteAccess(user, idNum);
 
-    if (parsed.key && looksLikeR2Key(parsed.key)) {
+    if (parsed.key) {
+      if (!looksLikeR2Key(parsed.key)) {
+        throw new AppError("Formato de arquivo invalido", 400, "INVALID_INPUT");
+      }
       const expectedPrefix = `pacientes/${idNum}/${parsed.kind}/`;
       if (!parsed.key.startsWith(expectedPrefix)) {
         throw new AppError("Arquivo invalido para este paciente", 403, "FORBIDDEN");
