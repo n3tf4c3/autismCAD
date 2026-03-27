@@ -15,6 +15,7 @@ import {
 import {
   findPacienteByCpfAtivo,
   listarPacientes,
+  listarPacientesPorUsuario,
   salvarPaciente,
   setPacienteAtivo,
   softDeletePaciente,
@@ -146,9 +147,9 @@ export async function listarPacientesAction(
   filters: unknown
 ): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarPacientes>> }>> {
   try {
-    await requirePermission("pacientes:view");
+    const { user } = await requirePermission("pacientes:view");
     const parsed = pacientesQuerySchema.parse(filters ?? {});
-    const rows = await listarPacientes(parsed);
+    const rows = await listarPacientesPorUsuario(Number(user.id), parsed);
     return { ok: true, data: { items: rows } };
   } catch (error) {
     return actionErrorResult(error);

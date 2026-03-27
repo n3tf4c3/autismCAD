@@ -1,5 +1,5 @@
 import { requirePermission } from "@/server/auth/auth";
-import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
+import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { CalendarioClient } from "@/app/(protected)/calendario/calendario.client";
 
@@ -14,7 +14,7 @@ function normalizeDateParam(value?: string): string | undefined {
 export default async function CalendarioPage(props: {
   searchParams: Promise<{ profissionalId?: string; data?: string }>;
 }) {
-  await requirePermission("consultas:view");
+  const { user } = await requirePermission("consultas:view");
 
   let profissionais: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
   try {
@@ -32,7 +32,7 @@ export default async function CalendarioPage(props: {
   let pacientes: Array<{ id: number; nome: string }> = [];
   try {
     await requirePermission("pacientes:view");
-    const pacientesRows = await listarPacientes({});
+    const pacientesRows = await listarPacientesPorUsuario(Number(user.id), {});
     pacientes = pacientesRows.map((item) => ({ id: item.id, nome: item.nome }));
   } catch {
     pacientes = [];

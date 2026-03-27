@@ -9,13 +9,15 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { pacienteTerapia, pacientes, terapias } from "@/server/db/schema";
+import { atendimentos, pacienteTerapia, pacientes, terapias } from "@/server/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   conveniosPermitidos,
   PacientesQueryInput,
   SavePacienteInput,
 } from "@/server/modules/pacientes/pacientes.schema";
+import { loadUserAccess } from "@/server/auth/access";
+import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import {
   escapeLikePattern,
@@ -23,6 +25,8 @@ import {
   normalizeDateOnlyLoose,
   normalizeOptionalText,
 } from "@/server/shared/normalize";
+import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
+import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
 export type PacienteDetalhe = {
   id: number;
@@ -91,8 +95,18 @@ function normalizeAtivo(value: SavePacienteInput["ativo"]): boolean {
   throw new AppError("Valor invalido para ativo", 400, "INVALID_INPUT");
 }
 
-export async function listarPacientes(filters: PacientesQueryInput) {
+export async function listarPacientes(
+  filters: PacientesQueryInput,
+  allowedPacienteIds?: number[] | null
+) {
+  if (Array.isArray(allowedPacienteIds) && allowedPacienteIds.length === 0) {
+    return [];
+  }
+
   const where = [isNull(pacientes.deletedAt)];
+  if (Array.isArray(allowedPacienteIds) && allowedPacienteIds.length > 0) {
+    where.push(inArray(pacientes.id, allowedPacienteIds));
+  }
   if (filters.id) where.push(eq(pacientes.id, filters.id));
   if (filters.nome) {
     const nomeFiltro = escapeLikePattern(filters.nome.trim());
@@ -166,6 +180,47 @@ export async function listarPacientes(filters: PacientesQueryInput) {
     ativo: row.ativo,
     terapias: terapiasMap.get(row.id) ?? [],
   }));
+}
+
+export async function listarPacientesPorUsuario(userId: number, filters: PacientesQueryInput) {
+  if (!Number.isFinite(userId) || userId <= 0) return [];
+
+  const access = await loadUserAccess(userId);
+  if (!access.exists) return [];
+  const roleCanon = access.canonicalRole ?? access.role;
+
+  if (roleCanon && (ADMIN_ROLES.has(roleCanon) || roleCanon === "RECEPCAO")) {
+    return listarPacientes(filters);
+  }
+
+  if (roleCanon === "PROFISSIONAL") {
+    const profissional = await obterProfissionalPorUsuario(userId);
+    if (!profissional?.id) return [];
+    const rows = await db
+      .select({ pacienteId: atendimentos.pacienteId })
+      .from(atendimentos)
+      .where(
+        and(
+          eq(atendimentos.profissionalId, profissional.id),
+          isNull(atendimentos.deletedAt)
+        )
+      )
+      .groupBy(atendimentos.pacienteId);
+    const allowedIds = rows
+      .map((row) => Number(row.pacienteId))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    return listarPacientes(filters, allowedIds);
+  }
+
+  if (roleCanon === "RESPONSAVEL") {
+    const vinculados = await getPacientesVinculadosByUserId(userId);
+    const allowedIds = vinculados
+      .map((item) => Number(item.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    return listarPacientes(filters, allowedIds);
+  }
+
+  return [];
 }
 
 export async function findPacienteByCpfAtivo(cpf: string) {
