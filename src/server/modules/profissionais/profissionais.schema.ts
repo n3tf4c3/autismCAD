@@ -4,7 +4,15 @@ import { ESPECIALIDADES_TERAPEUTA_SET } from "@/lib/profissionais/especialidades
 export const especialidadesPermitidas = ESPECIALIDADES_TERAPEUTA_SET;
 
 const nullableTrimmed = z.string().trim().max(255).optional().nullable();
-const nullableDate = z.string().trim().optional().nullable();
+const nullableDate = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((value) => {
+    if (value == null) return null;
+    return value.trim() ? value : null;
+  });
 
 export const profissionaisQuerySchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -19,9 +27,10 @@ export const saveProfissionalSchema = z.object({
   cpf: z
     .string()
     .trim()
-    .min(11)
+    .min(1, "CPF invalido.")
     .max(20)
-    .refine((value) => value.replace(/\D/g, "").length === 11, "CPF invalido."),
+    .transform((value) => value.replace(/\D/g, ""))
+    .refine((value) => value.length === 11, "CPF invalido."),
   nascimento: nullableDate,
   email: z.string().trim().email().max(120).optional().nullable(),
   telefone: z.string().trim().max(20).optional().nullable(),
