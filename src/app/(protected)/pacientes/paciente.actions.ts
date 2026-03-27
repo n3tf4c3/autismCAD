@@ -100,11 +100,12 @@ export async function setPacienteAtivoAction(
   ativo: boolean
 ): Promise<ActionResult<{ id: number; ativo: boolean | number | string | null }>> {
   try {
-    await requirePermission("pacientes:edit");
+    const { user } = await requirePermission("pacientes:edit");
     const idNum = Number(pacienteId);
     if (!Number.isFinite(idNum) || idNum <= 0) {
       throw new AppError("Paciente invalido", 400, "INVALID_INPUT");
     }
+    await assertPacienteAccess(user, idNum);
 
     const result = await setPacienteAtivo(idNum, Boolean(ativo));
     revalidatePath("/pacientes");
@@ -128,6 +129,7 @@ export async function deletePacienteAction(
     }
 
     const { user } = await requirePermission("pacientes:delete");
+    await assertPacienteAccess(user, idNum);
     const result = await softDeletePaciente(idNum, Number(user.id));
 
     revalidatePath("/pacientes");
