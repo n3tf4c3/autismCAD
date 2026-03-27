@@ -73,6 +73,7 @@ export async function salvarPacienteAction(
     await requirePermission("pacientes:create");
     const existing = await findPacienteByCpfAtivo(parsed.cpf);
     if (existing) {
+      await requirePermission("pacientes:edit");
       const savedId = await salvarPaciente(parsed, existing.id);
       revalidatePath("/pacientes");
       revalidatePath(`/pacientes/${savedId}`);
@@ -260,6 +261,10 @@ export async function commitArquivoPacienteAction(
     await assertPacienteAccess(user, idNum);
 
     if (parsed.key && looksLikeR2Key(parsed.key)) {
+      const expectedPrefix = `pacientes/${idNum}/${parsed.kind}/`;
+      if (!parsed.key.startsWith(expectedPrefix)) {
+        throw new AppError("Arquivo invalido para este paciente", 403, "FORBIDDEN");
+      }
       const exists = await objectExistsInR2(parsed.key);
       if (!exists) {
         throw new AppError(
