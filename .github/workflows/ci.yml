@@ -32,6 +32,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Guardrails
+        run: |
+          if grep -RIn --include='*.ts' --include='*.tsx' "as never" src; then
+            echo "Found forbidden 'as never' cast in src/"
+            exit 1
+          fi
+
       - name: Typecheck
         run: npm run typecheck
 
