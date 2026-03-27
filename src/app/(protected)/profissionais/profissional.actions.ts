@@ -97,7 +97,7 @@ export async function setProfissionalAtivoAction(
       throw new AppError("Profissional invalido", 400, "INVALID_INPUT");
     }
 
-    await assertCanEditProfissional(idNum);
+    await requirePermission("profissionais:edit");
     const result = await setProfissionalAtivo(idNum, Boolean(ativo));
 
     revalidatePath("/profissionais");

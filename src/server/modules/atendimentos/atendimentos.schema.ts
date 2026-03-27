@@ -8,6 +8,7 @@ export const presencasPermitidas = new Set([
 ]);
 
 const optionalId = z.coerce.number().int().positive().optional().nullable();
+const requiredId = z.coerce.number().int().positive();
 
 const optionalBooleanLike = z
   .union([z.boolean(), z.number(), z.string()])
@@ -30,55 +31,35 @@ export const atendimentosQuerySchema = z.object({
   dataFim: z.string().trim().optional(),
 });
 
-export const saveAtendimentoSchema = z
-  .object({
-    pacienteId: z.coerce.number().int().positive(),
-    profissionalId: optionalId,
-    data: z.string().trim().min(10).max(10),
-    horaInicio: z.string().trim().min(4).max(8),
-    horaFim: z.string().trim().min(4).max(8),
-    isGrupo: optionalBooleanLike,
-    turno: z.string().trim().optional(),
-    periodoInicio: z.string().trim().optional().nullable(),
-    periodoFim: z.string().trim().optional().nullable(),
-    presenca: z.string().trim().optional(),
-    motivo: z.string().trim().optional().nullable(),
-    observacoes: z.string().trim().optional().nullable(),
-  })
-  .superRefine((value, ctx) => {
-    if (!value.profissionalId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Profissional obrigatorio",
-        path: ["profissionalId"],
-      });
-    }
-  });
+export const saveAtendimentoSchema = z.object({
+  pacienteId: z.coerce.number().int().positive(),
+  profissionalId: requiredId,
+  data: z.string().trim().min(10).max(10),
+  horaInicio: z.string().trim().min(4).max(8),
+  horaFim: z.string().trim().min(4).max(8),
+  isGrupo: optionalBooleanLike,
+  turno: z.string().trim().optional(),
+  periodoInicio: z.string().trim().optional().nullable(),
+  periodoFim: z.string().trim().optional().nullable(),
+  presenca: z.string().trim().optional(),
+  motivo: z.string().trim().optional().nullable(),
+  observacoes: z.string().trim().optional().nullable(),
+});
 
-export const recorrenteSchema = z
-  .object({
-    pacienteId: z.coerce.number().int().positive(),
-    profissionalId: optionalId,
-    horaInicio: z.string().trim().min(4).max(8),
-    horaFim: z.string().trim().min(4).max(8),
-    isGrupo: optionalBooleanLike,
-    turno: z.string().trim().optional(),
-    periodoInicio: z.string().trim().min(10).max(10),
-    periodoFim: z.string().trim().min(10).max(10),
-    presenca: z.string().trim().optional(),
-    motivo: z.string().trim().optional().nullable(),
-    observacoes: z.string().trim().optional().nullable(),
-    diasSemana: z.array(z.coerce.number().int().min(0).max(6)).min(1),
-  })
-  .superRefine((value, ctx) => {
-    if (!value.profissionalId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Profissional obrigatorio",
-        path: ["profissionalId"],
-      });
-    }
-  });
+export const recorrenteSchema = z.object({
+  pacienteId: z.coerce.number().int().positive(),
+  profissionalId: requiredId,
+  horaInicio: z.string().trim().min(4).max(8),
+  horaFim: z.string().trim().min(4).max(8),
+  isGrupo: optionalBooleanLike,
+  turno: z.string().trim().optional(),
+  periodoInicio: z.string().trim().min(10).max(10),
+  periodoFim: z.string().trim().min(10).max(10),
+  presenca: z.string().trim().optional(),
+  motivo: z.string().trim().optional().nullable(),
+  observacoes: z.string().trim().optional().nullable(),
+  diasSemana: z.array(z.coerce.number().int().min(0).max(6)).min(1),
+});
 
 export const excluirDiaSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),

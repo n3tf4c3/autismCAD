@@ -40,6 +40,14 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
 
   const isResponsavel = roleCanon === "RESPONSAVEL";
   const isProfissional = roleCanon === "PROFISSIONAL";
+  const isRecepcao = roleCanon === "RECEPCAO";
+  if (isRecepcao) {
+    return {
+      userId,
+      access,
+      profissionalId: null as number | null,
+    };
+  }
   if (isProfissional) {
     const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) {

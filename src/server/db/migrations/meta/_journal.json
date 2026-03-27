@@ -162,6 +162,13 @@
       "when": 1774590000000,
       "tag": "0022_user_paciente_vinculos_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1774676400000,
+      "tag": "0023_atendimentos_profissional_not_null",
+      "breakpoints": true
     }
   ]
 }
