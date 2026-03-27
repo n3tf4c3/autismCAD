@@ -76,6 +76,21 @@ function normalizeTerapias(input: SavePacienteInput): string[] {
   return normalized;
 }
 
+function normalizeAtivo(value: SavePacienteInput["ativo"]): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+
+  const raw = value.trim().toLowerCase();
+  if (["0", "false", "f", "nao", "off", "inativo", "arquivado"].includes(raw)) return false;
+  if (["1", "true", "t", "sim", "on", "ativo"].includes(raw)) return true;
+
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed)) return parsed > 0;
+
+  throw new AppError("Valor invalido para ativo", 400, "INVALID_INPUT");
+}
+
 export async function listarPacientes(filters: PacientesQueryInput) {
   const where = [isNull(pacientes.deletedAt)];
   if (filters.id) where.push(eq(pacientes.id, filters.id));
@@ -219,8 +234,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
   }
   const convenio = convenioParsed;
 
-  const ativo =
-    String(input.ativo ?? "1") === "0" || input.ativo === false ? false : true;
+  const ativo = normalizeAtivo(input.ativo);
   const terapiaNomes = normalizeTerapias(input);
 
   return runDbTransaction(

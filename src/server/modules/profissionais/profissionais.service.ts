@@ -25,8 +25,11 @@ function normalizeCep(value?: string | null): string | null {
 
 function normalizeEspecialidade(value: string): string {
   const parsed = value.trim();
-  if (especialidadesPermitidas.has(parsed)) return parsed;
-  return parsed || "Nao informado";
+  if (!parsed || parsed === "Nao informado") return "Nao informado";
+  if (!especialidadesPermitidas.has(parsed)) {
+    throw new AppError("Especialidade invalida", 400, "INVALID_INPUT");
+  }
+  return parsed;
 }
 
 function composeEndereco(input: SaveProfissionalInput): string | null {
@@ -118,7 +121,7 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
     throw new AppError("Nome, CPF e especialidade sao obrigatorios", 400, "INVALID_INPUT");
   }
 
-  const payload = {
+  const payloadBase = {
     nome,
     cpf,
     dataNascimento: normalizeDateOnlyLoose(input.nascimento),
@@ -132,7 +135,6 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
     cep: normalizeCep(input.cep),
     especialidade: normalizeEspecialidade(input.especialidade),
     observacao: normalizeOptionalText(input.observacao),
-    updatedAt: sql`now()`,
   };
 
   return runDbTransaction(
@@ -140,7 +142,7 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
       if (id) {
         const [updated] = await tx
           .update(profissionaisTabela)
-          .set(payload as never)
+          .set({ ...payloadBase, updatedAt: sql`now()` })
           .where(and(eq(profissionaisTabela.id, id), isNull(profissionaisTabela.deletedAt)))
           .returning({ id: profissionaisTabela.id });
         if (!updated) {
@@ -151,7 +153,7 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
 
       const [saved] = await tx
         .insert(profissionaisTabela)
-        .values(payload as never)
+        .values(payloadBase)
         .returning({ id: profissionaisTabela.id });
       return saved.id;
     },

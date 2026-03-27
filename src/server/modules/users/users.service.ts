@@ -353,8 +353,29 @@ export async function deleteUser(id: number, requesterUserId: number) {
     throw new AppError("Nao e possivel excluir o proprio usuario", 400, "SELF_DELETE");
   }
 
-  return runDbTransaction(
+  let previousRoleForAudit: string | null = null;
+  let removedPacienteIdsForAudit: number[] = [];
+
+  const result = await runDbTransaction(
     async (tx) => {
+      const [current] = await tx
+        .select({ id: users.id, role: users.role })
+        .from(users)
+        .where(and(eq(users.id, id), isNull(users.deletedAt)))
+        .limit(1);
+      if (!current) {
+        throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+      }
+
+      previousRoleForAudit = current.role ?? null;
+      const currentVinculos = await tx
+        .select({ pacienteId: userPacienteVinculos.pacienteId })
+        .from(userPacienteVinculos)
+        .where(eq(userPacienteVinculos.userId, id));
+      removedPacienteIdsForAudit = currentVinculos
+        .map((item) => Number(item.pacienteId))
+        .filter((pacienteId) => Number.isFinite(pacienteId) && pacienteId > 0);
+
       await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
 
       const [deleted] = await tx
@@ -375,6 +396,38 @@ export async function deleteUser(id: number, requesterUserId: number) {
     },
     { operation: "users.deleteUser", mode: "required" }
   );
+
+  if (removedPacienteIdsForAudit.length > 0) {
+    const actorParsed = Number(requesterUserId);
+    const actorUserId = Number.isFinite(actorParsed) && actorParsed > 0 ? actorParsed : null;
+    try {
+      await runDbTransaction(
+        async (tx) => {
+          await tx.insert(userPacienteVinculosAudit).values({
+            actorUserId,
+            targetUserId: id,
+            previousRole: previousRoleForAudit,
+            nextRole: "deleted",
+            removedPacienteIds: removedPacienteIdsForAudit,
+            reason: "user_deleted",
+          });
+        },
+        { operation: "users.deleteUser.recordVinculoAudit", mode: "allow-fallback" }
+      );
+    } catch (error) {
+      console.error("Falha ao registrar auditoria de remocao de vinculos no deleteUser", {
+        actorUserId,
+        targetUserId: id,
+        previousRole: previousRoleForAudit,
+        nextRole: "deleted",
+        removedPacienteIds: removedPacienteIdsForAudit,
+        reason: "user_deleted",
+        error,
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function listPermissions() {
