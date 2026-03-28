@@ -75,14 +75,11 @@ export async function salvarPacienteAction(
     await requirePermission("pacientes:create");
     const existing = await findPacienteByCpfAtivo(parsed.cpf);
     if (existing) {
-      const { user } = await requirePermission("pacientes:edit");
-      await assertPacienteAccess(user, existing.id);
-      const savedId = await salvarPaciente(parsed, existing.id);
-      revalidatePath("/pacientes");
-      revalidatePath(`/pacientes/${savedId}`);
-      revalidatePath(`/pacientes/${savedId}/editar`);
-      revalidatePath(`/prontuario/${savedId}`);
-      return { ok: true, data: { id: savedId, reaproveitado: true } };
+      throw new AppError(
+        "Ja existe um paciente cadastrado com este CPF na plataforma.",
+        409,
+        "CPF_ALREADY_IN_USE"
+      );
     }
 
     const savedId = await salvarPaciente(parsed, null);

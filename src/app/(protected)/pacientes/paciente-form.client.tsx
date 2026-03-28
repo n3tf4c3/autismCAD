@@ -300,11 +300,6 @@ export function PacienteFormClient(props: {
         const id = result.data.id;
         if (!id) throw new Error("Resposta inválida: id ausente");
 
-        const reaproveitado = !isEdit ? result.data.reaproveitado : null;
-        if (reaproveitado) {
-          setMsg("Paciente ja existia (CPF ativo). Cadastro foi atualizado.");
-        }
-
         if (fotoFile || laudoFile || documentoFile) {
           await uploadIfSelected(id);
         }
