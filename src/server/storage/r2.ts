@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -88,6 +89,29 @@ export async function deleteObjectFromR2(key: string) {
     new DeleteObjectCommand({
       Bucket: env.R2_BUCKET!,
       Key: key,
+    })
+  );
+}
+
+function encodeCopySourceKey(key: string): string {
+  return key
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+}
+
+export async function copyObjectInR2(params: {
+  sourceKey: string;
+  destinationKey: string;
+}) {
+  const client = getR2Client();
+  const source = `${env.R2_BUCKET!}/${encodeCopySourceKey(params.sourceKey)}`;
+  await client.send(
+    new CopyObjectCommand({
+      Bucket: env.R2_BUCKET!,
+      CopySource: source,
+      Key: params.destinationKey,
+      MetadataDirective: "COPY",
     })
   );
 }

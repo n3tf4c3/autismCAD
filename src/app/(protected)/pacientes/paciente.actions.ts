@@ -23,6 +23,7 @@ import {
 import { AppError, toAppError } from "@/server/shared/errors";
 import {
   buildObjectKey,
+  copyObjectInR2,
   createSignedReadUrl,
   createSignedWriteUrl,
   deleteObjectFromR2,
@@ -238,7 +239,7 @@ export async function prepararUploadArquivoPacienteAction(
     await assertPacienteAccess(user, idNum);
     await assertPacienteExists(idNum);
 
-    const prefix = `pacientes/${idNum}/${parsed.kind}`;
+    const prefix = `pacientes/temp/${idNum}/${parsed.kind}`;
     const key = buildObjectKey(prefix, parsed.filename);
     const url = await createSignedWriteUrl({
       key,
@@ -262,14 +263,24 @@ export async function commitArquivoPacienteAction(
     const { user } = await requirePermission("pacientes:edit");
     await assertPacienteAccess(user, idNum);
 
+    let nextKey: string | null = parsed.key ?? null;
+    let tempKeyToDelete: string | null = null;
+    let promotedKeyToRollback: string | null = null;
+
     if (parsed.key) {
       if (!looksLikeR2Key(parsed.key)) {
         throw new AppError("Formato de arquivo invalido", 400, "INVALID_INPUT");
       }
-      const expectedPrefix = `pacientes/${idNum}/${parsed.kind}/`;
-      if (!parsed.key.startsWith(expectedPrefix)) {
+
+      const tempPrefix = `pacientes/temp/${idNum}/${parsed.kind}/`;
+      const finalPrefix = `pacientes/${idNum}/${parsed.kind}/`;
+      const isTempKey = parsed.key.startsWith(tempPrefix);
+      const isFinalKey = parsed.key.startsWith(finalPrefix);
+
+      if (!isTempKey && !isFinalKey) {
         throw new AppError("Arquivo invalido para este paciente", 403, "FORBIDDEN");
       }
+
       const exists = await objectExistsInR2(parsed.key);
       if (!exists) {
         throw new AppError(
@@ -278,53 +289,86 @@ export async function commitArquivoPacienteAction(
           "UPLOAD_NOT_CONFIRMED"
         );
       }
+
+      if (isTempKey) {
+        const fileName = parsed.key.split("/").pop() || `${parsed.kind}.bin`;
+        const promotedKey = buildObjectKey(`pacientes/${idNum}/${parsed.kind}`, fileName);
+        await copyObjectInR2({
+          sourceKey: parsed.key,
+          destinationKey: promotedKey,
+        });
+        const promotedExists = await objectExistsInR2(promotedKey);
+        if (!promotedExists) {
+          throw new AppError(
+            "Falha ao consolidar upload na nuvem, tente novamente",
+            500,
+            "UPLOAD_FINALIZATION_FAILED"
+          );
+        }
+        nextKey = promotedKey;
+        tempKeyToDelete = parsed.key;
+        promotedKeyToRollback = promotedKey;
+      }
     }
 
-    const { previousKey } = await runDbTransaction(
-      async (tx) => {
-        const [row] = await tx
-          .select({
-            id: pacientes.id,
-            foto: pacientes.foto,
-            laudo: pacientes.laudo,
-            documento: pacientes.documento,
-          })
-          .from(pacientes)
-          .where(and(eq(pacientes.id, idNum), isNull(pacientes.deletedAt)))
-          .limit(1);
-        if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+    let previousKey: string | null = null;
+    try {
+      const result = await runDbTransaction(
+        async (tx) => {
+          const [row] = await tx
+            .select({
+              id: pacientes.id,
+              foto: pacientes.foto,
+              laudo: pacientes.laudo,
+              documento: pacientes.documento,
+            })
+            .from(pacientes)
+            .where(and(eq(pacientes.id, idNum), isNull(pacientes.deletedAt)))
+            .limit(1);
+          if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
 
-        const previousKey =
-          parsed.kind === "foto"
-            ? row.foto
-            : parsed.kind === "laudo"
-              ? row.laudo
-              : row.documento;
+          const previousKey =
+            parsed.kind === "foto"
+              ? row.foto
+              : parsed.kind === "laudo"
+                ? row.laudo
+                : row.documento;
 
-        if (parsed.kind === "foto") {
-          await tx
-            .update(pacientes)
-            .set({ foto: parsed.key, updatedAt: sql`now()` })
-            .where(eq(pacientes.id, idNum));
-        } else if (parsed.kind === "laudo") {
-          await tx
-            .update(pacientes)
-            .set({ laudo: parsed.key, updatedAt: sql`now()` })
-            .where(eq(pacientes.id, idNum));
-        } else {
-          await tx
-            .update(pacientes)
-            .set({ documento: parsed.key, updatedAt: sql`now()` })
-            .where(eq(pacientes.id, idNum));
-        }
+          if (parsed.kind === "foto") {
+            await tx
+              .update(pacientes)
+              .set({ foto: nextKey, updatedAt: sql`now()` })
+              .where(eq(pacientes.id, idNum));
+          } else if (parsed.kind === "laudo") {
+            await tx
+              .update(pacientes)
+              .set({ laudo: nextKey, updatedAt: sql`now()` })
+              .where(eq(pacientes.id, idNum));
+          } else {
+            await tx
+              .update(pacientes)
+              .set({ documento: nextKey, updatedAt: sql`now()` })
+              .where(eq(pacientes.id, idNum));
+          }
 
-        return { previousKey };
-      },
-      { operation: "pacientes.arquivos.commit.action", mode: "required" }
-    );
+          return { previousKey };
+        },
+        { operation: "pacientes.arquivos.commit.action", mode: "required" }
+      );
+      previousKey = result.previousKey;
+      promotedKeyToRollback = null;
+    } catch (error) {
+      if (promotedKeyToRollback && looksLikeR2Key(promotedKeyToRollback)) {
+        await deleteObjectFromR2(promotedKeyToRollback).catch(() => null);
+      }
+      throw error;
+    }
 
-    if (previousKey && previousKey !== parsed.key && looksLikeR2Key(previousKey)) {
+    if (previousKey && previousKey !== nextKey && looksLikeR2Key(previousKey)) {
       await deleteObjectFromR2(previousKey).catch(() => null);
+    }
+    if (tempKeyToDelete && tempKeyToDelete !== nextKey && looksLikeR2Key(tempKeyToDelete)) {
+      await deleteObjectFromR2(tempKeyToDelete).catch(() => null);
     }
 
     revalidatePath(`/pacientes/${idNum}`);

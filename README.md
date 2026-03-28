@@ -78,6 +78,11 @@ npm run dev
 - `GET /api/relatorios/evolutivo/pdf`
 - `GET /api/relatorios/evolutivo/docx`
 
+## Arquivos no R2 (operacao)
+- Upload de arquivos de paciente agora usa prefixo temporario: `pacientes/temp/{pacienteId}/{kind}/...`.
+- O `commit` promove o objeto para o caminho final `pacientes/{pacienteId}/{kind}/...` e remove o temporario.
+- Configure lifecycle no bucket para expirar automaticamente objetos em `pacientes/temp/` com 24h, evitando acumulacao de uploads abandonados.
+
 ## Documentacao interna
 - `docs/GUIA_MIGRACAO_NEXT_IA.md`
 - `docs/transactions-migration-plan.md`
