@@ -40,7 +40,7 @@ export default async function RelatorioDevolutivaDiaPage(props: {
   let outrosPacientes: Array<{ id: number; nome: string; foto: string | null }> = [];
 
   if (isResponsavel) {
-    pacientesVinculados = await getPacientesVinculadosByUserId(Number(user.id));
+    pacientesVinculados = await getPacientesVinculadosByUserId(user.id);
     const pacienteSelecionado = Number.isFinite(pacienteIdSelecionado)
       ? pacientesVinculados.find((item) => Number(item.id) === Number(pacienteIdSelecionado))
       : null;

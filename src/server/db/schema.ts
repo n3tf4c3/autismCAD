@@ -16,6 +16,13 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type {
+  AnamnesePayloadJson,
+  AnamneseVersionPayloadJson,
+  EvolucaoPayloadJson,
+  ProntuarioDocumentoPayloadJson,
+  UserPacienteVinculosAuditPayload,
+} from "@/server/db/jsonb-types";
 
 export const users = pgTable(
   "users",
@@ -185,7 +192,7 @@ export const userPacienteVinculosAudit = pgTable(
     }),
     previousRole: varchar("previous_role", { length: 32 }),
     nextRole: varchar("next_role", { length: 32 }).notNull(),
-    removedPacienteIds: jsonb("removed_paciente_ids").notNull(),
+    removedPacienteIds: jsonb("removed_paciente_ids").$type<UserPacienteVinculosAuditPayload>().notNull(),
     reason: varchar("reason", { length: 64 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -293,7 +300,7 @@ export const anamnese = pgTable(
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
       .references(() => pacientes.id, { onDelete: "cascade" }),
-    payload: jsonb("payload").notNull(),
+    payload: jsonb("payload").$type<AnamnesePayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -312,7 +319,7 @@ export const anamneseVersions = pgTable(
       .references(() => pacientes.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
-    payload: jsonb("payload").notNull(),
+    payload: jsonb("payload").$type<AnamneseVersionPayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -332,7 +339,7 @@ export const prontuarioDocumentos = pgTable(
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
     titulo: varchar("titulo", { length: 180 }),
-    payload: jsonb("payload").notNull(),
+    payload: jsonb("payload").$type<ProntuarioDocumentoPayloadJson>().notNull(),
     createdByUserId: bigint("created_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
@@ -372,7 +379,7 @@ export const evolucoes = pgTable(
       onDelete: "set null",
     }),
     data: date("data").notNull(),
-    payload: jsonb("payload").notNull(),
+    payload: jsonb("payload").$type<EvolucaoPayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

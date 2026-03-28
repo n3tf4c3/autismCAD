@@ -120,7 +120,7 @@ export async function excluirAtendimentoAction(
       throw new AppError("Atendimento invalido", 400, "INVALID_INPUT");
     }
     const { user } = await requirePermission("consultas:cancel");
-    const result = await softDeleteAtendimento(idNum, Number(user.id));
+    const result = await softDeleteAtendimento(idNum, user.id);
     return { ok: true, data: { id: result.id } };
   } catch (error) {
     return actionErrorResult(error);
@@ -133,7 +133,7 @@ export async function excluirDiaAtendimentosAction(
   try {
     const { user } = await requirePermission("consultas:cancel");
     const parsed = excluirDiaSchema.parse(input);
-    const result = await excluirDia(parsed, Number(user.id));
+    const result = await excluirDia(parsed, user.id);
     return { ok: true, data: { removidos: result.removidos } };
   } catch (error) {
     return actionErrorResult(error);

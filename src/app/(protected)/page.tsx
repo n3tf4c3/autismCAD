@@ -32,7 +32,7 @@ function formatBirthdayMonth(value: string): string {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const userId = Number(user.id);
+  const userId = user.id;
   const access = await loadUserAccess(userId);
   const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
   if (roleCanon === "RESPONSAVEL") {

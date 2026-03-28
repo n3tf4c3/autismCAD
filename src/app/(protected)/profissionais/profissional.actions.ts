@@ -43,7 +43,7 @@ function actionErrorResult(error: unknown): ActionError {
 
 async function assertCanEditProfissional(profissionalId: number): Promise<number> {
   const user = await requireUser();
-  const userId = Number(user.id);
+  const userId = user.id;
   const access = await loadUserAccess(userId);
   const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
   const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
@@ -120,7 +120,7 @@ export async function deleteProfissionalAction(
     }
 
     const { user } = await requirePermission("profissionais:delete");
-    const result = await deleteProfissional(idNum, Number(user.id));
+    const result = await deleteProfissional(idNum, user.id);
 
     revalidatePath("/profissionais");
     revalidatePath(`/profissionais/${idNum}`);

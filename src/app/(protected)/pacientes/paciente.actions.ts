@@ -129,7 +129,7 @@ export async function deletePacienteAction(
 
     const { user } = await requirePermission("pacientes:delete");
     await assertPacienteAccess(user, idNum);
-    const result = await softDeletePaciente(idNum, Number(user.id));
+    const result = await softDeletePaciente(idNum, user.id);
 
     revalidatePath("/pacientes");
     revalidatePath(`/pacientes/${idNum}`);
@@ -147,7 +147,7 @@ export async function listarPacientesAction(
   try {
     const { user } = await requirePermission("pacientes:view");
     const parsed = pacientesQuerySchema.parse(filters ?? {});
-    const rows = await listarPacientesPorUsuario(Number(user.id), parsed);
+    const rows = await listarPacientesPorUsuario(user.id, parsed);
     return { ok: true, data: { items: rows } };
   } catch (error) {
     return actionErrorResult(error);

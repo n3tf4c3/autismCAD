@@ -32,7 +32,7 @@ export default async function CalendarioPage(props: {
   let pacientes: Array<{ id: number; nome: string }> = [];
   try {
     await requirePermission("pacientes:view");
-    const pacientesRows = await listarPacientesPorUsuario(Number(user.id), {});
+    const pacientesRows = await listarPacientesPorUsuario(user.id, {});
     pacientes = pacientesRows.map((item) => ({ id: item.id, nome: item.nome }));
   } catch {
     pacientes = [];

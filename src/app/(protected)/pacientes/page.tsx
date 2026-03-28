@@ -6,7 +6,7 @@ import { PacientesPageClient } from "@/app/(protected)/pacientes/pacientes-page.
 export default async function PacientesPage() {
   const { user } = await requirePermission("pacientes:view");
 
-  const items = await listarPacientesPorUsuario(Number(user.id), {});
+  const items = await listarPacientesPorUsuario(user.id, {});
 
   let profissionais: Array<{ id: number; nome: string }> = [];
   try {

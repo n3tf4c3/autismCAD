@@ -141,7 +141,7 @@ export async function excluirEvolucaoAction(
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
-    const ok = await excluirEvolucao(parsedEvolucaoId, Number(user.id));
+    const ok = await excluirEvolucao(parsedEvolucaoId, user.id);
     if (!ok) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
     const pacienteId = Number(evolucaoAtual.pacienteId);
@@ -183,7 +183,7 @@ export async function excluirDocumentoProntuarioAction(
 
     await assertPacienteAccess(user, Number(documentoAtual.pacienteId));
 
-    const ok = await excluirDocumento(parsedDocumentoId, Number(user.id));
+    const ok = await excluirDocumento(parsedDocumentoId, user.id);
     if (!ok) throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
 
     const pacienteId = Number(documentoAtual.pacienteId);

@@ -2,6 +2,7 @@ import "server-only";
 
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { loadUserAccess } from "@/server/auth/access";
+import { parseSessionUserId } from "@/server/auth/user-id";
 import { AppError } from "@/server/shared/errors";
 import {
   obterProfissionalPorUsuario,
@@ -15,10 +16,7 @@ export type SessionUserLike = {
 };
 
 export async function assertPacienteAccess(user: SessionUserLike, pacienteId: number) {
-  const userId = Number(user.id);
-  if (!Number.isFinite(userId) || userId <= 0) {
-    throw new AppError("Nao autenticado", 401, "UNAUTHORIZED");
-  }
+  const userId = parseSessionUserId(user.id);
   if (!Number.isFinite(pacienteId) || pacienteId <= 0) {
     throw new AppError("Paciente invalido", 400, "INVALID_INPUT");
   }

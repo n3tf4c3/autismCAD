@@ -6,16 +6,22 @@ import { AppError } from "@/server/shared/errors";
 import { getAuthSession } from "@/server/auth/session";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
+import { parseSessionUserId } from "@/server/auth/user-id";
 
-export async function requireUser() {
+export type AuthenticatedUser = {
+  id: number;
+  role?: string | null;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
+export async function requireUser(): Promise<AuthenticatedUser> {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AppError("Nao autenticado", 401, "UNAUTHORIZED");
   }
-  const userId = Number(session.user.id);
-  if (!Number.isFinite(userId) || userId <= 0) {
-    throw new AppError("Sessao invalida", 401, "UNAUTHORIZED");
-  }
+  const userId = parseSessionUserId(session.user.id);
   const [activeUser] = await db
     .select({ id: users.id })
     .from(users)
@@ -30,14 +36,14 @@ export async function requireUser() {
   if (!activeUser) {
     throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
-  return session.user;
+  return { ...session.user, id: userId };
 }
 
 export async function requireRole(allowedRoles: string[]) {
   const user = await requireUser();
   const userRole = canonicalRoleName(user.role) ?? user.role;
   const allowed = new Set(allowedRoles.map((role) => canonicalRoleName(role) ?? role));
-  if (!allowed.has(userRole)) {
+  if (!userRole || !allowed.has(userRole)) {
     throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
   return user;
@@ -45,7 +51,7 @@ export async function requireRole(allowedRoles: string[]) {
 
 export async function requireAdminGeral() {
   const user = await requireUser();
-  const access = await loadUserAccess(Number(user.id));
+  const access = await loadUserAccess(user.id);
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
   }
@@ -58,7 +64,7 @@ export async function requireAdminGeral() {
 
 export async function requirePermission(permissionKey: string | string[]) {
   const user = await requireUser();
-  const access = await loadUserAccess(Number(user.id));
+  const access = await loadUserAccess(user.id);
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
   }

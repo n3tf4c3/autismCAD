@@ -154,7 +154,7 @@ export async function updateUserAction(
     }
     const { user } = await requireAdminGeral();
     const parsed = updateUserSchema.parse(input);
-    const result = await updateUser(parsedId, parsed, Number(user.id));
+    const result = await updateUser(parsedId, parsed, user.id);
     return { ok: true, data: result };
   } catch (error) {
     return actionErrorResult(error);
@@ -170,7 +170,7 @@ export async function deleteUserAction(
       throw new AppError("Usuario invalido", 400, "INVALID_INPUT");
     }
     const { user } = await requireAdminGeral();
-    const result = await deleteUser(parsedId, Number(user.id));
+    const result = await deleteUser(parsedId, user.id);
     return { ok: true, data: result };
   } catch (error) {
     return actionErrorResult(error);

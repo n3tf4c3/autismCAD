@@ -24,7 +24,7 @@ export default async function DevolutivaImpressaoPage(props: {
   let outrosPacientes: Array<{ id: number; nome: string }> = [];
 
   if (isResponsavel) {
-    pacientesVinculados = await getPacientesVinculadosByUserId(Number(user.id));
+    pacientesVinculados = await getPacientesVinculadosByUserId(user.id);
     const pacienteSelecionado = Number.isFinite(pacienteIdSelecionado)
       ? pacientesVinculados.find((item) => Number(item.id) === Number(pacienteIdSelecionado))
       : null;

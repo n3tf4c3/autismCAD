@@ -43,6 +43,15 @@ function normalizeDocTipo(value?: string | null): string | null {
   return normalized || null;
 }
 
+function toPositiveUserIdOrNull(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    throw new AppError("Usuario invalido", 400, "INVALID_INPUT");
+  }
+  return parsed;
+}
+
 const documentoSelectBase = {
   id: prontuarioDocumentos.id,
   pacienteId: prontuarioDocumentos.pacienteId,
@@ -192,7 +201,7 @@ export async function salvarDocumento(
       ? getPlanoEnsinoTitulo(payload as ReturnType<typeof sanitizePlanoEnsinoPayload>)
       : getDocumentoTipoLabel(tipo));
 
-  const userId = user?.id ? Number(user.id) : null;
+  const userId = toPositiveUserIdOrNull(user?.id ?? null);
   const userRole = user?.role ?? null;
   const documentoId =
     tipo === "PLANO_ENSINO" && input.documentoId != null
@@ -310,7 +319,9 @@ export async function criarEvolucao(
   let profissionalId = profissionalRaw ? Number(profissionalRaw) : null;
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "PROFISSIONAL") {
-    const profissional = await obterProfissionalPorUsuario(Number(user?.id));
+    const userId = toPositiveUserIdOrNull(user?.id ?? null);
+    if (!userId) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
     if (profissionalRaw != null && Number(profissionalRaw) !== Number(profissional.id)) {
       throw new AppError(
@@ -411,7 +422,9 @@ export async function atualizarEvolucao(
     : Number(current.profissionalId);
   const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "PROFISSIONAL") {
-    const profissional = await obterProfissionalPorUsuario(Number(user?.id));
+    const userId = toPositiveUserIdOrNull(user?.id ?? null);
+    if (!userId) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
+    const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
     if (profissionalRaw != null && Number(profissionalRaw) !== Number(profissional.id)) {
       throw new AppError(

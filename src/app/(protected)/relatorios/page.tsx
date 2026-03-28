@@ -14,7 +14,7 @@ export default async function RelatoriosIndexPage(props: {
   const isResponsavel = roleCanon === "RESPONSAVEL";
 
   if (isResponsavel) {
-    const pacientesVinculados = await getPacientesVinculadosByUserId(Number(user.id));
+    const pacientesVinculados = await getPacientesVinculadosByUserId(user.id);
     return (
       <main className="space-y-4">
         <section className="rounded-xl bg-white p-6 shadow-sm">

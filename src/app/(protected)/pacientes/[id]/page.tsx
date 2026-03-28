@@ -71,7 +71,7 @@ function resolveAtivoFlag(value: unknown): boolean {
 
 export default async function PacienteDetalhePage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requirePermission("pacientes:view");
-  const access = await loadUserAccess(Number(user.id));
+  const access = await loadUserAccess(user.id);
   const { id } = await props.params;
   const pacienteId = Number(id);
 

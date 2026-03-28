@@ -60,7 +60,7 @@ function pickEndereco(row: {
 
 export default async function ProfissionalDetalhePage(props: PageProps) {
   const user = await requireUser();
-  const access = await loadUserAccess(Number(user.id));
+  const access = await loadUserAccess(user.id);
   const canView = hasPermissionKey(access.permissions, "profissionais:view");
   if (!canView) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
@@ -69,7 +69,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
   const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
   const [row, self] = await Promise.all([
     obterProfissionalDetalhe(id),
-    canEditAny || !canEditSelf ? Promise.resolve(null) : obterProfissionalPorUsuario(Number(user.id)),
+    canEditAny || !canEditSelf ? Promise.resolve(null) : obterProfissionalPorUsuario(user.id),
   ]);
 
   if (!row) throw new AppError("Profissional não encontrado", 404, "NOT_FOUND");

@@ -15,14 +15,14 @@ type PageProps = {
 
 export default async function EditarProfissionalPage(props: PageProps) {
   const user = await requireUser();
-  const access = await loadUserAccess(Number(user.id));
+  const access = await loadUserAccess(user.id);
   const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
   const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
   if (!canEditAny && !canEditSelf) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
   const { id } = idParamSchema.parse(await props.params);
   if (!canEditAny) {
-    const self = await obterProfissionalPorUsuario(Number(user.id));
+    const self = await obterProfissionalPorUsuario(user.id);
     if (!self || self.id !== id) throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
 
