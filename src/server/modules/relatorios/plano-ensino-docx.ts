@@ -141,7 +141,7 @@ export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<B
       "Consolidado a partir das evolucoes do periodo com foco em desempenho, tipo de ajuda, tentativas e acertos."
     ),
     bodyParagraph(
-      "Legenda de ajuda: MOD - Modelo | SV - Suporte Verbal | SVG - Suporte Verbal Gestual | SG - Suporte Gestual | SFP - Suporte Fisico Parcial | SFT - Suporte Fisico Total"
+      "Legenda de ajuda: MOD - Modelo | INS - Instrucao | SV - Suporte Verbal | SVG - Suporte Verbal Gestual | SG - Suporte Gestual | SFP - Suporte Fisico Parcial | SFT - Suporte Fisico Total"
     ),
   ];
 

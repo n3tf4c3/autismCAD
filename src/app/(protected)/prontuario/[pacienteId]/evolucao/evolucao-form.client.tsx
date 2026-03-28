@@ -25,6 +25,7 @@ type DesempenhoChoice = "" | "ajuda" | "nao_fez" | "independente";
 type AjudaChoice =
   | ""
   | "modelo"
+  | "instrucao"
   | "verbal"
   | "verbal_gestual"
   | "gestual"
@@ -104,6 +105,7 @@ const DESEMPENHO_OPTIONS: Array<{ value: DesempenhoChoice; label: string }> = [
 const AJUDA_OPTIONS: Array<{ value: AjudaChoice; label: string }> = [
   { value: "", label: "Selecione" },
   { value: "modelo", label: "MOD - Modelo" },
+  { value: "instrucao", label: "INS - Instrucao" },
   { value: "verbal", label: "SV - Suporte Verbal" },
   { value: "verbal_gestual", label: "SVG - Suporte Verbal Gestual" },
   { value: "gestual", label: "SG - Suporte Gestual" },
@@ -149,6 +151,7 @@ function normalizeAjudaChoice(value: unknown): AjudaChoice {
   const token = value.toLowerCase().trim().replace(/\s+/g, "_");
   if (!token) return "";
   if (token === "mod" || token === "modelo" || token === "model") return "modelo";
+  if (token === "ins" || token === "instrucao" || token === "instrução") return "instrucao";
   if (token === "sv" || token === "verbal") return "verbal";
   if (token === "svg" || token === "verbal_gestual" || token === "verbal_e_gestual") return "verbal_gestual";
   if (token === "sg" || token === "gestual") return "gestual";
@@ -692,7 +695,7 @@ export function EvolucaoFormClient(props: {
                 reforcador.
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> MOD - Modelo, SV - Suporte Verbal,
+                <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> MOD - Modelo, INS - Instrucao, SV - Suporte Verbal,
                 SVG - Suporte Verbal Gestual, SG - Suporte Gestual, SFP - Suporte Fisico Parcial, SFT - Suporte Fisico Total.{" "}
                 <span className="font-semibold text-[var(--marrom)]">Tentativas:</span> numero de apresentacoes.
               </p>

@@ -517,6 +517,7 @@ function normalizeAjudaCode(value: unknown, desempenho: PlanoEnsinoDesempenhoKey
     return null;
   }
   if (token === "mod" || token === "modelo" || token === "model") return "MOD";
+  if (token === "ins" || token === "instrucao") return "INS";
   if (token === "sv" || token === "verbal") return "SV";
   if (token === "svg" || token === "verbal_gestual" || token === "verbal_e_gestual") return "SVG";
   if (token === "sg" || token === "gestual") return "SG";

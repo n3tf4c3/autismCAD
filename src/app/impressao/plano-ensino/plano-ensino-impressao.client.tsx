@@ -161,6 +161,7 @@ function readApiError(json: unknown): string | null {
 
 const AJUDA_LEGENDA = [
   { code: "MOD", label: "Modelo" },
+  { code: "INS", label: "Instrucao" },
   { code: "SV", label: "Suporte Verbal" },
   { code: "SVG", label: "Suporte Verbal Gestual" },
   { code: "SG", label: "Suporte Gestual" },
