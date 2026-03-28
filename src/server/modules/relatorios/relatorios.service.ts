@@ -11,6 +11,7 @@ import {
   users,
 } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
+import type { AuthenticatedUser } from "@/server/auth/auth";
 import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
@@ -165,9 +166,9 @@ async function assertProfissionalAssistencial(profissionalId: number): Promise<n
 
 export async function consolidateEvolutivoReport(params: {
   query: EvolutivoQueryInput;
-  user: { id: number | string; role?: string | null };
+  user: AuthenticatedUser;
 }) {
-  const pacienteId = Number(params.query.pacienteId);
+  const pacienteId = params.query.pacienteId;
   if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
@@ -182,7 +183,7 @@ export async function consolidateEvolutivoReport(params: {
 
   const profissionalFiltro = await resolveProfissionalFiltro({
     roleCanon,
-    userId: Number(params.user.id),
+    userId: params.user.id,
     profissionalId: params.query.profissionalId ?? null,
   });
 
@@ -578,9 +579,9 @@ function extractPlanoDesempenhoItems(args: {
 
 export async function consolidatePlanoEnsinoReport(params: {
   query: PlanoEnsinoQueryInput;
-  user: { id: number | string; role?: string | null };
+  user: AuthenticatedUser;
 }) {
-  const pacienteId = Number(params.query.pacienteId);
+  const pacienteId = params.query.pacienteId;
   if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
@@ -724,10 +725,10 @@ export async function consolidatePlanoEnsinoReport(params: {
 
 export async function consolidateAssiduidadeReport(params: {
   query: AssiduidadeQueryInput;
-  user: { id: number | string; role?: string | null };
+  user: AuthenticatedUser;
 }) {
   const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
-  const userId = Number(params.user.id);
+  const userId = params.user.id;
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
