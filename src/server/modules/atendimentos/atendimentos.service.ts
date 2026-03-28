@@ -108,16 +108,18 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
     .limit(1);
   if (conflitoPaciente) return "paciente" as const;
 
+  // Sessao em grupo permite sobreposicao para o mesmo profissional.
+  // A restricao mantida e apenas nao duplicar horario do mesmo paciente.
+  if (params.isGrupo) {
+    return null;
+  }
+
   const whereProfissional = [
     eq(atendimentos.profissionalId, params.profissionalId),
     eq(atendimentos.data, params.data),
     isNull(atendimentos.deletedAt),
     sql`${params.horaFim}::time > ${atendimentos.horaInicio} AND ${params.horaInicio}::time < ${atendimentos.horaFim}`,
   ];
-  if (params.isGrupo) {
-    // Grupo pode sobrepor com grupo, mas nunca com atendimento individual.
-    whereProfissional.push(eq(atendimentos.isGrupo, false));
-  }
   if (params.ignoreId) {
     whereProfissional.push(sql`${atendimentos.id} <> ${params.ignoreId}`);
   }
