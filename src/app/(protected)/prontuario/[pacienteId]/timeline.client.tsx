@@ -5,7 +5,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateBr, toLocalDateKey } from "@/lib/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
-import { excluirEvolucaoAction } from "@/app/(protected)/prontuario/prontuario.actions";
+import {
+  excluirDocumentoProntuarioAction,
+  excluirEvolucaoAction,
+} from "@/app/(protected)/prontuario/prontuario.actions";
 
 export type TimelineItem =
   | {
@@ -53,7 +56,7 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
   function unwrapAction<T>(
     result: { ok: true; data: T } | { ok: false; error: string }
   ): T {
-    if (!result.ok) throw new Error(result.error || "Erro ao excluir evolucao");
+    if (!result.ok) throw new Error(result.error || "Erro ao executar acao");
     return result.data;
   }
 
@@ -67,6 +70,19 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
       return;
     }
     setLocalItems((current) => current.filter((i) => !(i.kind === "evolucao" && i.id === id)));
+    startTransition(() => router.refresh());
+  }
+
+  async function deleteDocumento(id: number) {
+    if (!confirm("Deseja excluir este plano de ensino?")) return;
+    try {
+      unwrapAction(await excluirDocumentoProntuarioAction(id));
+    } catch (error) {
+      const err = error as { message?: string };
+      alert(err.message || "Erro ao excluir plano de ensino");
+      return;
+    }
+    setLocalItems((current) => current.filter((i) => !(i.kind === "documento" && i.id === id)));
     startTransition(() => router.refresh());
   }
 
@@ -164,12 +180,14 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                           >
                             Editar
                           </Link>
-                          <Link
-                            className="text-sm font-semibold text-[var(--laranja)]"
-                            href={`/prontuario/${props.pacienteId}/plano-ensino`}
+                          <button
+                            type="button"
+                            onClick={() => deleteDocumento(item.id)}
+                            className="text-sm font-semibold text-red-600"
+                            disabled={isPending}
                           >
-                            Criar nova versao
-                          </Link>
+                            Excluir
+                          </button>
                         </>
                       ) : null}
                     </>

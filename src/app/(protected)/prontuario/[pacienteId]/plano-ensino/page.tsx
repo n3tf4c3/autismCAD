@@ -72,7 +72,6 @@ export default async function PlanoEnsinoPage(props: {
     ? {
         ...sanitizePlanoEnsinoPayload(sourceDoc.payload),
         sourceDocumentId: sourceDoc.id,
-        sourceVersion: sourceDoc.version,
       }
     : null;
 

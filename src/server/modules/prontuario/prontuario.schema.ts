@@ -28,6 +28,7 @@ export const salvarDocumentoSchema = z.object({
   tipo: docTipoSchema,
   status: docStatusSchema,
   titulo: z.string().trim().max(180).optional().nullable(),
+  documentoId: z.coerce.number().int().positive().optional().nullable(),
   payload: prontuarioDocumentoPayloadSchema.optional().default({}),
 });
 

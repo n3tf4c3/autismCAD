@@ -1,6 +1,7 @@
 ﻿import Link from "next/link";
 import { formatDateBr } from "@/lib/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
+import { DocumentoActionsClient } from "@/app/(protected)/prontuario/documento/[id]/documento-actions.client";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
@@ -77,7 +78,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
           </div>
           <div className="text-right text-sm text-gray-600">
             <p>Status: {doc.status || "-"}</p>
-            <p>Versao: {doc.version ?? "-"}</p>
+            {doc.tipo !== "PLANO_ENSINO" ? <p>Versao: {doc.version ?? "-"}</p> : null}
             <p>Data: {formatDateBr(String(doc.createdAt).slice(0, 10))}</p>
           </div>
         </div>
@@ -116,7 +117,10 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
                       <ReadonlyField label="Objetivo de Ensino" value={bloco.objetivoEnsino} />
                       <ReadonlyField label="Procedimento" value={bloco.procedimento} />
                       <ReadonlyField label="Recursos" value={bloco.recursos} />
-                      <ReadonlyField label="Suportes" value={bloco.suportes} />
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <ReadonlyField label="Suportes" value={bloco.suportes} />
+                        <ReadonlyField label="Alvo" value={bloco.alvo} />
+                      </div>
                       <ReadonlyField label="Objetivo Especifico" value={bloco.objetivoEspecifico} />
                       <ReadonlyField label="Criterio de Sucesso" value={bloco.criterioSucesso} />
                     </div>
@@ -144,12 +148,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
               >
                 Editar
               </Link>
-              <Link
-                href={`/prontuario/${doc.pacienteId}/plano-ensino`}
-                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-              >
-                Criar nova versao
-              </Link>
+              <DocumentoActionsClient documentoId={doc.id} pacienteId={Number(doc.pacienteId)} />
             </>
           ) : null}
         </div>

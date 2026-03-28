@@ -451,6 +451,7 @@ type PlanoEnsinoBlocoReport = {
   recursos: string | null;
   procedimento: string | null;
   suportes: string | null;
+  alvo: string | null;
   objetivoEspecifico: string | null;
   criterioSucesso: string | null;
 };
@@ -463,6 +464,7 @@ function toPlanoBlocoReport(bloco: PlanoEnsinoBloco): PlanoEnsinoBlocoReport {
     recursos: bloco.recursos,
     procedimento: bloco.procedimento,
     suportes: bloco.suportes,
+    alvo: bloco.alvo,
     objetivoEspecifico: bloco.objetivoEspecifico,
     criterioSucesso: bloco.criterioSucesso,
   };

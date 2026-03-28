@@ -14,6 +14,7 @@ type BlocoForm = {
   recursos: string;
   procedimento: string;
   suportes: string;
+  alvo: string;
   objetivoEspecifico: string;
   criterioSucesso: string;
 };
@@ -28,7 +29,6 @@ export type PlanoEnsinoInitialData = {
   dataFinal: string | null;
   blocos: BlocoInput[];
   sourceDocumentId?: number | null;
-  sourceVersion?: number | null;
 };
 
 function uid(): string {
@@ -44,6 +44,7 @@ function createBloco(values?: Partial<BlocoInput>): BlocoForm {
     recursos: values?.recursos ?? "",
     procedimento: values?.procedimento ?? "",
     suportes: values?.suportes ?? "",
+    alvo: values?.alvo ?? "",
     objetivoEspecifico: values?.objetivoEspecifico ?? "",
     criterioSucesso: values?.criterioSucesso ?? "",
   };
@@ -129,6 +130,7 @@ function getInitialBlocos(initialData?: PlanoEnsinoInitialData | null): BlocoFor
     recursos: bloco.recursos ?? "",
     procedimento: bloco.procedimento ?? "",
     suportes: bloco.suportes ?? "",
+    alvo: bloco.alvo ?? "",
     objetivoEspecifico: bloco.objetivoEspecifico ?? "",
     criterioSucesso: bloco.criterioSucesso ?? "",
   }));
@@ -163,13 +165,14 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
     setBlocos((current) => (current.length > 1 ? current.filter((bloco) => bloco.id !== id) : current));
   }
 
-  async function submit(status: "Rascunho" | "Finalizado") {
+  async function submit() {
     setBusy(true);
     setMsg(null);
     try {
       const payload = {
         tipo: "PLANO_ENSINO",
-        status,
+        status: "Finalizado" as const,
+        documentoId: props.initialData?.sourceDocumentId ?? null,
         titulo: null,
         payload: {
           especialidade: especialidade.trim() || null,
@@ -182,6 +185,7 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
             recursos: bloco.recursos,
             procedimento: bloco.procedimento,
             suportes: bloco.suportes,
+            alvo: bloco.alvo,
             objetivoEspecifico: bloco.objetivoEspecifico,
             criterioSucesso: bloco.criterioSucesso,
           })),
@@ -189,7 +193,7 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
       };
 
       const data = unwrapAction(await salvarDocumentoProntuarioAction(props.pacienteId, payload));
-      setMsg(`Plano de ensino salvo. Versao ${data.version ?? "-"}.`);
+      setMsg("Plano de ensino salvo com sucesso.");
       if (data.id) {
         setTimeout(() => router.push(`/prontuario/documento/${data.id}`), 650);
       } else {
@@ -206,23 +210,19 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-bold text-[var(--marrom)]">Plano de Ensino</h1>
-      <p className="mt-1 text-sm text-gray-600">Cada salvamento cria uma nova versao do documento.</p>
+      <p className="mt-1 text-sm text-gray-600">Preencha os campos e salve o plano de ensino.</p>
 
       <div className="mt-5 space-y-5">
         {isEditing ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-[var(--marrom)]">
-            <p className="font-semibold">
-              Editando a partir da versao {props.initialData?.sourceVersion ?? "-"}.
-            </p>
-            <p className="mt-1">
-              Ao salvar, o sistema cria uma nova versao do plano.
-            </p>
+            <p className="font-semibold">Editando plano de ensino existente.</p>
+            <p className="mt-1">Ao salvar, o mesmo documento sera atualizado.</p>
             {props.initialData?.sourceDocumentId ? (
               <Link
                 href={`/prontuario/documento/${props.initialData.sourceDocumentId}`}
                 className="mt-2 inline-flex font-semibold text-[var(--laranja)]"
               >
-                Visualizar versao atual
+                Visualizar plano atual
               </Link>
             ) : null}
           </div>
@@ -286,7 +286,18 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
                     onChange={(value) => updateBloco(bloco.id, "procedimento", value)}
                   />
                   <Textarea label="Recursos" value={bloco.recursos} onChange={(value) => updateBloco(bloco.id, "recursos", value)} />
-                  <Textarea label="Suportes" value={bloco.suportes} onChange={(value) => updateBloco(bloco.id, "suportes", value)} />
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Textarea
+                      label="Suportes"
+                      value={bloco.suportes}
+                      onChange={(value) => updateBloco(bloco.id, "suportes", value)}
+                    />
+                    <Textarea
+                      label="Alvo"
+                      value={bloco.alvo}
+                      onChange={(value) => updateBloco(bloco.id, "alvo", value)}
+                    />
+                  </div>
                   <Textarea
                     label="Objetivo Especifico"
                     value={bloco.objetivoEspecifico}
@@ -307,18 +318,10 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
           <button
             type="button"
             disabled={busy}
-            onClick={() => submit("Rascunho")}
-            className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:opacity-60"
-          >
-            Salvar rascunho
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => submit("Finalizado")}
+            onClick={() => submit()}
             className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
           >
-            Finalizar
+            Salvar
           </button>
         </div>
 

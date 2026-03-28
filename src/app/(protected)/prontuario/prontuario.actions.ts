@@ -7,7 +7,9 @@ import { canonicalRoleName } from "@/server/auth/permissions";
 import {
   atualizarEvolucao,
   criarEvolucao,
+  excluirDocumento,
   excluirEvolucao,
+  obterDocumento,
   obterEvolucaoPorId,
   salvarDocumento,
 } from "@/server/modules/prontuario/prontuario.service";
@@ -165,6 +167,30 @@ export async function salvarDocumentoProntuarioAction(
     revalidatePath(`/prontuario/${parsedPacienteId}/plano-ensino`);
     revalidatePath(`/prontuario/documento/${saved.id}`);
     return { ok: true, data: saved };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function excluirDocumentoProntuarioAction(
+  documentoId: number
+): Promise<ActionResult<{ id: number; deleted: true }>> {
+  try {
+    const parsedDocumentoId = parsePositiveInt(documentoId, "Documento", "INVALID_INPUT");
+    const { user } = await requirePermission("prontuario:delete");
+    const documentoAtual = await obterDocumento(parsedDocumentoId);
+    if (!documentoAtual) throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
+
+    await assertPacienteAccess(user, Number(documentoAtual.pacienteId));
+
+    const ok = await excluirDocumento(parsedDocumentoId, Number(user.id));
+    if (!ok) throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
+
+    const pacienteId = Number(documentoAtual.pacienteId);
+    revalidatePath(`/prontuario/${pacienteId}`);
+    revalidatePath(`/prontuario/${pacienteId}/plano-ensino`);
+    revalidatePath(`/prontuario/documento/${parsedDocumentoId}`);
+    return { ok: true, data: { id: parsedDocumentoId, deleted: true } };
   } catch (error) {
     return actionErrorResult(error);
   }

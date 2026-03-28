@@ -38,6 +38,11 @@ function toIsoDate(value: string): string {
   return normalized;
 }
 
+function normalizeDocTipo(value?: string | null): string | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  return normalized || null;
+}
+
 const documentoSelectBase = {
   id: prontuarioDocumentos.id,
   pacienteId: prontuarioDocumentos.pacienteId,
@@ -131,7 +136,8 @@ async function sincronizarRepassePendenteSeSemEvolucao(
 
 export async function listarDocumentos(pacienteId: number, tipo?: string | null) {
   const where = [eq(prontuarioDocumentos.pacienteId, pacienteId), isNull(prontuarioDocumentos.deletedAt)];
-  if (tipo) where.push(eq(prontuarioDocumentos.tipo, tipo));
+  const normalizedTipo = normalizeDocTipo(tipo);
+  if (normalizedTipo) where.push(eq(prontuarioDocumentos.tipo, normalizedTipo));
 
   return db
     .select({
@@ -141,7 +147,11 @@ export async function listarDocumentos(pacienteId: number, tipo?: string | null)
     .from(prontuarioDocumentos)
     .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
     .where(and(...where))
-    .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
+    .orderBy(
+      desc(prontuarioDocumentos.updatedAt),
+      desc(prontuarioDocumentos.createdAt),
+      desc(prontuarioDocumentos.version)
+    );
 }
 
 export async function obterDocumento(id: number) {
@@ -184,6 +194,41 @@ export async function salvarDocumento(
 
   const userId = user?.id ? Number(user.id) : null;
   const userRole = user?.role ?? null;
+  const documentoId =
+    tipo === "PLANO_ENSINO" && input.documentoId != null
+      ? Number(input.documentoId)
+      : null;
+
+  if (documentoId && Number.isFinite(documentoId) && documentoId > 0) {
+    const updated = await runDbTransaction(
+      async (tx) => {
+        const [row] = await tx
+          .update(prontuarioDocumentos)
+          .set({
+            status: statusVal,
+            titulo,
+            payload,
+            updatedAt: sql`now()`,
+          })
+          .where(
+            and(
+              eq(prontuarioDocumentos.id, documentoId),
+              eq(prontuarioDocumentos.pacienteId, pacienteId),
+              eq(prontuarioDocumentos.tipo, tipo),
+              isNull(prontuarioDocumentos.deletedAt)
+            )
+          )
+          .returning({ id: prontuarioDocumentos.id, version: prontuarioDocumentos.version });
+        return row ?? null;
+      },
+      { operation: "prontuario.salvarDocumento", mode: "required" }
+    );
+
+    if (!updated) {
+      throw new AppError("Plano de ensino nao encontrado", 404, "NOT_FOUND");
+    }
+    return updated;
+  }
 
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
@@ -481,7 +526,7 @@ export async function obterTimelineProntuario(pacienteId: number) {
     titulo: d.titulo || d.tipo,
     status: d.status,
     version: d.version,
-    data: d.createdAt ? String(d.createdAt) : "",
+    data: d.updatedAt ? String(d.updatedAt) : d.createdAt ? String(d.createdAt) : "",
     profissional: d.autorNome || d.createdByRole || "Usuario",
   }));
 

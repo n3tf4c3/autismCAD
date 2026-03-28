@@ -67,6 +67,7 @@ type PlanoEnsinoReport = {
       recursos: string | null;
       procedimento: string | null;
       suportes: string | null;
+      alvo: string | null;
       objetivoEspecifico: string | null;
       criterioSucesso: string | null;
     }>;

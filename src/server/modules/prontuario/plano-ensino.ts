@@ -11,6 +11,7 @@ export type PlanoEnsinoBloco = {
   recursos: string | null;
   procedimento: string | null;
   suportes: string | null;
+  alvo: string | null;
   objetivoEspecifico: string | null;
   criterioSucesso: string | null;
 };
@@ -36,6 +37,7 @@ function sanitizeBloco(value: unknown): PlanoEnsinoBloco {
     recursos: normalizeOptionalText(String(rec.recursos ?? rec.rercusos ?? "")),
     procedimento: normalizeOptionalText(String(rec.procedimento ?? "")),
     suportes: normalizeOptionalText(String(rec.suportes ?? "")),
+    alvo: normalizeOptionalText(String(rec.alvo ?? rec.target ?? "")),
     objetivoEspecifico: normalizeOptionalText(
       String(rec.objetivoEspecifico ?? rec.objetivo_especifico ?? "")
     ),
