@@ -850,7 +850,7 @@ export function DevolutivaImpressaoClient(props: {
               <div className="space-y-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d1a06c]">Clínica Girassóis</p>
                 <h1 className="max-w-3xl text-2xl font-semibold uppercase tracking-[0.06em] text-[#4d392a] sm:text-3xl">
-                  Relatório devolutivo interdisciplinar
+                  Registro de atendimento
                 </h1>
               </div>
 
@@ -870,7 +870,7 @@ export function DevolutivaImpressaoClient(props: {
                 value={<p className="text-base font-semibold text-[#3d3127]">{report.paciente.nome}</p>}
               />
               <DocumentField
-                label="Período avaliado"
+                label="Período"
                 value={fmtPeriodLabel(report.periodo.from, report.periodo.to)}
                 helper={`${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`}
               />
@@ -951,7 +951,7 @@ export function DevolutivaImpressaoClient(props: {
               </DocumentSection>
             </div>
 
-            <DocumentSection title="Habilidades com maior volume de registro">
+            <DocumentSection title="Habilidades trabalhadas">
               {topSkillRows.length ? (
                 <div className="space-y-4">
                   <SkillDistributionChart rows={topSkillRows} />
@@ -986,7 +986,7 @@ export function DevolutivaImpressaoClient(props: {
               )}
             </DocumentSection>
 
-            <DocumentSection title="Comportamentos observados">
+            <DocumentSection title="Comportamentos Apresentados">
               {behaviorRows.length ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1045,7 +1045,7 @@ export function DevolutivaImpressaoClient(props: {
               )}
             </DocumentSection>
 
-            <DocumentSection title="Observações clinicas selecionadas">
+            <DocumentSection title="Registros clínico">
               {feedbackItems.length ? (
                 <div className="space-y-3">
                   {feedbackItems.map((item, index) => (

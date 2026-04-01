@@ -283,11 +283,10 @@ function bulletParagraph(text: string) {
 }
 
 export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<Buffer> {
-  const { lines, desempenhoResumo, comportamentoResumo } = buildSinteseClinica(report);
+  const { desempenhoResumo, comportamentoResumo } = buildSinteseClinica(report);
   const topSkillRows = desempenhoResumo.rowsBySkill.slice(0, 8);
   const behaviorRows = comportamentoResumo.rowsGeral.slice(0, 10);
   const observacoes = report.destaques?.ultimasObservacoes ?? [];
-  const motivosAusencia = report.destaques?.principaisMotivosAusencia ?? [];
 
   const children: Paragraph[] = [
     new Paragraph({
@@ -295,7 +294,7 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
       spacing: { after: 80 },
       children: [
         new TextRun({
-          text: "CLINICA GIRASSOIS",
+          text: "CLÍNICA GIRASSÓIS",
           bold: true,
           size: 22,
           color: "A26F3C",
@@ -307,39 +306,20 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
       spacing: { after: 220 },
       children: [
         new TextRun({
-          text: "RELATORIO DEVOLUTIVO INTERDISCIPLINAR",
+          text: "REGISTROS DE ATENDIMENTO",
           bold: true,
           size: 34,
           color: "4D392A",
         }),
       ],
     }),
-    bodyParagraph(`Paciente: ${report.paciente.nome} (ID ${report.paciente.id})`),
+    bodyParagraph(`Paciente: ${report.paciente.nome}`),
     bodyParagraph(`CPF: ${report.paciente.cpf || "-"}`),
-    bodyParagraph(`Periodo avaliado: ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`),
-    bodyParagraph(`Emissao: ${fmtNowPtBr()}`),
-    sectionTitle("Sintese clinica do periodo"),
-    ...lines.map((line) => bodyParagraph(line)),
-    sectionTitle("Frequencia e continuidade assistencial"),
-    bulletParagraph(`Total de atendimentos: ${report.indicadores.totalAtendimentos}`),
-    bulletParagraph(`Presencas confirmadas: ${report.indicadores.presentes}`),
-    bulletParagraph(`Ausencias registradas: ${report.indicadores.ausentes}`),
-    bulletParagraph(`Sem informacao de presenca: ${report.indicadores.naoInformado}`),
-    bulletParagraph(`Taxa de presenca: ${report.indicadores.taxaPresencaPercent}%`),
-    bulletParagraph(`Tempo total registrado: ${report.indicadores.tempoTotalMinutos} minuto(s)`),
-    bulletParagraph(`Media por sessao: ${report.indicadores.mediaMinutosPorSessao} minuto(s)`),
-    bulletParagraph(`Primeiro atendimento no periodo: ${fmtDate(report.indicadores.primeiroAtendimento)}`),
-    bulletParagraph(`Ultimo atendimento no periodo: ${fmtDate(report.indicadores.ultimoAtendimento)}`),
-    sectionTitle("Intercorrencias e ausencias"),
+    bodyParagraph(`Período: ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`),
+    bodyParagraph(`Emissão: ${fmtNowPtBr()}`),
   ];
 
-  if (motivosAusencia.length) {
-    children.push(...motivosAusencia.map((item) => bulletParagraph(`${item.motivo}: ${item.count} registro(s)`)));
-  } else {
-    children.push(bodyParagraph("Nao houve motivos de ausencia consolidados no periodo."));
-  }
-
-  children.push(sectionTitle("Habilidades com maior volume de registro"));
+  children.push(sectionTitle("Habilidades trabalhadas"));
   if (topSkillRows.length) {
     children.push(
       ...topSkillRows.map((item) =>
@@ -352,7 +332,7 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
     children.push(bodyParagraph("Nao houve registros de desempenho no periodo selecionado."));
   }
 
-  children.push(sectionTitle("Comportamentos observados"));
+  children.push(sectionTitle("Comportamentos Apresentados"));
   if (comportamentoResumo.total) {
     children.push(bodyParagraph(`Total de registros comportamentais: ${comportamentoResumo.total}.`));
     children.push(
@@ -365,7 +345,7 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
     children.push(bodyParagraph("Nao houve registros comportamentais consolidados no periodo."));
   }
 
-  children.push(sectionTitle("Observacoes clinicas selecionadas"));
+  children.push(sectionTitle("Registros clínico"));
   if (observacoes.length) {
     children.push(
       ...observacoes.map((item) =>
@@ -377,9 +357,9 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
   }
 
   const doc = new Document({
-    creator: "Clinica Girassois",
-    title: "Relatorio devolutivo interdisciplinar",
-    description: "Exportacao DOCX do relatorio devolutivo interdisciplinar",
+    creator: "Clínica Girassóis",
+    title: "REGISTROS DE ATENDIMENTO",
+    description: "Exportação DOCX dos REGISTROS DE ATENDIMENTO",
     sections: [
       {
         properties: {
