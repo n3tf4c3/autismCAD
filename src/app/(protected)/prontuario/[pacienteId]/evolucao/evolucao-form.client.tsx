@@ -3,12 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listarAtendimentosAction } from "@/app/(protected)/consultas/consultas.actions";
-import { normalizeAtendimentosList } from "@/app/(protected)/consultas/atendimento-compat";
 import {
   atualizarEvolucaoAction,
   criarEvolucaoAction,
   excluirEvolucaoAction,
 } from "@/app/(protected)/prontuario/prontuario.actions";
+
+type Atendimento = {
+  id: number;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  profissionalId?: number | null;
+  profissionalNome?: string | null;
+};
 
 type AtendimentoOption = {
   id: number;
@@ -386,14 +394,14 @@ export function EvolucaoFormClient(props: {
           dataFim: data,
         };
         const rowsResult = unwrapAction(await listarAtendimentosAction(qs));
-        const rows = normalizeAtendimentosList(rowsResult.items);
+        const rows: Atendimento[] = rowsResult.items;
         if (!alive) return;
         const mapped = rows.map((rec) => ({
           id: rec.id,
           data: String(rec.data ?? "").slice(0, 10),
-          horaInicio: String(rec.hora_inicio ?? "").slice(0, 5),
-          horaFim: String(rec.hora_fim ?? "").slice(0, 5),
-          profissionalId: rec.profissional_id,
+          horaInicio: String(rec.horaInicio ?? "").slice(0, 5),
+          horaFim: String(rec.horaFim ?? "").slice(0, 5),
+          profissionalId: rec.profissionalId,
           profissionalNome: rec.profissionalNome,
         } satisfies AtendimentoOption));
         setAtendimentos(mapped.filter((row) => row.id > 0));

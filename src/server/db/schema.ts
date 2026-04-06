@@ -197,6 +197,14 @@ export const userPacienteVinculosAudit = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    check(
+      "ck_user_paciente_vinculos_audit_removed_ids_array",
+      sql`jsonb_typeof(${table.removedPacienteIds}) = 'array'`
+    ),
+    check(
+      "ck_user_paciente_vinculos_audit_removed_ids_positive_int",
+      sql`${table.removedPacienteIds}::text ~ '^\\[(?:[1-9][0-9]*(?:,[1-9][0-9]*)*)?\\]$'`
+    ),
     index("idx_user_paciente_vinc_audit_target").on(table.targetUserId),
     index("idx_user_paciente_vinc_audit_actor").on(table.actorUserId),
     index("idx_user_paciente_vinc_audit_created_at").on(table.createdAt),

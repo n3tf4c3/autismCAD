@@ -66,6 +66,15 @@ const documentoSelectBase = {
   updatedAt: prontuarioDocumentos.updatedAt,
 } as const;
 
+async function acquireProntuarioDocumentVersionLock(
+  executor: typeof db,
+  params: { pacienteId: number; tipo: string }
+) {
+  await executor.execute(
+    sql`select pg_advisory_xact_lock(${params.pacienteId}, hashtext(${`prontuario-documento:${params.tipo}`}))`
+  );
+}
+
 async function obterProfissionalIdDoAtendimento(
   pacienteId: number,
   atendimentoId: number
@@ -244,6 +253,8 @@ export async function salvarDocumento(
     try {
       const created = await runDbTransaction(
         async (tx) => {
+          await acquireProntuarioDocumentVersionLock(tx, { pacienteId, tipo });
+
           const [row] = await tx
             .select({ ver: max(prontuarioDocumentos.version).as("ver") })
             .from(prontuarioDocumentos)

@@ -11,7 +11,12 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
-import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import {
+  atendimentos,
+  evolucoes,
+  pacientes,
+  terapeutas as profissionaisTabela,
+} from "@/server/db/schema";
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import {
@@ -69,6 +74,21 @@ function resolveProfissionalId(input: { profissionalId?: number | null }) {
 }
 
 type DbExecutor = typeof db;
+
+async function resolveStatusRepasseForUpdate(
+  executor: DbExecutor,
+  params: { atendimentoId: number; presenca: string }
+) {
+  if (params.presenca !== "Presente") {
+    return "Pendente" as const;
+  }
+  const [evolucaoAtiva] = await executor
+    .select({ id: evolucoes.id })
+    .from(evolucoes)
+    .where(and(eq(evolucoes.atendimentoId, params.atendimentoId), isNull(evolucoes.deletedAt)))
+    .limit(1);
+  return evolucaoAtiva ? ("Concluido" as const) : ("Pendente" as const);
+}
 
 async function acquireAtendimentoScheduleLock(executor: DbExecutor, params: {
   pacienteId: number;
@@ -192,6 +212,11 @@ async function salvarAtendimentoDb(
       throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
     }
 
+    const statusRepasse = await resolveStatusRepasseForUpdate(executor, {
+      atendimentoId: id,
+      presenca,
+    });
+
     const [updated] = await executor
       .update(atendimentos)
       .set({
@@ -206,6 +231,7 @@ async function salvarAtendimentoDb(
         periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
         presenca,
         realizado,
+        statusRepasse,
         motivo: input.motivo?.trim() || null,
         observacoes: input.observacoes?.trim() || null,
         updatedAt: sql`now()`,

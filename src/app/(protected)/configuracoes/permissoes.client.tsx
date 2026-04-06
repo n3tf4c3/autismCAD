@@ -44,7 +44,7 @@ const ACTION_LABEL: Record<(typeof ACTIONS)[number], string> = {
   finalize: "Finalizar",
 };
 
-const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "profissional", "responsavel", "terapeuta"] as const;
+const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "profissional", "responsavel"] as const;
 type AllowedRole = (typeof ALLOWED_ROLES)[number];
 
 function classForTone(tone: Tone): string {
@@ -87,6 +87,7 @@ export function ConfiguracoesPermissoesClient() {
   const [roleSelected, setRoleSelected] = useState<string>("");
   const [rolePermIds, setRolePermIds] = useState<Set<number>>(new Set());
   const isSuper = roleSelected === "admin-geral";
+  const isProtectedRole = roleSelected === "admin-geral" || roleSelected === "admin";
 
   const [statusMsg, setStatusMsg] = useState<string>("");
   const [statusTone, setStatusTone] = useState<Tone>("neutral");
@@ -224,7 +225,7 @@ export function ConfiguracoesPermissoesClient() {
   }
 
   async function savePermissions() {
-    if (!roleSelected || isSuper) return;
+    if (!roleSelected || isProtectedRole) return;
     setSavingPerms(true);
     setStatusMsg("Salvando...");
     setStatusTone("neutral");
@@ -642,12 +643,14 @@ export function ConfiguracoesPermissoesClient() {
           </div>
 
           <div className="flex-1 text-sm text-slate-500">
-            {isSuper ? "Admin-geral tem todas as permissoes e não pode ser restringido." : ""}
+            {isProtectedRole
+              ? "Roles admin e admin-geral sao protegidos e nao podem ser alterados por esta tela."
+              : ""}
           </div>
 
           <button
             type="button"
-            disabled={savingPerms || !roleSelected || isSuper}
+            disabled={savingPerms || !roleSelected || isProtectedRole}
             onClick={() => void savePermissions()}
             className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -690,7 +693,7 @@ export function ConfiguracoesPermissoesClient() {
                           <input
                             type="checkbox"
                             checked={checked}
-                            disabled={isSuper}
+                            disabled={isProtectedRole}
                             onChange={(e) => togglePermission(perm.id, e.target.checked)}
                             className="h-4 w-4 rounded border-slate-300 text-[var(--laranja)] focus:ring-[var(--laranja)]"
                           />

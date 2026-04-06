@@ -469,15 +469,35 @@ export async function getRolePermissions(roleName: string) {
   };
 }
 
+const PROTECTED_ROLE_SLUGS = new Set(["admin", "admin-geral"]);
+
 export async function updateRolePermissions(
   roleName: string,
   payload: UpdateRolePermissionsInput
 ) {
+  const normalizedRole = roleName.trim().toLowerCase();
+  if (!normalizedRole) {
+    throw new AppError("Role invalida", 400, "INVALID_ROLE");
+  }
+  if (PROTECTED_ROLE_SLUGS.has(normalizedRole)) {
+    throw new AppError(
+      "Nao e permitido editar permissoes de roles protegidos por esta API",
+      403,
+      "FORBIDDEN"
+    );
+  }
+
+  const [roleExists] = await db
+    .select({ slug: roles.slug })
+    .from(roles)
+    .where(eq(roles.slug, normalizedRole))
+    .limit(1);
+  if (!roleExists) {
+    throw new AppError("Role nao encontrada", 404, "NOT_FOUND");
+  }
+
   let permissionIds = payload.permissions;
-  if (roleName === "admin-geral") {
-    const all = await db.select({ id: permissions.id }).from(permissions);
-    permissionIds = all.map((item) => item.id);
-  } else if (permissionIds.length) {
+  if (permissionIds.length) {
     const valid = await db
       .select({ id: permissions.id })
       .from(permissions)
@@ -487,11 +507,11 @@ export async function updateRolePermissions(
 
   await runDbTransaction(
     async (tx) => {
-      await tx.delete(rolePermissions).where(eq(rolePermissions.role, roleName));
+      await tx.delete(rolePermissions).where(eq(rolePermissions.role, normalizedRole));
       if (permissionIds.length) {
         await tx
           .insert(rolePermissions)
-          .values(permissionIds.map((permissionId) => ({ role: roleName, permissionId })));
+          .values(permissionIds.map((permissionId) => ({ role: normalizedRole, permissionId })));
       }
     },
     { operation: "users.updateRolePermissions", mode: "required" }
@@ -499,7 +519,7 @@ export async function updateRolePermissions(
 
   return {
     ok: true,
-    role: roleName,
+    role: normalizedRole,
     permissions: permissionIds,
   };
 }

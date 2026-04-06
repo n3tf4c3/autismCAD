@@ -8,10 +8,27 @@ import {
   listarAtendimentosAction,
   salvarAtendimentoAction,
 } from "@/app/(protected)/consultas/consultas.actions";
-import {
-  normalizeAtendimentosList,
-  type AtendimentoCompat as Atendimento,
-} from "@/app/(protected)/consultas/atendimento-compat";
+
+type Atendimento = {
+  id: number;
+  pacienteId: number;
+  profissionalId: number | null;
+  pacienteNome: string;
+  profissionalNome: string | null;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  isGrupo: boolean;
+  turno: string;
+  periodoInicio: string | null;
+  periodoFim: string | null;
+  presenca: string;
+  realizado: boolean | number;
+  statusRepasse: string;
+  resumoRepasse: string | null;
+  motivo: string | null;
+  observacoes: string | null;
+};
 
 type Profissional = { id: number; nome: string };
 type Paciente = { id: number; nome: string };
@@ -101,7 +118,7 @@ export function ConsultasClient(props: {
       };
       const result = await listarAtendimentosAction(filters);
       if (!result.ok) throw new Error(result.error || "Erro ao listar atendimentos");
-      setItems(normalizeAtendimentosList(result.data.items));
+      setItems(result.data.items);
     } catch (err) {
       setError(normalizeApiError(err));
       setItems([]);
@@ -116,13 +133,13 @@ export function ConsultasClient(props: {
     setEditMsg(null);
 
     setEditData(ymdForInput(a.data));
-    setEditProfissionalId(a.profissional_id ? String(a.profissional_id) : "");
-    setEditHoraInicio(hhmmForInput(a.hora_inicio));
-    setEditHoraFim(hhmmForInput(a.hora_fim));
-    setEditIsGrupo(Boolean(a.is_grupo));
+    setEditProfissionalId(a.profissionalId ? String(a.profissionalId) : "");
+    setEditHoraInicio(hhmmForInput(a.horaInicio));
+    setEditHoraFim(hhmmForInput(a.horaFim));
+    setEditIsGrupo(Boolean(a.isGrupo));
     setEditTurno(a.turno || "Matutino");
-    setEditPeriodoInicio(ymdForInput(a.periodo_inicio));
-    setEditPeriodoFim(ymdForInput(a.periodo_fim));
+    setEditPeriodoInicio(ymdForInput(a.periodoInicio));
+    setEditPeriodoFim(ymdForInput(a.periodoFim));
     setEditPresenca(a.presenca || "Nao informado");
     setEditMotivo(String(a.motivo || a.observacoes || ""));
   }
@@ -136,10 +153,10 @@ export function ConsultasClient(props: {
   function openRepasseEvolucao(a: Atendimento) {
     const params = new URLSearchParams();
     params.set("atendimentoId", String(a.id));
-    if (a.profissional_id) params.set("profissionalId", String(a.profissional_id));
+    if (a.profissionalId) params.set("profissionalId", String(a.profissionalId));
     const dataYmd = ymdForInput(a.data);
     if (dataYmd) params.set("data", dataYmd);
-    router.push(`/prontuario/${a.paciente_id}/evolucao/nova?${params.toString()}`);
+    router.push(`/prontuario/${a.pacienteId}/evolucao/nova?${params.toString()}`);
   }
 
   async function submitEdit() {
@@ -161,7 +178,7 @@ export function ConsultasClient(props: {
     setEditBusy(true);
     try {
       const result = await salvarAtendimentoAction(editItem.id, {
-        pacienteId: editItem.paciente_id,
+        pacienteId: editItem.pacienteId,
         profissionalId: profissionalIdNum,
         data: editData,
         horaInicio: editHoraInicio,
@@ -214,8 +231,8 @@ export function ConsultasClient(props: {
     const dataYmd = ymdForInput(a.data);
     const dia = dowFromYmdUtc(dataYmd);
     const nomeDia = dayNamePtBr(dia);
-    const periodoIni = ymdForInput(a.periodo_inicio || a.data);
-    const periodoFim = ymdForInput(a.periodo_fim || a.data);
+    const periodoIni = ymdForInput(a.periodoInicio || a.data);
+    const periodoFim = ymdForInput(a.periodoFim || a.data);
     const ok = window.confirm(
       `Excluir todos os atendimentos de ${nomeDia} entre ${periodoIni} e ${periodoFim}?`
     );
@@ -224,9 +241,9 @@ export function ConsultasClient(props: {
     setError(null);
     try {
       const result = await excluirDiaAtendimentosAction({
-        pacienteId: a.paciente_id,
-        horaInicio: hhmmForInput(a.hora_inicio) || String(a.hora_inicio),
-        horaFim: hhmmForInput(a.hora_fim) || String(a.hora_fim),
+        pacienteId: a.pacienteId,
+        horaInicio: hhmmForInput(a.horaInicio) || String(a.horaInicio),
+        horaFim: hhmmForInput(a.horaFim) || String(a.horaFim),
         turno: a.turno || "Matutino",
         periodoInicio: periodoIni,
         periodoFim: periodoFim,
@@ -363,27 +380,27 @@ export function ConsultasClient(props: {
                 <tr key={a.id} className="border-b border-gray-100 text-sm">
                   <td className="px-3 py-3 text-gray-700">
                     <div className="font-semibold">{String(a.data).slice(0, 10)}</div>
-                    {a.periodo_inicio || a.periodo_fim ? (
+                    {a.periodoInicio || a.periodoFim ? (
                       <div className="text-xs text-gray-500">
-                        Período: {String(a.periodo_inicio || "-").slice(0, 10)} até{" "}
-                        {String(a.periodo_fim || "-").slice(0, 10)}
+                        Período: {String(a.periodoInicio || "-").slice(0, 10)} até{" "}
+                        {String(a.periodoFim || "-").slice(0, 10)}
                       </div>
                     ) : null}
                   </td>
                   <td className="px-3 py-3 font-semibold text-[var(--marrom)]">{a.pacienteNome}</td>
                   <td className="px-3 py-3 text-gray-700">{a.profissionalNome || "-"}</td>
                   <td className="px-3 py-3 text-gray-700">
-                    {String(a.hora_inicio).slice(0, 5)} - {String(a.hora_fim).slice(0, 5)}
-                    {a.is_grupo ? (
+                    {String(a.horaInicio).slice(0, 5)} - {String(a.horaFim).slice(0, 5)}
+                    {a.isGrupo ? (
                       <div className="text-xs font-semibold text-indigo-700">Sessão em grupo</div>
                     ) : null}
                   </td>
                   <td className="px-3 py-3 text-gray-700">
                     <div>{a.presenca}</div>
-                    <div className="text-xs text-gray-500">Repasse: {a.status_repasse || "Pendente"}</div>
+                    <div className="text-xs text-gray-500">Repasse: {a.statusRepasse || "Pendente"}</div>
                   </td>
                   <td className="px-3 py-3 text-gray-700">
-                    {(a.observacoes || a.resumo_repasse || a.motivo || "-").toString().slice(0, 120)}
+                    {(a.observacoes || a.resumoRepasse || a.motivo || "-").toString().slice(0, 120)}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center justify-center gap-1 whitespace-nowrap">

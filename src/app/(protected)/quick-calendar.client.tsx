@@ -6,13 +6,23 @@ import { createPortal } from "react-dom";
 import {
   listarAtendimentosAction,
 } from "@/app/(protected)/consultas/consultas.actions";
-import { normalizeAtendimentosList } from "@/app/(protected)/consultas/atendimento-compat";
+
+type Atendimento = {
+  id: number;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  pacienteNome: string;
+  profissionalNome: string | null;
+  realizado: boolean | number;
+  presenca?: string | null;
+};
 
 type MiniAtendimento = {
   id: number;
   data: string;
-  hora_inicio: string;
-  hora_fim: string;
+  horaInicio: string;
+  horaFim: string;
   pacienteNome: string;
   profissionalNome: string | null;
   realizado: boolean | number;
@@ -31,12 +41,12 @@ type ActionResult<T> =
       status: number;
     };
 
-function toMiniAtendimentos(value: unknown): MiniAtendimento[] {
-  return normalizeAtendimentosList(value).map((row) => ({
+function toMiniAtendimentos(rows: Atendimento[]): MiniAtendimento[] {
+  return rows.map((row) => ({
     id: row.id,
     data: row.data,
-    hora_inicio: row.hora_inicio,
-    hora_fim: row.hora_fim,
+    horaInicio: row.horaInicio,
+    horaFim: row.horaFim,
     pacienteNome: row.pacienteNome,
     profissionalNome: row.profissionalNome,
     realizado: row.realizado,
@@ -72,7 +82,7 @@ function buildByDate(items: MiniAtendimento[]) {
     (by[iso] ||= []).push(a);
   }
   for (const iso of Object.keys(by)) {
-    by[iso].sort((x, y) => String(x.hora_inicio).localeCompare(String(y.hora_inicio)));
+    by[iso].sort((x, y) => String(x.horaInicio).localeCompare(String(y.horaInicio)));
   }
   return by;
 }
@@ -101,7 +111,7 @@ type TooltipState = {
 
 export function QuickCalendarClient(props: {
   initialYm: string;
-  initialItems: unknown[];
+  initialItems: Atendimento[];
 }) {
   const cacheRef = useRef<Map<string, MiniAtendimento[]>>(new Map());
   const [ym, setYm] = useState(props.initialYm);
@@ -201,8 +211,8 @@ export function QuickCalendarClient(props: {
               {tooltip.items.length} atendimento{tooltip.items.length === 1 ? "" : "s"}
             </p>
             {tooltip.items.slice(0, 3).map((a) => {
-              const hi = String(a.hora_inicio ?? "").slice(0, 5);
-              const hf = String(a.hora_fim ?? "").slice(0, 5);
+              const hi = String(a.horaInicio ?? "").slice(0, 5);
+              const hf = String(a.horaFim ?? "").slice(0, 5);
               return (
                 <div key={a.id} className="mb-2 last:mb-0">
                   <p className="font-semibold text-[var(--marrom)]">{a.pacienteNome || "Paciente"}</p>
