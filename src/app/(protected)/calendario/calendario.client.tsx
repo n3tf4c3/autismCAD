@@ -5,7 +5,6 @@ import {
   criarAtendimentoAction,
   criarAtendimentosRecorrentesAction,
   listarAtendimentosAction,
-  type ActionResult,
 } from "@/app/(protected)/consultas/consultas.actions";
 import {
   normalizeAtendimentosList,
@@ -23,6 +22,18 @@ type BloqueioAgenda = {
   horaFim: string;
   observacoes?: string | null;
 };
+
+type ActionResult<T> =
+  | {
+      ok: true;
+      data: T;
+    }
+  | {
+      ok: false;
+      error: string;
+      code: string;
+      status: number;
+    };
 
 const BLOQUEIOS_STORAGE_KEY = "calendario.bloqueios";
 

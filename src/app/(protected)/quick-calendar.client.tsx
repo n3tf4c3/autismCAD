@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   listarAtendimentosAction,
-  type ActionResult,
 } from "@/app/(protected)/consultas/consultas.actions";
 import { normalizeAtendimentosList } from "@/app/(protected)/consultas/atendimento-compat";
 
@@ -19,6 +18,18 @@ type MiniAtendimento = {
   realizado: boolean | number;
   presenca?: string | null;
 };
+
+type ActionResult<T> =
+  | {
+      ok: true;
+      data: T;
+    }
+  | {
+      ok: false;
+      error: string;
+      code: string;
+      status: number;
+    };
 
 function toMiniAtendimentos(value: unknown): MiniAtendimento[] {
   return normalizeAtendimentosList(value).map((row) => ({
