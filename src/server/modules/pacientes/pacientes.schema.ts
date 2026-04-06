@@ -28,7 +28,7 @@ export const savePacienteSchema = z.object({
   nascimento: requiredDate("Informe a data de nascimento."),
   convenio: z.string().trim().optional().nullable(),
   email: z.string().trim().email().max(120).optional().nullable(),
-  nomeResponsavel: z.string().trim().min(1, "Informe o nome do responsavel.").max(255),
+  nomeResponsavel: z.string().trim().min(1, "Informe o nome do responsavel.").max(120),
   telefone: z.string().trim().min(1, "Informe o telefone do responsavel.").max(20),
   telefone2: z.string().trim().max(20).optional().nullable(),
   nomeMae: nullableTrimmed,
