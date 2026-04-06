@@ -315,6 +315,7 @@ export async function commitArquivoPacienteAction(
     try {
       const result = await runDbTransaction(
         async (tx) => {
+          const pacienteAtivoWhere = and(eq(pacientes.id, idNum), isNull(pacientes.deletedAt));
           const [row] = await tx
             .select({
               id: pacientes.id,
@@ -323,7 +324,7 @@ export async function commitArquivoPacienteAction(
               documento: pacientes.documento,
             })
             .from(pacientes)
-            .where(and(eq(pacientes.id, idNum), isNull(pacientes.deletedAt)))
+            .where(pacienteAtivoWhere)
             .limit(1);
           if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
 
@@ -335,20 +336,26 @@ export async function commitArquivoPacienteAction(
                 : row.documento;
 
           if (parsed.kind === "foto") {
-            await tx
+            const [updated] = await tx
               .update(pacientes)
               .set({ foto: nextKey, updatedAt: sql`now()` })
-              .where(eq(pacientes.id, idNum));
+              .where(pacienteAtivoWhere)
+              .returning({ id: pacientes.id });
+            if (!updated) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
           } else if (parsed.kind === "laudo") {
-            await tx
+            const [updated] = await tx
               .update(pacientes)
               .set({ laudo: nextKey, updatedAt: sql`now()` })
-              .where(eq(pacientes.id, idNum));
+              .where(pacienteAtivoWhere)
+              .returning({ id: pacientes.id });
+            if (!updated) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
           } else {
-            await tx
+            const [updated] = await tx
               .update(pacientes)
               .set({ documento: nextKey, updatedAt: sql`now()` })
-              .where(eq(pacientes.id, idNum));
+              .where(pacienteAtivoWhere)
+              .returning({ id: pacientes.id });
+            if (!updated) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
           }
 
           return { previousKey };
