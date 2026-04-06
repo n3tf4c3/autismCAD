@@ -11,7 +11,7 @@ import {
 import {
   criarRecorrentes,
   excluirDia,
-  listarAtendimentos,
+  listarAtendimentosPorUsuario,
   salvarAtendimento,
   softDeleteAtendimento,
 } from "@/server/modules/atendimentos/atendimentos.service";
@@ -55,11 +55,11 @@ function assertNoLegacyAtendimentoFields(input: unknown) {
 
 export async function listarAtendimentosAction(
   filters: unknown
-): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarAtendimentos>> }>> {
+): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarAtendimentosPorUsuario>> }>> {
   try {
-    await requirePermission("consultas:view");
+    const { user } = await requirePermission("consultas:view");
     const parsed = atendimentosQuerySchema.parse(filters ?? {});
-    const rows = await listarAtendimentos(parsed);
+    const rows = await listarAtendimentosPorUsuario(user.id, parsed);
     return { ok: true, data: { items: rows } };
   } catch (error) {
     return actionErrorResult(error);

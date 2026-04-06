@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   gte,
+  inArray,
   isNull,
   lte,
   sql,
@@ -11,6 +12,8 @@ import {
 import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
 import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import { loadUserAccess } from "@/server/auth/access";
+import { ADMIN_ROLES } from "@/server/auth/permissions";
 import {
   AtendimentosQueryInput,
   ExcluirDiaInput,
@@ -19,6 +22,8 @@ import {
   SaveAtendimentoInput,
   turnosPermitidos,
 } from "@/server/modules/atendimentos/atendimentos.schema";
+import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
+import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { AppError } from "@/server/shared/errors";
 import { normalizeDateOnlyStrict } from "@/server/shared/normalize";
 
@@ -235,10 +240,32 @@ async function salvarAtendimentoDb(
   return saved.id;
 }
 
-export async function listarAtendimentos(filters: AtendimentosQueryInput) {
+type AtendimentoListScope = {
+  allowedPacienteIds?: number[] | null;
+  forceProfissionalId?: number | null;
+};
+
+export async function listarAtendimentos(filters: AtendimentosQueryInput, scope?: AtendimentoListScope) {
+  const allowedPacienteIds = scope?.allowedPacienteIds;
+  if (Array.isArray(allowedPacienteIds) && allowedPacienteIds.length === 0) {
+    return [];
+  }
+
+  const forceProfissionalId = scope?.forceProfissionalId ?? null;
+  if (
+    forceProfissionalId &&
+    filters.profissionalId != null &&
+    Number(filters.profissionalId) !== Number(forceProfissionalId)
+  ) {
+    return [];
+  }
+
   const where = [isNull(atendimentos.deletedAt)];
+  if (Array.isArray(allowedPacienteIds) && allowedPacienteIds.length > 0) {
+    where.push(inArray(atendimentos.pacienteId, allowedPacienteIds));
+  }
   if (filters.pacienteId) where.push(eq(atendimentos.pacienteId, filters.pacienteId));
-  const profissionalId = filters.profissionalId ?? null;
+  const profissionalId = forceProfissionalId || filters.profissionalId || null;
   if (profissionalId) where.push(eq(atendimentos.profissionalId, profissionalId));
   if (filters.dataIni) where.push(gte(atendimentos.data, filters.dataIni));
   if (filters.dataFim) where.push(lte(atendimentos.data, filters.dataFim));
@@ -294,6 +321,34 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput) {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }));
+}
+
+export async function listarAtendimentosPorUsuario(userId: number, filters: AtendimentosQueryInput) {
+  if (!Number.isFinite(userId) || userId <= 0) return [];
+
+  const access = await loadUserAccess(userId);
+  if (!access.exists) return [];
+  const roleCanon = access.canonicalRole ?? access.role;
+
+  if (roleCanon && (ADMIN_ROLES.has(roleCanon) || roleCanon === "RECEPCAO")) {
+    return listarAtendimentos(filters);
+  }
+
+  if (roleCanon === "PROFISSIONAL") {
+    const profissional = await obterProfissionalPorUsuario(userId);
+    if (!profissional?.id) return [];
+    return listarAtendimentos(filters, { forceProfissionalId: profissional.id });
+  }
+
+  if (roleCanon === "RESPONSAVEL") {
+    const vinculados = await getPacientesVinculadosByUserId(userId);
+    const allowedPacienteIds = vinculados
+      .map((item) => Number(item.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    return listarAtendimentos(filters, { allowedPacienteIds });
+  }
+
+  return [];
 }
 
 export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number | null) {
