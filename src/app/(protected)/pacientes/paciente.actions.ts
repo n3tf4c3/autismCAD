@@ -22,11 +22,14 @@ import {
 } from "@/server/modules/pacientes/pacientes.service";
 import { AppError, toAppError } from "@/server/shared/errors";
 import {
+  ALLOWED_UPLOAD_CONTENT_TYPES,
   buildObjectKey,
   copyObjectInR2,
   createSignedReadUrl,
   createSignedWriteUrl,
   deleteObjectFromR2,
+  isAllowedUploadContentType,
+  normalizeUploadContentType,
   objectExistsInR2,
 } from "@/server/storage/r2";
 
@@ -155,10 +158,45 @@ export async function listarPacientesAction(
 }
 
 const arquivoKindSchema = z.enum(["foto", "laudo", "documento"]);
+const allowedFotoContentTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
+const allowedLaudoContentTypes = new Set(["application/pdf"]);
+const allowedContentTypesByKind: Record<z.infer<typeof arquivoKindSchema>, ReadonlySet<string>> = {
+  foto: allowedFotoContentTypes,
+  laudo: allowedLaudoContentTypes,
+  documento: ALLOWED_UPLOAD_CONTENT_TYPES,
+};
 const presignArquivoSchema = z.object({
   kind: arquivoKindSchema,
   filename: z.string().trim().min(1).max(180),
-  contentType: z.string().trim().min(1).max(120),
+  contentType: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .transform((value) => normalizeUploadContentType(value))
+    .refine((value) => isAllowedUploadContentType(value), "Tipo de arquivo nao permitido"),
+}).superRefine((value, ctx) => {
+  const allowedByKind = allowedContentTypesByKind[value.kind];
+  if (!allowedByKind.has(value.contentType)) {
+    const message =
+      value.kind === "foto"
+        ? "Para foto, envie imagem (JPG, PNG, WEBP, GIF, HEIC ou HEIF)."
+        : value.kind === "laudo"
+          ? "Para laudo, envie arquivo PDF."
+          : "Tipo de arquivo nao permitido para documento.";
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message,
+      path: ["contentType"],
+    });
+  }
 });
 const commitArquivoSchema = z.object({
   kind: arquivoKindSchema,

@@ -16,6 +16,30 @@ const globalR2 = globalThis as unknown as {
   r2Client?: S3Client;
 };
 
+export const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+export function normalizeUploadContentType(contentType: string): string {
+  return String(contentType || "")
+    .split(";")[0]
+    ?.trim()
+    .toLowerCase();
+}
+
+export function isAllowedUploadContentType(contentType: string): boolean {
+  const normalized = normalizeUploadContentType(contentType);
+  return ALLOWED_UPLOAD_CONTENT_TYPES.has(normalized);
+}
+
 function resolveEndpoint(): string {
   if (env.R2_ENDPOINT) {
     // Some dashboards show "S3 API" including "/<bucket>" path. For S3Client,
@@ -162,13 +186,17 @@ export async function createSignedWriteUrl(params: {
   contentType: string;
   expiresInSeconds?: number;
 }) {
+  const normalizedContentType = normalizeUploadContentType(params.contentType);
+  if (!isAllowedUploadContentType(normalizedContentType)) {
+    throw new AppError("Tipo de arquivo nao permitido", 400, "INVALID_CONTENT_TYPE");
+  }
   const client = getR2Client();
   return getSignedUrl(
     client,
     new PutObjectCommand({
       Bucket: env.R2_BUCKET!,
       Key: params.key,
-      ContentType: params.contentType,
+      ContentType: normalizedContentType,
     }),
     { expiresIn: params.expiresInSeconds ?? 300 }
   );
