@@ -9,7 +9,7 @@ type RequirePermissionResult = {
 };
 
 type ZodSchemaLike<T> = {
-  parse: (input: any) => T;
+  parse: (input: unknown) => T;
 };
 
 type AppErrorLike = {
@@ -32,17 +32,24 @@ type ActionOk<T> = {
 
 export type ActionResult<T> = ActionOk<T> | ActionError;
 
-export type ConsultasActionsDeps = {
+export type ConsultasActionsDeps<
+  TAtendimentosFilters = unknown,
+  TAtendimentosRows = unknown,
+  TRecorrenteInput extends { pacienteId: number } = { pacienteId: number },
+  TRecorrentesResult = unknown,
+  TExcluirDiaInput extends { pacienteId: number } = { pacienteId: number },
+  TSaveAtendimentoInput extends { pacienteId: number } = { pacienteId: number }
+> = {
   requirePermission: (permissionKey: string | string[]) => Promise<RequirePermissionResult>;
   assertPacienteAccess: (user: SessionUserLike, pacienteId: number) => Promise<unknown>;
-  atendimentosQuerySchema: ZodSchemaLike<any>;
-  excluirDiaSchema: ZodSchemaLike<{ pacienteId: number }>;
-  recorrenteSchema: ZodSchemaLike<{ pacienteId: number }>;
-  saveAtendimentoSchema: ZodSchemaLike<{ pacienteId: number }>;
-  criarRecorrentes: (input: any) => Promise<any>;
-  excluirDia: (input: any, deletedByUserId?: number | null) => Promise<{ removidos: number }>;
-  listarAtendimentosPorUsuario: (userId: number, filters: any) => Promise<any>;
-  salvarAtendimento: (input: any, id?: number | null) => Promise<number>;
+  atendimentosQuerySchema: ZodSchemaLike<TAtendimentosFilters>;
+  excluirDiaSchema: ZodSchemaLike<TExcluirDiaInput>;
+  recorrenteSchema: ZodSchemaLike<TRecorrenteInput>;
+  saveAtendimentoSchema: ZodSchemaLike<TSaveAtendimentoInput>;
+  criarRecorrentes: (input: TRecorrenteInput) => Promise<TRecorrentesResult>;
+  excluirDia: (input: TExcluirDiaInput, deletedByUserId?: number | null) => Promise<{ removidos: number }>;
+  listarAtendimentosPorUsuario: (userId: number, filters: TAtendimentosFilters) => Promise<TAtendimentosRows>;
+  salvarAtendimento: (input: TSaveAtendimentoInput, id?: number | null) => Promise<number>;
   softDeleteAtendimento: (id: number, deletedByUserId?: number | null) => Promise<{ id: number }>;
   AppError: new (message: string, status?: number, code?: string) => AppErrorLike;
   toAppError: (error: unknown) => AppErrorLike;
@@ -73,11 +80,27 @@ function actionErrorResult(error: unknown, toAppError: ConsultasActionsDeps["toA
   };
 }
 
-export function buildConsultasActions(deps: ConsultasActionsDeps) {
+export function buildConsultasActions<
+  TAtendimentosFilters = unknown,
+  TAtendimentosRows = unknown,
+  TRecorrenteInput extends { pacienteId: number } = { pacienteId: number },
+  TRecorrentesResult = unknown,
+  TExcluirDiaInput extends { pacienteId: number } = { pacienteId: number },
+  TSaveAtendimentoInput extends { pacienteId: number } = { pacienteId: number }
+>(
+  deps: ConsultasActionsDeps<
+    TAtendimentosFilters,
+    TAtendimentosRows,
+    TRecorrenteInput,
+    TRecorrentesResult,
+    TExcluirDiaInput,
+    TSaveAtendimentoInput
+  >
+) {
   return {
     async listarAtendimentosAction(
       filters: unknown
-    ): Promise<ActionResult<{ items: Awaited<ReturnType<ConsultasActionsDeps["listarAtendimentosPorUsuario"]>> }>> {
+    ): Promise<ActionResult<{ items: TAtendimentosRows }>> {
       try {
         const { user } = await deps.requirePermission("consultas:view");
         const parsed = deps.atendimentosQuerySchema.parse(filters ?? {});
@@ -123,7 +146,7 @@ export function buildConsultasActions(deps: ConsultasActionsDeps) {
 
     async criarAtendimentosRecorrentesAction(
       input: unknown
-    ): Promise<ActionResult<Awaited<ReturnType<ConsultasActionsDeps["criarRecorrentes"]>>>> {
+    ): Promise<ActionResult<TRecorrentesResult>> {
       try {
         const { user } = await deps.requirePermission("consultas:create");
         const parsed = deps.recorrenteSchema.parse(input);
