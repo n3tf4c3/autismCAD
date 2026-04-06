@@ -1,6 +1,7 @@
 "use server";
 
 import { requirePermission } from "@/server/auth/auth";
+import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import {
   atendimentosQuerySchema,
   excluirDiaSchema,
@@ -70,13 +71,14 @@ export async function salvarAtendimentoAction(
   input: unknown
 ): Promise<ActionResult<{ id: number }>> {
   try {
-    await requirePermission(["consultas:edit", "consultas:presence"]);
+    const { user } = await requirePermission(["consultas:edit", "consultas:presence"]);
     const idNum = Number(atendimentoId);
     if (!Number.isFinite(idNum) || idNum <= 0) {
       throw new AppError("Atendimento invalido", 400, "INVALID_INPUT");
     }
     assertNoLegacyAtendimentoFields(input);
     const parsed = saveAtendimentoSchema.parse(input);
+    await assertPacienteAccess(user, parsed.pacienteId);
     const savedId = await salvarAtendimento(parsed, idNum);
     return { ok: true, data: { id: savedId } };
   } catch (error) {
@@ -88,9 +90,10 @@ export async function criarAtendimentoAction(
   input: unknown
 ): Promise<ActionResult<{ id: number }>> {
   try {
-    await requirePermission("consultas:create");
+    const { user } = await requirePermission("consultas:create");
     assertNoLegacyAtendimentoFields(input);
     const parsed = saveAtendimentoSchema.parse(input);
+    await assertPacienteAccess(user, parsed.pacienteId);
     const savedId = await salvarAtendimento(parsed, null);
     return { ok: true, data: { id: savedId } };
   } catch (error) {
@@ -102,8 +105,9 @@ export async function criarAtendimentosRecorrentesAction(
   input: unknown
 ): Promise<ActionResult<Awaited<ReturnType<typeof criarRecorrentes>>>> {
   try {
-    await requirePermission("consultas:create");
+    const { user } = await requirePermission("consultas:create");
     const parsed = recorrenteSchema.parse(input);
+    await assertPacienteAccess(user, parsed.pacienteId);
     const result = await criarRecorrentes(parsed);
     return { ok: true, data: result };
   } catch (error) {
@@ -133,6 +137,7 @@ export async function excluirDiaAtendimentosAction(
   try {
     const { user } = await requirePermission("consultas:cancel");
     const parsed = excluirDiaSchema.parse(input);
+    await assertPacienteAccess(user, parsed.pacienteId);
     const result = await excluirDia(parsed, user.id);
     return { ok: true, data: { removidos: result.removidos } };
   } catch (error) {
