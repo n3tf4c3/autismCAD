@@ -235,6 +235,9 @@ export const terapeutas = pgTable(
     uniqueIndex("uk_terapeutas_cpf_ativo")
       .on(table.cpf)
       .where(sql`${table.deletedAt} is null`),
+    uniqueIndex("uk_terapeutas_usuario_ativo")
+      .on(table.usuarioId)
+      .where(sql`${table.deletedAt} is null and ${table.usuarioId} is not null`),
     index("idx_terapeutas_usuario").on(table.usuarioId),
     index("idx_terapeutas_nome").on(table.nome),
     index("idx_terapeutas_deleted_at").on(table.deletedAt),
