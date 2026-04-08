@@ -221,8 +221,15 @@ async function assertPacienteExists(pacienteId: number) {
 }
 
 function looksLikeR2Key(value: string): boolean {
-  const v = value.trim().toLowerCase();
-  return !v.startsWith("http://") && !v.startsWith("https://");
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.length > 1024) return false;
+  if (/^https?:\/\//i.test(trimmed)) return false;
+  if (trimmed.includes("..")) return false;
+  if (trimmed.startsWith("/") || trimmed.startsWith("\\")) return false;
+  if (trimmed.includes("\\") || /[\u0000-\u001F]/.test(trimmed)) return false;
+  return /^[A-Za-z0-9/_\-.]+$/.test(trimmed);
 }
 
 function isNotFoundR2Error(error: unknown): boolean {

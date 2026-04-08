@@ -16,18 +16,23 @@ export type AuthenticatedUser = {
   image?: string | null;
 };
 
-export async function requireUser(): Promise<AuthenticatedUser> {
+async function requireSessionUser(): Promise<AuthenticatedUser> {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AppError("Nao autenticado", 401, "UNAUTHORIZED");
   }
   const userId = parseSessionUserId(session.user.id);
+  return { ...session.user, id: userId };
+}
+
+export async function requireUser(): Promise<AuthenticatedUser> {
+  const user = await requireSessionUser();
   const [activeUser] = await db
     .select({ id: users.id })
     .from(users)
     .where(
       and(
-        eq(users.id, userId),
+        eq(users.id, user.id),
         eq(users.ativo, true),
         isNull(users.deletedAt)
       )
@@ -36,7 +41,7 @@ export async function requireUser(): Promise<AuthenticatedUser> {
   if (!activeUser) {
     throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
-  return { ...session.user, id: userId };
+  return user;
 }
 
 export async function requireRole(allowedRoles: string[]) {
@@ -50,7 +55,7 @@ export async function requireRole(allowedRoles: string[]) {
 }
 
 export async function requireAdminGeral() {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   const access = await loadUserAccess(user.id);
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
@@ -63,10 +68,10 @@ export async function requireAdminGeral() {
 }
 
 export async function requirePermission(permissionKey: string | string[]) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   const access = await loadUserAccess(user.id);
   if (!access.exists) {
-    throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
+    throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
   const keys = Array.isArray(permissionKey) ? permissionKey : [permissionKey];
   assertHasPermission(access, keys);

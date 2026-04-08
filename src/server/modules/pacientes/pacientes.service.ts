@@ -32,7 +32,7 @@ export type PacienteDetalhe = {
   id: number;
   nome: string;
   cpf: string;
-  convenio: string | null;
+  convenio: string;
   dataNascimento: string | null;
   dataInicio: string | null;
   email: string | null;
