@@ -66,8 +66,8 @@ export async function salvarPacienteAction(
     const idNum = pacienteId ? Number(pacienteId) : null;
 
     if (idNum && Number.isFinite(idNum) && idNum > 0) {
-      const { user } = await requirePermission("pacientes:edit");
-      await assertPacienteAccess(user, idNum);
+      const { user, access } = await requirePermission("pacientes:edit");
+      await assertPacienteAccess(user, idNum, access);
       const savedId = await salvarPaciente(parsed, idNum);
       revalidatePath("/pacientes");
       revalidatePath(`/pacientes/${savedId}`);
@@ -102,12 +102,12 @@ export async function setPacienteAtivoAction(
   ativo: boolean
 ): Promise<ActionResult<{ id: number; ativo: boolean | number | string | null }>> {
   try {
-    const { user } = await requirePermission("pacientes:edit");
+    const { user, access } = await requirePermission("pacientes:edit");
     const idNum = Number(pacienteId);
     if (!Number.isFinite(idNum) || idNum <= 0) {
       throw new AppError("Paciente invalido", 400, "INVALID_INPUT");
     }
-    await assertPacienteAccess(user, idNum);
+    await assertPacienteAccess(user, idNum, access);
 
     const result = await setPacienteAtivo(idNum, Boolean(ativo));
     revalidatePath("/pacientes");
@@ -130,8 +130,8 @@ export async function deletePacienteAction(
       throw new AppError("Paciente invalido", 400, "INVALID_INPUT");
     }
 
-    const { user } = await requirePermission("pacientes:delete");
-    await assertPacienteAccess(user, idNum);
+    const { user, access } = await requirePermission("pacientes:delete");
+    await assertPacienteAccess(user, idNum, access);
     const result = await softDeletePaciente(idNum, user.id);
 
     revalidatePath("/pacientes");
@@ -252,8 +252,8 @@ export async function obterArquivoPacienteReadUrlAction(
   try {
     const idNum = parsePacienteId(pacienteId);
     const parsedKind = arquivoKindSchema.parse(kind);
-    const { user } = await requirePermission("pacientes:view");
-    await assertPacienteAccess(user, idNum);
+    const { user, access } = await requirePermission("pacientes:view");
+    await assertPacienteAccess(user, idNum, access);
 
     const [row] = await db
       .select({
@@ -293,8 +293,8 @@ export async function prepararUploadArquivoPacienteAction(
   try {
     const idNum = parsePacienteId(pacienteId);
     const parsed = presignArquivoSchema.parse(input ?? {});
-    const { user } = await requirePermission("pacientes:edit");
-    await assertPacienteAccess(user, idNum);
+    const { user, access } = await requirePermission("pacientes:edit");
+    await assertPacienteAccess(user, idNum, access);
     await assertPacienteExists(idNum);
 
     const prefix = `pacientes/temp/${idNum}/${parsed.kind}`;
@@ -318,8 +318,8 @@ export async function commitArquivoPacienteAction(
   try {
     const idNum = parsePacienteId(pacienteId);
     const parsed = commitArquivoSchema.parse(input ?? {});
-    const { user } = await requirePermission("pacientes:edit");
-    await assertPacienteAccess(user, idNum);
+    const { user, access } = await requirePermission("pacientes:edit");
+    await assertPacienteAccess(user, idNum, access);
 
     let nextKey: string | null = parsed.key ?? null;
     let tempKeyToDelete: string | null = null;
@@ -431,7 +431,13 @@ export async function commitArquivoPacienteAction(
       promotedKeyToRollback = null;
     } catch (error) {
       if (promotedKeyToRollback && looksLikeR2Key(promotedKeyToRollback)) {
-        await deleteObjectFromR2(promotedKeyToRollback).catch(() => null);
+        await deleteObjectFromR2(promotedKeyToRollback).catch((rollbackError) => {
+          console.error("[r2] Falha no rollback de objeto promovido", {
+            key: promotedKeyToRollback,
+            error: rollbackError,
+          });
+          return null;
+        });
       }
       throw error;
     }

@@ -20,6 +20,7 @@ import {
   salvarDocumentoSchema,
 } from "@/server/modules/prontuario/prontuario.schema";
 import { AppError, toAppError } from "@/server/shared/errors";
+import type { UserAccess } from "@/server/auth/access";
 
 type ActionError = {
   ok: false;
@@ -68,13 +69,14 @@ function assertCamelCaseEvolucaoInput(input: unknown) {
 async function canAccessEvolucao(
   user: { role?: string | null; id: string | number },
   pacienteId: number,
-  profissionalId: number | null
+  profissionalId: number | null,
+  access?: UserAccess
 ): Promise<boolean> {
-  const access = await assertPacienteAccess(user, pacienteId);
+  const pacienteAccess = await assertPacienteAccess(user, pacienteId, access);
   if ((canonicalRoleName(user.role ?? null) ?? user.role ?? null) !== "PROFISSIONAL") {
     return true;
   }
-  const accessProfissionalId = access.profissionalId;
+  const accessProfissionalId = pacienteAccess.profissionalId;
   return !!accessProfissionalId && accessProfissionalId === profissionalId;
 }
 
@@ -84,8 +86,8 @@ export async function criarEvolucaoAction(
 ): Promise<ActionResult<Awaited<ReturnType<typeof criarEvolucao>>>> {
   try {
     const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
-    const { user } = await requirePermission("evolucoes:create");
-    await assertPacienteAccess(user, parsedPacienteId);
+    const { user, access } = await requirePermission("evolucoes:create");
+    await assertPacienteAccess(user, parsedPacienteId, access);
     assertCamelCaseEvolucaoInput(input);
     const parsedInput = criarEvolucaoSchema.parse(input ?? {});
     const saved = await criarEvolucao(parsedPacienteId, parsedInput, user);
@@ -103,14 +105,15 @@ export async function atualizarEvolucaoAction(
 ): Promise<ActionResult<Awaited<ReturnType<typeof atualizarEvolucao>>>> {
   try {
     const parsedEvolucaoId = parsePositiveInt(evolucaoId, "Evolucao", "INVALID_INPUT");
-    const { user } = await requirePermission("evolucoes:edit");
+    const { user, access } = await requirePermission("evolucoes:edit");
     const evolucaoAtual = await obterEvolucaoPorId(parsedEvolucaoId);
     if (!evolucaoAtual) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
     const canAccess = await canAccessEvolucao(
       user,
       Number(evolucaoAtual.pacienteId),
-      Number(evolucaoAtual.profissionalId)
+      Number(evolucaoAtual.profissionalId),
+      access
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
@@ -131,14 +134,15 @@ export async function excluirEvolucaoAction(
 ): Promise<ActionResult<{ id: number; deleted: true }>> {
   try {
     const parsedEvolucaoId = parsePositiveInt(evolucaoId, "Evolucao", "INVALID_INPUT");
-    const { user } = await requirePermission("evolucoes:delete");
+    const { user, access } = await requirePermission("evolucoes:delete");
     const evolucaoAtual = await obterEvolucaoPorId(parsedEvolucaoId);
     if (!evolucaoAtual) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
     const canAccess = await canAccessEvolucao(
       user,
       Number(evolucaoAtual.pacienteId),
-      Number(evolucaoAtual.profissionalId)
+      Number(evolucaoAtual.profissionalId),
+      access
     );
     if (!canAccess) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
@@ -160,8 +164,8 @@ export async function salvarDocumentoProntuarioAction(
 ): Promise<ActionResult<Awaited<ReturnType<typeof salvarDocumento>>>> {
   try {
     const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
-    const { user } = await requirePermission("prontuario:create");
-    await assertPacienteAccess(user, parsedPacienteId);
+    const { user, access } = await requirePermission("prontuario:create");
+    await assertPacienteAccess(user, parsedPacienteId, access);
     const parsedInput = salvarDocumentoSchema.parse(input ?? {});
     const saved = await salvarDocumento(parsedPacienteId, parsedInput, user);
     revalidatePath(`/prontuario/${parsedPacienteId}`);
@@ -178,11 +182,11 @@ export async function excluirDocumentoProntuarioAction(
 ): Promise<ActionResult<{ id: number; deleted: true }>> {
   try {
     const parsedDocumentoId = parsePositiveInt(documentoId, "Documento", "INVALID_INPUT");
-    const { user } = await requirePermission("prontuario:delete");
+    const { user, access } = await requirePermission("prontuario:delete");
     const documentoAtual = await obterDocumento(parsedDocumentoId);
     if (!documentoAtual) throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
 
-    await assertPacienteAccess(user, Number(documentoAtual.pacienteId));
+    await assertPacienteAccess(user, Number(documentoAtual.pacienteId), access);
 
     const ok = await excluirDocumento(parsedDocumentoId, user.id);
     if (!ok) throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
@@ -202,8 +206,8 @@ export async function finalizarDocumentoProntuarioAction(
 ): Promise<ActionResult<{ id: number; finalized: true }>> {
   try {
     const parsedDocumentoId = parsePositiveInt(documentoId, "Documento", "INVALID_INPUT");
-    const { user } = await requirePermission("prontuario:version");
-    const finalized = await finalizarDocumento(parsedDocumentoId, user);
+    const { user, access } = await requirePermission("prontuario:version");
+    const finalized = await finalizarDocumento(parsedDocumentoId, user, access);
 
     const pacienteId = Number(finalized.pacienteId ?? 0);
     if (pacienteId > 0) {

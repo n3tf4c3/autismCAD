@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 
 import { buildConsultasActions, type ConsultasActionsDeps } from "@/app/(protected)/consultas/consultas.actions.impl";
+import type { UserAccess } from "@/server/auth/access";
 
 class AppError extends Error {
   status: number;
@@ -65,11 +66,25 @@ function resetState() {
   state.getAtendimentoByIdResult = { id: 77, pacienteId: 17 };
 }
 
+function buildUserAccess(user: SessionUser): UserAccess {
+  return {
+    exists: true,
+    role: user.role ?? null,
+    canonicalRole: null,
+    permissions: new Set<string>(),
+    user: {
+      id: Number(user.id),
+      nome: "Teste",
+      email: "teste@example.com",
+    },
+  };
+}
+
 const deps: ConsultasActionsDeps = {
   requirePermission: async (permission) => {
     calls.requirePermission.push(permission);
     if (state.requirePermissionError) throw state.requirePermissionError;
-    return { user: state.requirePermissionUser, access: {} };
+    return { user: state.requirePermissionUser, access: buildUserAccess(state.requirePermissionUser) };
   },
   assertPacienteAccess: async (user, pacienteId) => {
     calls.assertPacienteAccess.push({ user: user as SessionUser, pacienteId });

@@ -165,14 +165,14 @@ export async function listRecentAccessLogs(limit = 200) {
     return await db
       .select({
         id: accessLogs.id,
-        user_id: accessLogs.userId,
-        user_nome: users.nome,
-        user_email: accessLogs.userEmail,
-        ip_origem: accessLogs.ipOrigem,
+        userId: accessLogs.userId,
+        userNome: users.nome,
+        userEmail: accessLogs.userEmail,
+        ipOrigem: accessLogs.ipOrigem,
         browser: accessLogs.browser,
         status: accessLogs.status,
-        user_agent: accessLogs.userAgent,
-        created_at: accessLogs.createdAt,
+        userAgent: accessLogs.userAgent,
+        createdAt: accessLogs.createdAt,
       })
       .from(accessLogs)
       .leftJoin(users, eq(users.id, accessLogs.userId))

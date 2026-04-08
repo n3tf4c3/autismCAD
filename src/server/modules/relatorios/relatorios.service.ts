@@ -11,6 +11,7 @@ import {
   users,
 } from "@/server/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
+import type { UserAccess } from "@/server/auth/access";
 import type { AuthenticatedUser } from "@/server/auth/auth";
 import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
@@ -167,6 +168,7 @@ async function assertProfissionalAssistencial(profissionalId: number): Promise<n
 export async function consolidateEvolutivoReport(params: {
   query: EvolutivoQueryInput;
   user: AuthenticatedUser;
+  access?: UserAccess;
 }) {
   const pacienteId = params.query.pacienteId;
   if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
@@ -179,7 +181,7 @@ export async function consolidateEvolutivoReport(params: {
   const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
 
   // Enforce paciente access (admins ok; profissionais must be linked)
-  await assertPacienteAccess(params.user, pacienteId);
+  await assertPacienteAccess(params.user, pacienteId, params.access);
 
   const profissionalFiltro = await resolveProfissionalFiltro({
     roleCanon,
@@ -580,6 +582,7 @@ function extractPlanoDesempenhoItems(args: {
 export async function consolidatePlanoEnsinoReport(params: {
   query: PlanoEnsinoQueryInput;
   user: AuthenticatedUser;
+  access?: UserAccess;
 }) {
   const pacienteId = params.query.pacienteId;
   if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
@@ -588,7 +591,7 @@ export async function consolidatePlanoEnsinoReport(params: {
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
-  await assertPacienteAccess(params.user, pacienteId);
+  await assertPacienteAccess(params.user, pacienteId, params.access);
 
   const [paciente] = await db
     .select({

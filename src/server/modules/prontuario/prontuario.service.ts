@@ -14,7 +14,7 @@ import {
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
-import { normalizeDateOnlyLoose } from "@/server/shared/normalize";
+import { normalizeDateOnlyLoose, normalizeOptionalText } from "@/server/shared/normalize";
 import { ymdNowInClinicTz } from "@/server/shared/clock";
 import {
   AtualizarEvolucaoInput,
@@ -30,6 +30,7 @@ import {
 } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
+import type { UserAccess } from "@/server/auth/access";
 
 function toIsoDate(value: string): string {
   const normalized = normalizeDateOnlyLoose(value);
@@ -37,6 +38,35 @@ function toIsoDate(value: string): string {
     throw new AppError("Data invalida", 400, "INVALID_INPUT");
   }
   return normalized;
+}
+
+type DocumentoGenericoPayload = {
+  introducao?: string | null;
+  avaliacao?: string | null;
+  objetivos?: string[];
+  observacoes?: string | null;
+};
+
+function sanitizeDocumentoGenericoPayload(input: unknown): DocumentoGenericoPayload {
+  const payload =
+    input && typeof input === "object" && !Array.isArray(input)
+      ? (input as Record<string, unknown>)
+      : {};
+  const introducao = normalizeOptionalText(String(payload.introducao ?? ""));
+  const avaliacao = normalizeOptionalText(String(payload.avaliacao ?? ""));
+  const observacoes = normalizeOptionalText(String(payload.observacoes ?? ""));
+  const objetivos = Array.isArray(payload.objetivos)
+    ? payload.objetivos
+        .map((item) => normalizeOptionalText(String(item ?? "")))
+        .filter((item): item is string => Boolean(item))
+    : [];
+
+  return {
+    ...(introducao ? { introducao } : {}),
+    ...(avaliacao ? { avaliacao } : {}),
+    ...(objetivos.length ? { objetivos } : {}),
+    ...(observacoes ? { observacoes } : {}),
+  };
 }
 
 function toTimelineSortTimestamp(value: unknown): number {
@@ -218,6 +248,8 @@ export async function salvarDocumento(
   let payload = input.payload ?? {};
   if (tipo === "PLANO_ENSINO") {
     payload = sanitizePlanoEnsinoPayload(payload);
+  } else {
+    payload = sanitizeDocumentoGenericoPayload(payload);
   }
 
   const tituloInformado = (input.titulo ?? "").toString().trim();
@@ -534,7 +566,8 @@ export async function excluirEvolucao(id: number, userId?: number | null) {
 
 export async function finalizarDocumento(
   id: number,
-  user: { id: number | string; role?: string | null }
+  user: { id: number | string; role?: string | null },
+  access?: UserAccess
 ) {
   const [doc] = await db
     .select({
@@ -549,7 +582,7 @@ export async function finalizarDocumento(
     throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
   }
 
-  await assertPacienteAccess(user, Number(doc.pacienteId));
+  await assertPacienteAccess(user, Number(doc.pacienteId), access);
 
   const [row] = await db
     .update(prontuarioDocumentos)

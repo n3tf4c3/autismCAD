@@ -69,8 +69,8 @@ export async function carregarAnamneseAction(
 > {
   try {
     const id = parsePacienteId(pacienteId);
-    const { user } = await requirePermission("pacientes:view");
-    await assertPacienteAccess(user, id);
+    const { user, access } = await requirePermission("pacientes:view");
+    await assertPacienteAccess(user, id, access);
     await assertPacienteExists(id);
 
     const parsedQuery = listVersionsQuerySchema.parse({ limit });
@@ -99,8 +99,8 @@ export async function carregarAnamneseVersaoAction(
   try {
     const id = parsePacienteId(pacienteId);
     const parsedVersion = parseVersion(version);
-    const { user } = await requirePermission("pacientes:view");
-    await assertPacienteAccess(user, id);
+    const { user, access } = await requirePermission("pacientes:view");
+    await assertPacienteAccess(user, id, access);
 
     const versao = await obterAnamneseVersao(id, parsedVersion);
     if (versao) return { ok: true, data: { anamnese: versao } };
@@ -119,8 +119,8 @@ export async function salvarAnamneseAction(
 ): Promise<ActionResult<{ anamnese: Awaited<ReturnType<typeof salvarAnamneseCompleta>> }>> {
   try {
     const id = parsePacienteId(pacienteId);
-    const { user } = await requirePermission("pacientes:edit");
-    await assertPacienteAccess(user, id);
+    const { user, access } = await requirePermission("pacientes:edit");
+    await assertPacienteAccess(user, id, access);
 
     const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
     const parsed = saveAnamneseSchema.parse({ ...raw, pacienteId: id });
@@ -142,8 +142,8 @@ export async function excluirAnamneseAction(
 ): Promise<ActionResult<Awaited<ReturnType<typeof excluirAnamneseCompleta>>>> {
   try {
     const id = parsePacienteId(pacienteId);
-    const { user } = await requirePermission("pacientes:delete");
-    await assertPacienteAccess(user, id);
+    const { user, access } = await requirePermission("pacientes:delete");
+    await assertPacienteAccess(user, id, access);
 
     const deleted = await excluirAnamneseCompleta(id);
     revalidatePath(`/anamnese/${id}`);
@@ -160,8 +160,8 @@ export async function excluirAnamneseVersaoAction(
   try {
     const id = parsePacienteId(pacienteId);
     const parsedVersion = parseVersion(version);
-    const { user } = await requirePermission("pacientes:delete");
-    await assertPacienteAccess(user, id);
+    const { user, access } = await requirePermission("pacientes:delete");
+    await assertPacienteAccess(user, id, access);
 
     const deleted = await excluirAnamneseVersao(id, parsedVersion);
     revalidatePath(`/anamnese/${id}`);

@@ -106,15 +106,15 @@ export default async function LogsAcessoPage() {
                 logs.map((log) => (
                   <tr key={log.id} className="border-b border-gray-100 align-top">
                     <td className="px-3 py-2 whitespace-nowrap text-gray-700">
-                      {formatDateTime(log.created_at)}
+                      {formatDateTime(log.createdAt)}
                     </td>
                     <td className="px-3 py-2">{statusBadge(log.status)}</td>
                     <td className="px-3 py-2 text-gray-900">
-                      {log.user_nome || (log.user_id ? "Usuário removido" : "Nao identificado")}
+                      {log.userNome || (log.userId ? "Usuário removido" : "Nao identificado")}
                     </td>
-                    <td className="px-3 py-2 text-gray-700">{log.user_email}</td>
+                    <td className="px-3 py-2 text-gray-700">{log.userEmail}</td>
                     <td className="px-3 py-2 font-mono text-xs text-gray-700">
-                      {log.ip_origem || "-"}
+                      {log.ipOrigem || "-"}
                     </td>
                     <td className="px-3 py-2 text-gray-700">{log.browser || "-"}</td>
                   </tr>

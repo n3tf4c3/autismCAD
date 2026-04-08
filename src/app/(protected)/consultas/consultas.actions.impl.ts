@@ -1,3 +1,5 @@
+import type { UserAccess } from "@/server/auth/access";
+
 type SessionUserLike = {
   id: number | string;
   role?: string | null;
@@ -5,7 +7,7 @@ type SessionUserLike = {
 
 type RequirePermissionResult = {
   user: SessionUserLike;
-  access?: unknown;
+  access?: UserAccess;
 };
 
 type ZodSchemaLike<T> = {
@@ -41,7 +43,7 @@ export type ConsultasActionsDeps<
   TSaveAtendimentoInput extends { pacienteId: number } = { pacienteId: number }
 > = {
   requirePermission: (permissionKey: string | string[]) => Promise<RequirePermissionResult>;
-  assertPacienteAccess: (user: SessionUserLike, pacienteId: number) => Promise<unknown>;
+  assertPacienteAccess: (user: SessionUserLike, pacienteId: number, access?: UserAccess) => Promise<unknown>;
   atendimentosQuerySchema: ZodSchemaLike<TAtendimentosFilters>;
   excluirDiaSchema: ZodSchemaLike<TExcluirDiaInput>;
   recorrenteSchema: ZodSchemaLike<TRecorrenteInput>;
@@ -121,7 +123,7 @@ export function buildConsultasActions<
       input: unknown
     ): Promise<ActionResult<{ id: number }>> {
       try {
-        const { user } = await deps.requirePermission(["consultas:edit", "consultas:presence"]);
+        const { user, access } = await deps.requirePermission(["consultas:edit", "consultas:presence"]);
         const idNum = Number(atendimentoId);
         if (!Number.isFinite(idNum) || idNum <= 0) {
           throw new deps.AppError("Atendimento invalido", 400, "INVALID_INPUT");
@@ -132,7 +134,7 @@ export function buildConsultasActions<
         if (!atendimento) {
           throw new deps.AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
         }
-        await deps.assertPacienteAccess(user, atendimento.pacienteId);
+        await deps.assertPacienteAccess(user, atendimento.pacienteId, access);
         if (Number(atendimento.pacienteId) !== Number(parsed.pacienteId)) {
           throw new deps.AppError(
             "Atendimento nao pertence ao paciente informado",
@@ -149,10 +151,10 @@ export function buildConsultasActions<
 
     async criarAtendimentoAction(input: unknown): Promise<ActionResult<{ id: number }>> {
       try {
-        const { user } = await deps.requirePermission("consultas:create");
+        const { user, access } = await deps.requirePermission("consultas:create");
         assertNoLegacyAtendimentoFields(input, deps.AppError);
         const parsed = deps.saveAtendimentoSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId);
+        await deps.assertPacienteAccess(user, parsed.pacienteId, access);
         const savedId = await deps.salvarAtendimento(parsed, null);
         return { ok: true, data: { id: savedId } };
       } catch (error) {
@@ -164,9 +166,9 @@ export function buildConsultasActions<
       input: unknown
     ): Promise<ActionResult<TRecorrentesResult>> {
       try {
-        const { user } = await deps.requirePermission("consultas:create");
+        const { user, access } = await deps.requirePermission("consultas:create");
         const parsed = deps.recorrenteSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId);
+        await deps.assertPacienteAccess(user, parsed.pacienteId, access);
         const result = await deps.criarRecorrentes(parsed);
         return { ok: true, data: result };
       } catch (error) {
@@ -180,12 +182,12 @@ export function buildConsultasActions<
         if (!Number.isFinite(idNum) || idNum <= 0) {
           throw new deps.AppError("Atendimento invalido", 400, "INVALID_INPUT");
         }
-        const { user } = await deps.requirePermission("consultas:cancel");
+        const { user, access } = await deps.requirePermission("consultas:cancel");
         const atendimento = await deps.getAtendimentoById(idNum);
         if (!atendimento) {
           throw new deps.AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
         }
-        await deps.assertPacienteAccess(user, atendimento.pacienteId);
+        await deps.assertPacienteAccess(user, atendimento.pacienteId, access);
         const result = await deps.softDeleteAtendimento(
           atendimento.id,
           atendimento.pacienteId,
@@ -199,9 +201,9 @@ export function buildConsultasActions<
 
     async excluirDiaAtendimentosAction(input: unknown): Promise<ActionResult<{ removidos: number }>> {
       try {
-        const { user } = await deps.requirePermission("consultas:cancel");
+        const { user, access } = await deps.requirePermission("consultas:cancel");
         const parsed = deps.excluirDiaSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId);
+        await deps.assertPacienteAccess(user, parsed.pacienteId, access);
         const result = await deps.excluirDia(parsed, Number(user.id));
         return { ok: true, data: { removidos: result.removidos } };
       } catch (error) {

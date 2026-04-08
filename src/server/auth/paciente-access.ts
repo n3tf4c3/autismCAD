@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { loadUserAccess } from "@/server/auth/access";
+import type { UserAccess } from "@/server/auth/access";
 import { parseSessionUserId } from "@/server/auth/user-id";
 import { AppError } from "@/server/shared/errors";
 import { pacientes } from "@/server/db/schema";
@@ -18,13 +19,23 @@ export type SessionUserLike = {
   role?: string | null;
 };
 
-export async function assertPacienteAccess(user: SessionUserLike, pacienteId: number) {
+function canReuseAccess(userId: number, access?: UserAccess): access is UserAccess {
+  return !!access && access.exists && Number(access.user?.id) === userId;
+}
+
+export async function assertPacienteAccess(
+  user: SessionUserLike,
+  pacienteId: number,
+  preloadedAccess?: UserAccess
+) {
   const userId = parseSessionUserId(user.id);
   if (!Number.isFinite(pacienteId) || pacienteId <= 0) {
     throw new AppError("Paciente invalido", 400, "INVALID_INPUT");
   }
 
-  const access = await loadUserAccess(userId);
+  const access = canReuseAccess(userId, preloadedAccess)
+    ? preloadedAccess
+    : await loadUserAccess(userId);
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
   }

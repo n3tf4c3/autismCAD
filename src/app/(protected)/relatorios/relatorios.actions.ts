@@ -43,9 +43,9 @@ export async function gerarRelatorioEvolutivoAction(
   ActionResult<{ report: Awaited<ReturnType<typeof consolidateEvolutivoReport>> }>
 > {
   try {
-    const { user } = await requirePermission("relatorios_clinicos:view");
+    const { user, access } = await requirePermission("relatorios_clinicos:view");
     const parsed = evolutivoQuerySchema.parse(filters ?? {});
-    const report = await consolidateEvolutivoReport({ query: parsed, user });
+    const report = await consolidateEvolutivoReport({ query: parsed, user, access });
     return { ok: true, data: { report } };
   } catch (error) {
     return actionErrorResult(error);
@@ -73,9 +73,9 @@ export async function gerarRelatorioPlanoEnsinoAction(
   ActionResult<{ report: Awaited<ReturnType<typeof consolidatePlanoEnsinoReport>> }>
 > {
   try {
-    const { user } = await requirePermission("relatorios_clinicos:view");
+    const { user, access } = await requirePermission("relatorios_clinicos:view");
     const parsed = planoEnsinoQuerySchema.parse(filters ?? {});
-    const report = await consolidatePlanoEnsinoReport({ query: parsed, user });
+    const report = await consolidatePlanoEnsinoReport({ query: parsed, user, access });
     return { ok: true, data: { report } };
   } catch (error) {
     return actionErrorResult(error);
