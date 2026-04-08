@@ -38,6 +38,17 @@ function toIsoDate(value: string): string {
   return normalized;
 }
 
+function toTimelineSortTimestamp(value: unknown): number {
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const ts = Date.parse(`${raw}T12:00:00.000Z`);
+    return Number.isNaN(ts) ? 0 : ts;
+  }
+  const ts = Date.parse(raw);
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
 function normalizeDocTipo(value?: string | null): string | null {
   const normalized = String(value ?? "").trim().toUpperCase();
   return normalized || null;
@@ -552,6 +563,7 @@ export async function obterTimelineProntuario(pacienteId: number) {
     version: d.version,
     data: d.updatedAt ? String(d.updatedAt) : d.createdAt ? String(d.createdAt) : "",
     profissional: d.autorNome || d.createdByRole || "Usuario",
+    sortTs: toTimelineSortTimestamp(d.updatedAt ?? d.createdAt ?? ""),
   }));
 
   const mappedEvols = evols.map((e) => {
@@ -572,10 +584,11 @@ export async function obterTimelineProntuario(pacienteId: number) {
       data: e.data || e.createdAt,
       profissional: e.profissionalNome || "Profissional",
       horario,
+      sortTs: toTimelineSortTimestamp(e.data || e.createdAt),
     };
   });
 
   const items = [...mappedDocs, ...mappedEvols];
-  items.sort((a, b) => new Date(String(b.data)).getTime() - new Date(String(a.data)).getTime());
-  return items;
+  items.sort((a, b) => b.sortTs - a.sortTs);
+  return items.map(({ sortTs, ...item }) => item);
 }

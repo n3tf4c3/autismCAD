@@ -24,7 +24,7 @@ type UserRow = {
   role: string | null;
   pacienteIdVinculado?: number | null;
   pacienteNomeVinculado?: string | null;
-  created_at?: string | Date | null;
+  createdAt?: string | Date | null;
 };
 
 type PacienteOption = {

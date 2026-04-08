@@ -71,7 +71,7 @@ export async function listUsers() {
       nome: users.nome,
       email: users.email,
       role: users.role,
-      created_at: users.createdAt,
+      createdAt: users.createdAt,
     })
     .from(users)
     .where(and(eq(users.ativo, true), isNull(users.deletedAt)))
@@ -174,7 +174,9 @@ export async function createUser(input: CreateUserInput) {
             role: users.role,
           });
         const savedUser = saved;
-        if (!savedUser) return;
+        if (!savedUser) {
+          throw new AppError("Falha ao criar usuario", 500, "INTERNAL_ERROR");
+        }
         if (isResponsavelRole(roleName) && pacienteIdsVinculados.length) {
           await tx
             .insert(userPacienteVinculos)
