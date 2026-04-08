@@ -75,6 +75,10 @@ function resolveProfissionalId(input: { profissionalId?: number | null }) {
 
 type DbExecutor = typeof db;
 
+function advisoryLockHash64(value: string) {
+  return sql`(('x' || substr(md5(${value}), 1, 16))::bit(64)::bigint)`;
+}
+
 async function resolveStatusRepasseForUpdate(
   executor: DbExecutor,
   params: { atendimentoId: number; presenca: string }
@@ -96,12 +100,14 @@ async function acquireAtendimentoScheduleLock(executor: DbExecutor, params: {
   data: string;
   isGrupo: boolean;
 }) {
+  const pacienteLockKey = `atendimentos:paciente:${params.pacienteId}:${params.data}`;
   await executor.execute(
-    sql`select pg_advisory_xact_lock(${params.pacienteId}, hashtext(${`paciente:${params.data}`}))`
+    sql`select pg_advisory_xact_lock(${advisoryLockHash64(pacienteLockKey)})`
   );
   if (!params.isGrupo) {
+    const profissionalLockKey = `atendimentos:profissional:${params.profissionalId}:${params.data}`;
     await executor.execute(
-      sql`select pg_advisory_xact_lock(${params.profissionalId}, hashtext(${`profissional:${params.data}`}))`
+      sql`select pg_advisory_xact_lock(${advisoryLockHash64(profissionalLockKey)})`
     );
   }
 }

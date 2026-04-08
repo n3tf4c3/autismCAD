@@ -63,6 +63,10 @@ function toPositiveUserIdOrNull(value: number | string | null | undefined): numb
   return parsed;
 }
 
+function advisoryLockHash64(value: string) {
+  return sql`(('x' || substr(md5(${value}), 1, 16))::bit(64)::bigint)`;
+}
+
 const documentoSelectBase = {
   id: prontuarioDocumentos.id,
   pacienteId: prontuarioDocumentos.pacienteId,
@@ -81,8 +85,9 @@ async function acquireProntuarioDocumentVersionLock(
   executor: typeof db,
   params: { pacienteId: number; tipo: string }
 ) {
+  const lockKey = `prontuario-documento:${params.pacienteId}:${params.tipo}`;
   await executor.execute(
-    sql`select pg_advisory_xact_lock(${params.pacienteId}, hashtext(${`prontuario-documento:${params.tipo}`}))`
+    sql`select pg_advisory_xact_lock(${advisoryLockHash64(lockKey)})`
   );
 }
 
