@@ -508,7 +508,10 @@ export async function excluirDia(payload: ExcluirDiaInput, deletedByUserId?: num
   const horaInicio = normalizeTime(payload.horaInicio);
   const horaFim = normalizeTime(payload.horaFim);
 
-  // Remove only planned, not absent, not done.
+  // Remove only planned entries.
+  // IMPORTANT: keep both predicates below aligned with `ck_atendimentos_realizado_presenca`:
+  // - `realizado = false` guarantees only non-completed sessions are deleted.
+  // - `presenca <> 'Ausente'` preserves explicit absences.
   const where = [
     eq(atendimentos.pacienteId, payload.pacienteId),
     eq(atendimentos.horaInicio, horaInicio),

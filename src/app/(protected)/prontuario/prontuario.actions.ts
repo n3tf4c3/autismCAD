@@ -9,6 +9,7 @@ import {
   criarEvolucao,
   excluirDocumento,
   excluirEvolucao,
+  finalizarDocumento,
   obterDocumento,
   obterEvolucaoPorId,
   salvarDocumento,
@@ -191,6 +192,27 @@ export async function excluirDocumentoProntuarioAction(
     revalidatePath(`/prontuario/${pacienteId}/plano-ensino`);
     revalidatePath(`/prontuario/documento/${parsedDocumentoId}`);
     return { ok: true, data: { id: parsedDocumentoId, deleted: true } };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function finalizarDocumentoProntuarioAction(
+  documentoId: number
+): Promise<ActionResult<{ id: number; finalized: true }>> {
+  try {
+    const parsedDocumentoId = parsePositiveInt(documentoId, "Documento", "INVALID_INPUT");
+    const { user } = await requirePermission("prontuario:version");
+    const finalized = await finalizarDocumento(parsedDocumentoId, user);
+
+    const pacienteId = Number(finalized.pacienteId ?? 0);
+    if (pacienteId > 0) {
+      revalidatePath(`/prontuario/${pacienteId}`);
+      revalidatePath(`/prontuario/${pacienteId}/plano-ensino`);
+    }
+    revalidatePath(`/prontuario/documento/${parsedDocumentoId}`);
+
+    return { ok: true, data: { id: finalized.id, finalized: true } };
   } catch (error) {
     return actionErrorResult(error);
   }

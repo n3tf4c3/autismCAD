@@ -29,6 +29,7 @@ import {
   profissionalAtendePaciente,
 } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
+import { assertPacienteAccess } from "@/server/auth/paciente-access";
 
 function toIsoDate(value: string): string {
   const normalized = normalizeDateOnlyLoose(value);
@@ -531,17 +532,40 @@ export async function excluirEvolucao(id: number, userId?: number | null) {
   return !!row;
 }
 
-export async function finalizarDocumento(id: number) {
+export async function finalizarDocumento(
+  id: number,
+  user: { id: number | string; role?: string | null }
+) {
+  const [doc] = await db
+    .select({
+      id: prontuarioDocumentos.id,
+      pacienteId: prontuarioDocumentos.pacienteId,
+    })
+    .from(prontuarioDocumentos)
+    .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
+    .limit(1);
+
+  if (!doc) {
+    throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
+  }
+
+  await assertPacienteAccess(user, Number(doc.pacienteId));
+
   const [row] = await db
     .update(prontuarioDocumentos)
     .set({ status: "Finalizado", updatedAt: sql`now()` })
     .where(and(eq(prontuarioDocumentos.id, id), isNull(prontuarioDocumentos.deletedAt)))
     .returning({
       id: prontuarioDocumentos.id,
+      pacienteId: prontuarioDocumentos.pacienteId,
       status: prontuarioDocumentos.status,
       updatedAt: prontuarioDocumentos.updatedAt,
     });
-  return row ?? null;
+
+  if (!row) {
+    throw new AppError("Documento nao encontrado", 404, "NOT_FOUND");
+  }
+  return row;
 }
 
 export async function excluirDocumento(id: number, userId?: number | null) {

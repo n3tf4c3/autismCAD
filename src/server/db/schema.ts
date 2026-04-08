@@ -293,6 +293,10 @@ export const atendimentos = pgTable(
       .defaultNow(),
   },
   (table) => [
+    // Business rule:
+    // - Presente => realizado = true
+    // - Any other presenca => realizado = false
+    // Keep this invariant in DB so service-level updates cannot diverge silently.
     check(
       "ck_atendimentos_realizado_presenca",
       sql`${table.realizado} = (${table.presenca} = 'Presente')`
