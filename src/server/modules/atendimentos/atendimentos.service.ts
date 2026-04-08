@@ -384,7 +384,24 @@ export async function salvarAtendimento(input: SaveAtendimentoInput, id?: number
   );
 }
 
-export async function softDeleteAtendimento(id: number, deletedByUserId?: number | null) {
+export async function getAtendimentoById(id: number) {
+  const [row] = await db
+    .select({
+      id: atendimentos.id,
+      pacienteId: atendimentos.pacienteId,
+    })
+    .from(atendimentos)
+    .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+    .limit(1);
+
+  return row ?? null;
+}
+
+export async function softDeleteAtendimento(
+  id: number,
+  pacienteId: number,
+  deletedByUserId?: number | null
+) {
   return runDbTransaction(
     async (tx) => {
       const [row] = await tx
@@ -394,8 +411,14 @@ export async function softDeleteAtendimento(id: number, deletedByUserId?: number
           deletedByUserId: deletedByUserId ?? null,
           updatedAt: sql`now()`,
         })
-        .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-        .returning({ id: atendimentos.id });
+        .where(
+          and(
+            eq(atendimentos.id, id),
+            eq(atendimentos.pacienteId, pacienteId),
+            isNull(atendimentos.deletedAt)
+          )
+        )
+        .returning({ id: atendimentos.id, pacienteId: atendimentos.pacienteId });
 
       if (!row) {
         throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");

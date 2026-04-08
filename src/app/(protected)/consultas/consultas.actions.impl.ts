@@ -50,7 +50,12 @@ export type ConsultasActionsDeps<
   excluirDia: (input: TExcluirDiaInput, deletedByUserId?: number | null) => Promise<{ removidos: number }>;
   listarAtendimentosPorUsuario: (userId: number, filters: TAtendimentosFilters) => Promise<TAtendimentosRows>;
   salvarAtendimento: (input: TSaveAtendimentoInput, id?: number | null) => Promise<number>;
-  softDeleteAtendimento: (id: number, deletedByUserId?: number | null) => Promise<{ id: number }>;
+  getAtendimentoById: (id: number) => Promise<{ id: number; pacienteId: number } | null>;
+  softDeleteAtendimento: (
+    id: number,
+    pacienteId: number,
+    deletedByUserId?: number | null
+  ) => Promise<{ id: number; pacienteId: number }>;
   AppError: new (message: string, status?: number, code?: string) => AppErrorLike;
   toAppError: (error: unknown) => AppErrorLike;
 };
@@ -165,7 +170,16 @@ export function buildConsultasActions<
           throw new deps.AppError("Atendimento invalido", 400, "INVALID_INPUT");
         }
         const { user } = await deps.requirePermission("consultas:cancel");
-        const result = await deps.softDeleteAtendimento(idNum, Number(user.id));
+        const atendimento = await deps.getAtendimentoById(idNum);
+        if (!atendimento) {
+          throw new deps.AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+        }
+        await deps.assertPacienteAccess(user, atendimento.pacienteId);
+        const result = await deps.softDeleteAtendimento(
+          atendimento.id,
+          atendimento.pacienteId,
+          Number(user.id)
+        );
         return { ok: true, data: { id: result.id } };
       } catch (error) {
         return actionErrorResult(error, deps.toAppError);

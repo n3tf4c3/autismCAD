@@ -24,6 +24,8 @@ const calls = {
   salvarAtendimento: [] as Array<{ input: unknown; id: number | null }>,
   criarRecorrentes: [] as Array<{ input: unknown }>,
   excluirDia: [] as Array<{ input: unknown; deletedByUserId?: number | null }>,
+  getAtendimentoById: [] as Array<number>,
+  softDeleteAtendimento: [] as Array<{ id: number; pacienteId: number; deletedByUserId?: number | null }>,
 };
 
 const state = {
@@ -37,6 +39,7 @@ const state = {
     atendimentos: [{ id: 777, data: "2026-04-06" }],
   },
   excluirDiaResult: { removidos: 3 },
+  getAtendimentoByIdResult: { id: 77, pacienteId: 17 } as { id: number; pacienteId: number } | null,
 };
 
 function resetState() {
@@ -46,6 +49,8 @@ function resetState() {
   calls.salvarAtendimento.length = 0;
   calls.criarRecorrentes.length = 0;
   calls.excluirDia.length = 0;
+  calls.getAtendimentoById.length = 0;
+  calls.softDeleteAtendimento.length = 0;
 
   state.requirePermissionError = null;
   state.requirePermissionUser = { id: 101, role: "profissional" };
@@ -57,6 +62,7 @@ function resetState() {
     atendimentos: [{ id: 777, data: "2026-04-06" }],
   };
   state.excluirDiaResult = { removidos: 3 };
+  state.getAtendimentoByIdResult = { id: 77, pacienteId: 17 };
 }
 
 const deps: ConsultasActionsDeps = {
@@ -90,7 +96,14 @@ const deps: ConsultasActionsDeps = {
     calls.excluirDia.push({ input, deletedByUserId });
     return state.excluirDiaResult;
   },
-  softDeleteAtendimento: async () => ({ id: 1 }),
+  getAtendimentoById: async (id) => {
+    calls.getAtendimentoById.push(id);
+    return state.getAtendimentoByIdResult;
+  },
+  softDeleteAtendimento: async (id, pacienteId, deletedByUserId) => {
+    calls.softDeleteAtendimento.push({ id, pacienteId, deletedByUserId });
+    return { id, pacienteId };
+  },
   AppError,
   toAppError: (error) => {
     if (error instanceof AppError) return error;
@@ -228,4 +241,38 @@ test("excluirDiaAtendimentosAction valida acesso do paciente antes de excluir", 
     input: payload,
     deletedByUserId: 555,
   });
+});
+
+test("excluirAtendimentoAction valida acesso ao paciente do atendimento antes de excluir", async () => {
+  state.requirePermissionUser = { id: 999, role: "profissional" };
+  state.getAtendimentoByIdResult = { id: 88, pacienteId: 17 };
+
+  const result = await actions.excluirAtendimentoAction(88);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls.requirePermission, ["consultas:cancel"]);
+  assert.deepEqual(calls.getAtendimentoById, [88]);
+  assert.deepEqual(calls.assertPacienteAccess[0], {
+    user: { id: 999, role: "profissional" },
+    pacienteId: 17,
+  });
+  assert.deepEqual(calls.softDeleteAtendimento, [
+    { id: 88, pacienteId: 17, deletedByUserId: 999 },
+  ]);
+});
+
+test("excluirAtendimentoAction bloqueia exclusao quando acesso ao paciente e negado", async () => {
+  state.requirePermissionUser = { id: 321, role: "profissional" };
+  state.getAtendimentoByIdResult = { id: 55, pacienteId: 44 };
+  state.assertPacienteAccessError = new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
+
+  const result = await actions.excluirAtendimentoAction(55);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.deepEqual(calls.getAtendimentoById, [55]);
+  assert.equal(calls.softDeleteAtendimento.length, 0);
 });

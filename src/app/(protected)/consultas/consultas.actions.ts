@@ -11,6 +11,7 @@ import {
 import {
   criarRecorrentes,
   excluirDia,
+  getAtendimentoById,
   listarAtendimentosPorUsuario,
   salvarAtendimento,
   softDeleteAtendimento,
@@ -29,6 +30,7 @@ const actions = buildConsultasActions({
   excluirDia,
   listarAtendimentosPorUsuario,
   salvarAtendimento,
+  getAtendimentoById,
   softDeleteAtendimento,
   AppError,
   toAppError,
