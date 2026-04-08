@@ -128,7 +128,18 @@ export function buildConsultasActions<
         }
         assertNoLegacyAtendimentoFields(input, deps.AppError);
         const parsed = deps.saveAtendimentoSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId);
+        const atendimento = await deps.getAtendimentoById(idNum);
+        if (!atendimento) {
+          throw new deps.AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+        }
+        await deps.assertPacienteAccess(user, atendimento.pacienteId);
+        if (Number(atendimento.pacienteId) !== Number(parsed.pacienteId)) {
+          throw new deps.AppError(
+            "Atendimento nao pertence ao paciente informado",
+            403,
+            "FORBIDDEN"
+          );
+        }
         const savedId = await deps.salvarAtendimento(parsed, idNum);
         return { ok: true, data: { id: savedId } };
       } catch (error) {

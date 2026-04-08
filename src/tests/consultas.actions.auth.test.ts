@@ -189,6 +189,31 @@ test("salvarAtendimentoAction bloqueia persistencia quando acesso ao paciente e 
   assert.equal(calls.salvarAtendimento.length, 0);
 });
 
+test("salvarAtendimentoAction bloqueia quando atendimento nao pertence ao paciente informado", async () => {
+  state.getAtendimentoByIdResult = { id: 33, pacienteId: 99 };
+
+  const result = await actions.salvarAtendimentoAction(33, {
+    pacienteId: 17,
+    profissionalId: 5,
+    data: "2026-04-06",
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    presenca: "Nao informado",
+  });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.deepEqual(calls.getAtendimentoById, [33]);
+  assert.deepEqual(calls.assertPacienteAccess[0], {
+    user: { id: 101, role: "profissional" },
+    pacienteId: 99,
+  });
+  assert.equal(calls.salvarAtendimento.length, 0);
+});
+
 test("criarAtendimentosRecorrentesAction valida acesso do paciente", async () => {
   const payload = {
     pacienteId: 17,

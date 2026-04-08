@@ -176,6 +176,14 @@ export async function profissionalAtendePaciente(pacienteId: number, profissiona
   const [row] = await db
     .select({ one: atendimentos.id })
     .from(atendimentos)
+    .innerJoin(
+      profissionaisTabela,
+      and(
+        eq(profissionaisTabela.id, atendimentos.profissionalId),
+        eq(profissionaisTabela.ativo, true),
+        isNull(profissionaisTabela.deletedAt)
+      )
+    )
     .where(
       and(
         eq(atendimentos.pacienteId, pacienteId),

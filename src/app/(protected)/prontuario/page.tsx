@@ -1,15 +1,10 @@
 ﻿import Link from "next/link";
-import { asc, isNull } from "drizzle-orm";
-import { db } from "@/db";
-import { pacientes } from "@/server/db/schema";
+import { requirePermission } from "@/server/auth/auth";
+import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 
 export default async function ProntuarioIndexPage() {
-  const rows = await db
-    .select({ id: pacientes.id, nome: pacientes.nome })
-    .from(pacientes)
-    .where(isNull(pacientes.deletedAt))
-    .orderBy(asc(pacientes.nome))
-    .limit(200);
+  const { user } = await requirePermission("prontuario:view");
+  const rows = (await listarPacientesPorUsuario(Number(user.id), {})).slice(0, 200);
 
   return (
     <main className="rounded-2xl bg-white p-6 shadow-sm">
@@ -55,6 +50,3 @@ export default async function ProntuarioIndexPage() {
     </main>
   );
 }
-
-
-
