@@ -214,7 +214,7 @@ function AcertividadeChart(props: { rows: EnsinoDesempenhoRow[] }) {
 
   return (
     <div className="avoid-break rounded-xl border border-[#e7ddd2] bg-[#fcfaf7] p-3">
-      <h3 className="text-center text-lg font-semibold text-[#4d392a]">Desempenho de Acertividade</h3>
+      <h3 className="text-center text-lg font-semibold text-[#4d392a]">Desempenho de Acertos</h3>
       <svg
         viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         className="mt-3 block w-full"
