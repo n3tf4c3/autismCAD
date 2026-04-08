@@ -9,7 +9,8 @@ const envSchema = z.object({
   REQUIRE_DB_TRANSACTIONS: z.coerce.number().int().min(0).max(1).optional(),
   APP_TIMEZONE: z.string().min(1).default("America/Sao_Paulo"),
   NEXTAUTH_URL: z.string().url().optional(),
-  AUTH_SECRET: z.string().min(32).default(DEV_AUTH_SECRET),
+  NEXTAUTH_SECRET: z.string().min(32).optional(),
+  AUTH_SECRET: z.string().min(32).optional(),
   DATABASE_URL: z
     .string()
     .url()
@@ -33,7 +34,9 @@ if (!parsed.success) {
   throw new Error(`Invalid environment variables: ${parsed.error.message}`);
 }
 
-if (parsed.data.NODE_ENV === "production" && parsed.data.AUTH_SECRET === DEV_AUTH_SECRET) {
+const authSecret = parsed.data.AUTH_SECRET ?? parsed.data.NEXTAUTH_SECRET ?? DEV_AUTH_SECRET;
+
+if (parsed.data.NODE_ENV === "production" && authSecret === DEV_AUTH_SECRET) {
   throw new Error("Invalid environment variables: AUTH_SECRET deve ser definido com valor seguro em producao.");
 }
 
@@ -42,5 +45,6 @@ const requireDbTransactions =
 
 export const env = {
   ...parsed.data,
+  AUTH_SECRET: authSecret,
   REQUIRE_DB_TRANSACTIONS: requireDbTransactions,
 };
