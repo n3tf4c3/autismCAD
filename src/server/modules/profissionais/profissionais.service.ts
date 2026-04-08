@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   especialidadesPermitidas,
@@ -176,6 +176,10 @@ export async function profissionalAtendePaciente(pacienteId: number, profissiona
   const [row] = await db
     .select({ one: atendimentos.id })
     .from(atendimentos)
+    .innerJoin(
+      pacientes,
+      and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt))
+    )
     .innerJoin(
       profissionaisTabela,
       and(

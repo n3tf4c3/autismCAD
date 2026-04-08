@@ -1,6 +1,5 @@
 ﻿import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
-import { requireUser } from "@/server/auth/auth";
 import { SidebarClient } from "@/components/sidebar/sidebar.client";
 import { TopbarClient } from "@/components/topbar.client";
 import { ShellProvider } from "@/components/shell/shell-provider.client";
@@ -24,12 +23,6 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
   if (!session?.user?.id) {
     redirect("/login");
   }
-  try {
-    await requireUser();
-  } catch {
-    redirect("/login");
-  }
-
   const userName = session.user.name || "Usuário";
   const initials = initialsFromName(userName);
 

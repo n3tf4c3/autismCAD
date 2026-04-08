@@ -44,7 +44,7 @@ function actionErrorResult(error: unknown): ActionError {
 }
 
 function normalizeRoleName(raw: string): string {
-  const roleName = decodeURIComponent(String(raw || "")).trim();
+  const roleName = decodeURIComponent(String(raw || "")).trim().toLowerCase();
   if (!roleName) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
   }

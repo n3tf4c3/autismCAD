@@ -1,9 +1,12 @@
 import "server-only";
 
+import { and, eq, isNull } from "drizzle-orm";
+import { db } from "@/db";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { loadUserAccess } from "@/server/auth/access";
 import { parseSessionUserId } from "@/server/auth/user-id";
 import { AppError } from "@/server/shared/errors";
+import { pacientes } from "@/server/db/schema";
 import {
   obterProfissionalPorUsuario,
   profissionalAtendePaciente,
@@ -24,6 +27,14 @@ export async function assertPacienteAccess(user: SessionUserLike, pacienteId: nu
   const access = await loadUserAccess(userId);
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
+  }
+  const [pacienteAtivo] = await db
+    .select({ id: pacientes.id })
+    .from(pacientes)
+    .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
+    .limit(1);
+  if (!pacienteAtivo) {
+    throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
   }
 
   const roleCanon = access.canonicalRole ?? access.role;
