@@ -121,7 +121,7 @@ export async function listUsers() {
 }
 
 export async function createUser(input: CreateUserInput) {
-  const roleName = input.role.trim();
+  const roleName = input.role.trim().toLowerCase();
   const [roleRow] = await db
     .select({ slug: roles.slug })
     .from(roles)
@@ -208,7 +208,7 @@ export async function updateUser(
   input: UpdateUserInput,
   requesterUserId?: number | null
 ) {
-  const roleName = input.role.trim();
+  const roleName = input.role.trim().toLowerCase();
   const [roleRow] = await db
     .select({ slug: roles.slug })
     .from(roles)

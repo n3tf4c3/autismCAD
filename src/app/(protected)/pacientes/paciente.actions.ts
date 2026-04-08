@@ -225,6 +225,19 @@ function looksLikeR2Key(value: string): boolean {
   return !v.startsWith("http://") && !v.startsWith("https://");
 }
 
+function isNotFoundR2Error(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as {
+    name?: string;
+    Code?: string;
+    code?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+  const status = candidate.$metadata?.httpStatusCode;
+  const code = String(candidate.name ?? candidate.Code ?? candidate.code ?? "");
+  return status === 404 || code === "NotFound" || code === "NoSuchKey";
+}
+
 export async function obterArquivoPacienteReadUrlAction(
   pacienteId: number,
   kind: unknown
@@ -319,24 +332,22 @@ export async function commitArquivoPacienteAction(
         throw new AppError("Arquivo invalido para este paciente", 403, "FORBIDDEN");
       }
 
-      const exists = await objectExistsInR2(parsed.key);
-      if (!exists) {
-        throw new AppError(
-          "O upload na nuvem nao foi confirmado, tente novamente",
-          409,
-          "UPLOAD_NOT_CONFIRMED"
-        );
-      }
-
       if (isTempKey) {
         const fileName = parsed.key.split("/").pop() || `${parsed.kind}.bin`;
         const promotedKey = buildObjectKey(`pacientes/${idNum}/${parsed.kind}`, fileName);
-        await copyObjectInR2({
-          sourceKey: parsed.key,
-          destinationKey: promotedKey,
-        });
-        const promotedExists = await objectExistsInR2(promotedKey);
-        if (!promotedExists) {
+        try {
+          await copyObjectInR2({
+            sourceKey: parsed.key,
+            destinationKey: promotedKey,
+          });
+        } catch (error) {
+          if (isNotFoundR2Error(error)) {
+            throw new AppError(
+              "Arquivo temporario nao encontrado ou expirado, envie novamente",
+              409,
+              "UPLOAD_EXPIRED"
+            );
+          }
           throw new AppError(
             "Falha ao consolidar upload na nuvem, tente novamente",
             500,
@@ -346,6 +357,15 @@ export async function commitArquivoPacienteAction(
         nextKey = promotedKey;
         tempKeyToDelete = parsed.key;
         promotedKeyToRollback = promotedKey;
+      } else {
+        const exists = await objectExistsInR2(parsed.key);
+        if (!exists) {
+          throw new AppError(
+            "O upload na nuvem nao foi confirmado, tente novamente",
+            409,
+            "UPLOAD_NOT_CONFIRMED"
+          );
+        }
       }
     }
 
