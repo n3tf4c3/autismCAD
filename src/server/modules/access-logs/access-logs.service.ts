@@ -5,7 +5,22 @@ import { accessLogs, users } from "@/server/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import { AppError } from "@/server/shared/errors";
 
-export const ACCESS_LOG_RETENTION_DAYS = 7;
+const DEFAULT_ACCESS_LOG_RETENTION_DAYS = 30;
+const MIN_ACCESS_LOG_RETENTION_DAYS = 7;
+const MAX_ACCESS_LOG_RETENTION_DAYS = 365;
+
+function resolveAccessLogRetentionDays(): number {
+  const raw = String(process.env.ACCESS_LOG_RETENTION_DAYS ?? "").trim();
+  if (!raw) return DEFAULT_ACCESS_LOG_RETENTION_DAYS;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return DEFAULT_ACCESS_LOG_RETENTION_DAYS;
+  const normalized = Math.trunc(parsed);
+  if (normalized < MIN_ACCESS_LOG_RETENTION_DAYS) return MIN_ACCESS_LOG_RETENTION_DAYS;
+  if (normalized > MAX_ACCESS_LOG_RETENTION_DAYS) return MAX_ACCESS_LOG_RETENTION_DAYS;
+  return normalized;
+}
+
+export const ACCESS_LOG_RETENTION_DAYS = resolveAccessLogRetentionDays();
 const ACCESS_LOG_RETENTION_MS = ACCESS_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const FALLBACK_UNKNOWN_EMAIL = "nao-informado";
 

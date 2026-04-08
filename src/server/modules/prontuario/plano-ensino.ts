@@ -34,7 +34,7 @@ function sanitizeBloco(value: unknown): PlanoEnsinoBloco {
     habilidade: normalizeOptionalText(String(rec.habilidade ?? "")),
     ensino: normalizeOptionalText(String(rec.ensino ?? "")),
     objetivoEnsino: normalizeOptionalText(String(rec.objetivoEnsino ?? rec.objetivo_ensino ?? "")),
-    recursos: normalizeOptionalText(String(rec.recursos ?? rec.rercusos ?? "")),
+    recursos: normalizeOptionalText(String(rec.recursos ?? "")),
     procedimento: normalizeOptionalText(String(rec.procedimento ?? "")),
     suportes: normalizeOptionalText(String(rec.suportes ?? "")),
     alvo: normalizeOptionalText(String(rec.alvo ?? rec.target ?? "")),

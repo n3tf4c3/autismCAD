@@ -162,7 +162,7 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
 }
 
 export async function obterProfissionalPorUsuario(userId: number) {
-  if (!userId) return null;
+  if (!Number.isFinite(userId) || userId <= 0) return null;
   const [row] = await db
     .select({ id: profissionaisTabela.id, nome: profissionaisTabela.nome })
     .from(profissionaisTabela)
