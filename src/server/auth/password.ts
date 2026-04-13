@@ -26,7 +26,10 @@ export async function verifyPassword(
 ): Promise<boolean> {
   if (!passwordHash) return false;
   if (isLegacyHash(passwordHash)) {
-    return hashPasswordLegacy(password) === passwordHash;
+    const computed = Buffer.from(hashPasswordLegacy(password), "hex");
+    const stored = Buffer.from(passwordHash, "hex");
+    if (computed.length !== stored.length) return false;
+    return crypto.timingSafeEqual(computed, stored);
   }
   return compare(password, passwordHash);
 }

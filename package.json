@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push --config drizzle.config.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "db:seed:admin": "tsx scripts/db/seed-superadmin.ts",
+    "db:audit:legacy-passwords": "tsx scripts/db/audit-legacy-password-hashes.ts",
     "db:cleanup:evolucao": "tsx scripts/db/cleanup-evolucao-payload.ts",
     "db:cleanup:anamnese": "tsx scripts/db/cleanup-anamnese-payload.ts",
     "db:cleanup:plano-ensino": "tsx scripts/db/cleanup-plano-ensino-payload.ts"
