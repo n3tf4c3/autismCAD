@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { users } from "@/server/db/schema";
 import { AppError } from "@/server/shared/errors";
 import { getAuthSession } from "@/server/auth/session";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { parseSessionUserId } from "@/server/auth/user-id";
 
@@ -46,8 +46,12 @@ export async function requireUser(): Promise<AuthenticatedUser> {
 
 export async function requireRole(allowedRoles: string[]) {
   const user = await requireUser();
-  const userRole = canonicalRoleName(user.role) ?? user.role;
-  const allowed = new Set(allowedRoles.map((role) => canonicalRoleName(role) ?? role));
+  const userRole = normalizeRoleForMatch(user.role);
+  const allowed = new Set(
+    allowedRoles
+      .map((role) => normalizeRoleForMatch(role))
+      .filter((role): role is string => Boolean(role))
+  );
   if (!userRole || !allowed.has(userRole)) {
     throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }

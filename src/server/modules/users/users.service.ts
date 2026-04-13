@@ -4,6 +4,7 @@ import {
   asc,
   desc,
   eq,
+  ilike,
   inArray,
   isNull,
   sql,
@@ -25,11 +26,11 @@ import {
   UpdateUserInput,
 } from "@/server/modules/users/users.schema";
 import { runDbTransaction } from "@/server/db/transaction";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 
 function isResponsavelRole(roleName: string): boolean {
-  return (canonicalRoleName(roleName) ?? roleName) === "RESPONSAVEL";
+  return normalizeRoleForMatch(roleName) === "RESPONSAVEL";
 }
 
 function normalizePacienteIdsFromInput(input: {
@@ -125,17 +126,18 @@ export async function createUser(input: CreateUserInput) {
   const [roleRow] = await db
     .select({ slug: roles.slug })
     .from(roles)
-    .where(eq(roles.slug, roleName))
+    .where(ilike(roles.slug, roleName))
     .limit(1);
   if (!roleRow) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
   }
+  const storedRoleSlug = roleRow.slug;
 
   const pacienteIdsVinculados = normalizePacienteIdsFromInput({
     pacienteIdVinculado: input.pacienteIdVinculado,
     pacienteIdsVinculados: input.pacienteIdsVinculados,
   });
-  if (isResponsavelRole(roleName)) {
+  if (isResponsavelRole(storedRoleSlug)) {
     if (!pacienteIdsVinculados.length) {
       throw new AppError(
         "Perfil responsavel exige paciente vinculado",
@@ -165,7 +167,7 @@ export async function createUser(input: CreateUserInput) {
             nome: input.nome.trim(),
             email: input.email.trim(),
             senhaHash,
-            role: roleName,
+            role: storedRoleSlug,
             ativo: true,
           })
           .returning({
@@ -177,7 +179,7 @@ export async function createUser(input: CreateUserInput) {
         if (!savedUser) {
           throw new AppError("Falha ao criar usuario", 500, "INTERNAL_ERROR");
         }
-        if (isResponsavelRole(roleName) && pacienteIdsVinculados.length) {
+        if (isResponsavelRole(storedRoleSlug) && pacienteIdsVinculados.length) {
           await tx
             .insert(userPacienteVinculos)
             .values(
@@ -214,17 +216,18 @@ export async function updateUser(
   const [roleRow] = await db
     .select({ slug: roles.slug })
     .from(roles)
-    .where(eq(roles.slug, roleName))
+    .where(ilike(roles.slug, roleName))
     .limit(1);
   if (!roleRow) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
   }
+  const storedRoleSlug = roleRow.slug;
 
   const pacienteIdsVinculados = normalizePacienteIdsFromInput({
     pacienteIdVinculado: input.pacienteIdVinculado,
     pacienteIdsVinculados: input.pacienteIdsVinculados,
   });
-  if (isResponsavelRole(roleName)) {
+  if (isResponsavelRole(storedRoleSlug)) {
     if (!pacienteIdsVinculados.length) {
       throw new AppError(
         "Perfil responsavel exige paciente vinculado",
@@ -241,7 +244,7 @@ export async function updateUser(
   const setData = {
     nome: input.nome.trim(),
     email: input.email.trim(),
-    role: roleName,
+    role: storedRoleSlug,
     updatedAt: sql`now()`,
     ...(senha ? { senhaHash: await hashPassword(senha) } : {}),
   };
@@ -268,7 +271,7 @@ export async function updateUser(
       const currentPacienteIds = currentVinculos
         .map((item) => Number(item.pacienteId))
         .filter((pacienteId) => Number.isFinite(pacienteId) && pacienteId > 0);
-      const nextPacienteIds = isResponsavelRole(roleName) ? pacienteIdsVinculados : [];
+      const nextPacienteIds = isResponsavelRole(storedRoleSlug) ? pacienteIdsVinculados : [];
       const nextPacienteIdsSet = new Set(nextPacienteIds);
       removedPacienteIdsForAudit = currentPacienteIds.filter(
         (pacienteId) => !nextPacienteIdsSet.has(pacienteId)
@@ -282,7 +285,7 @@ export async function updateUser(
       if (!updated) {
         throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
       }
-      if (isResponsavelRole(roleName)) {
+      if (isResponsavelRole(storedRoleSlug)) {
         if (!pacienteIdsVinculados.length) {
           throw new AppError(
             "Perfil responsavel exige paciente vinculado",
@@ -310,7 +313,7 @@ export async function updateUser(
   if (removedPacienteIdsForAudit.length > 0) {
     const actorParsed = Number(requesterUserId);
     const actorUserId = Number.isFinite(actorParsed) && actorParsed > 0 ? actorParsed : null;
-    const reason = isResponsavelRole(roleName)
+    const reason = isResponsavelRole(storedRoleSlug)
       ? "responsavel_links_replaced"
       : "role_no_longer_responsavel";
     try {
@@ -320,7 +323,7 @@ export async function updateUser(
             actorUserId,
             targetUserId: id,
             previousRole: previousRoleForAudit,
-            nextRole: roleName,
+            nextRole: storedRoleSlug,
             removedPacienteIds: removedPacienteIdsForAudit,
             reason,
           });
@@ -332,7 +335,7 @@ export async function updateUser(
         actorUserId,
         targetUserId: id,
         previousRole: previousRoleForAudit,
-        nextRole: roleName,
+        nextRole: storedRoleSlug,
         removedPacienteIds: removedPacienteIdsForAudit,
         reason,
         error,
@@ -344,9 +347,9 @@ export async function updateUser(
     ok: true,
     id,
     email: input.email.trim(),
-    role: roleName,
-    pacienteIdVinculado: isResponsavelRole(roleName) ? (pacienteIdsVinculados[0] ?? null) : null,
-    pacienteIdsVinculados: isResponsavelRole(roleName) ? pacienteIdsVinculados : [],
+    role: storedRoleSlug,
+    pacienteIdVinculado: isResponsavelRole(storedRoleSlug) ? (pacienteIdsVinculados[0] ?? null) : null,
+    pacienteIdsVinculados: isResponsavelRole(storedRoleSlug) ? pacienteIdsVinculados : [],
   };
 }
 
@@ -492,7 +495,7 @@ export async function updateRolePermissions(
   const [roleExists] = await db
     .select({ slug: roles.slug })
     .from(roles)
-    .where(eq(roles.slug, normalizedRole))
+    .where(ilike(roles.slug, normalizedRole))
     .limit(1);
   if (!roleExists) {
     throw new AppError("Role nao encontrada", 404, "NOT_FOUND");

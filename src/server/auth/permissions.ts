@@ -43,6 +43,13 @@ export function canonicalRoleName(role?: string | null): string | null {
   return ROLE_CANONICALS[role.trim()] ?? null;
 }
 
+export function normalizeRoleForMatch(role?: string | null): string | null {
+  if (!role) return null;
+  const trimmed = role.trim();
+  if (!trimmed) return null;
+  return canonicalRoleName(trimmed) ?? trimmed.toLowerCase();
+}
+
 export function hasPermissionKey(
   permissions: Set<string>,
   permissionKey: string
