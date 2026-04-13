@@ -27,6 +27,9 @@ const envSchema = z.object({
   R2_REGION: z.string().default("auto"),
   R2_ENDPOINT: z.string().url().optional(),
   R2_PUBLIC_BASE_URL: z.string().url().optional(),
+  CRON_SECRET: z.string().min(16).optional(),
+  R2_TEMP_UPLOAD_RETENTION_HOURS: z.coerce.number().int().min(1).max(168).default(24),
+  R2_TEMP_UPLOAD_CLEANUP_BATCH_SIZE: z.coerce.number().int().min(1).max(1000).default(500),
 });
 
 const parsed = envSchema.safeParse(process.env);

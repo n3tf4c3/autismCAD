@@ -1,9 +1,11 @@
 import "server-only";
 import {
   CopyObjectCommand,
+  DeleteObjectsCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -115,6 +117,105 @@ export async function deleteObjectFromR2(key: string) {
       Key: key,
     })
   );
+}
+
+export type R2ObjectSummary = {
+  key: string;
+  lastModified: Date | null;
+  size: number;
+};
+
+export async function listObjectsInR2(params: {
+  prefix: string;
+  maxKeys?: number;
+  continuationToken?: string;
+}): Promise<{
+  items: R2ObjectSummary[];
+  nextContinuationToken: string | null;
+}> {
+  const client = getR2Client();
+  const result = await client.send(
+    new ListObjectsV2Command({
+      Bucket: env.R2_BUCKET!,
+      Prefix: params.prefix,
+      MaxKeys: params.maxKeys ?? 1000,
+      ContinuationToken: params.continuationToken,
+    })
+  );
+
+  return {
+    items: (result.Contents ?? [])
+      .map((item) => ({
+        key: String(item.Key || "").trim(),
+        lastModified: item.LastModified ?? null,
+        size: Number(item.Size ?? 0),
+      }))
+      .filter((item) => Boolean(item.key)),
+    nextContinuationToken: result.NextContinuationToken ?? null,
+  };
+}
+
+export async function deleteObjectsFromR2(keys: string[]): Promise<number> {
+  const normalizedKeys = Array.from(
+    new Set(keys.map((key) => String(key || "").trim()).filter(Boolean))
+  );
+  if (!normalizedKeys.length) return 0;
+
+  const client = getR2Client();
+  await client.send(
+    new DeleteObjectsCommand({
+      Bucket: env.R2_BUCKET!,
+      Delete: {
+        Objects: normalizedKeys.map((key) => ({ Key: key })),
+        Quiet: true,
+      },
+    })
+  );
+  return normalizedKeys.length;
+}
+
+export async function cleanupTempObjectsInR2(params?: {
+  prefix?: string;
+  retentionHours?: number;
+  batchSize?: number;
+}): Promise<{
+  prefix: string;
+  retentionHours: number;
+  scanned: number;
+  deleted: number;
+  kept: number;
+}> {
+  const prefix = String(params?.prefix || "pacientes/temp/").trim();
+  const retentionHours = params?.retentionHours ?? env.R2_TEMP_UPLOAD_RETENTION_HOURS;
+  const batchSize = params?.batchSize ?? env.R2_TEMP_UPLOAD_CLEANUP_BATCH_SIZE;
+  const cutoff = Date.now() - retentionHours * 60 * 60 * 1000;
+
+  let continuationToken: string | null = null;
+  let scanned = 0;
+  let deleted = 0;
+  let kept = 0;
+
+  do {
+    const page = await listObjectsInR2({
+      prefix,
+      maxKeys: Math.min(batchSize, 1000),
+      continuationToken: continuationToken ?? undefined,
+    });
+    continuationToken = page.nextContinuationToken;
+    scanned += page.items.length;
+
+    const expiredKeys = page.items
+      .filter((item) => {
+        const lastModified = item.lastModified?.getTime();
+        return Number.isFinite(lastModified) && Number(lastModified) <= cutoff;
+      })
+      .map((item) => item.key);
+
+    kept += page.items.length - expiredKeys.length;
+    deleted += await deleteObjectsFromR2(expiredKeys);
+  } while (continuationToken);
+
+  return { prefix, retentionHours, scanned, deleted, kept };
 }
 
 function encodeCopySourceKey(key: string): string {

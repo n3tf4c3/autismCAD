@@ -74,6 +74,7 @@ npm run dev
 ## Endpoints uteis
 - `GET /api/health`
 - `GET /api/health/r2` (exige R2 configurado e permissao `ADMIN_GERAL`)
+- `GET|POST /api/cron/r2-temp-cleanup` (exige `Authorization: Bearer $CRON_SECRET`)
 - `GET /api/cep/:cep`
 - `GET /api/relatorios/evolutivo/pdf`
 - `GET /api/relatorios/evolutivo/docx`
@@ -81,7 +82,9 @@ npm run dev
 ## Arquivos no R2 (operacao)
 - Upload de arquivos de paciente agora usa prefixo temporario: `pacientes/temp/{pacienteId}/{kind}/...`.
 - O `commit` promove o objeto para o caminho final `pacientes/{pacienteId}/{kind}/...` e remove o temporario.
-- Configure lifecycle no bucket para expirar automaticamente objetos em `pacientes/temp/` com 24h, evitando acumulacao de uploads abandonados.
+- O endpoint `/api/cron/r2-temp-cleanup` remove objetos antigos em `pacientes/temp/` com base em `R2_TEMP_UPLOAD_RETENTION_HOURS`.
+- Agende esse endpoint no provedor de sua preferencia e envie `Authorization: Bearer $CRON_SECRET`.
+- Se o bucket tambem tiver lifecycle nativo para `pacientes/temp/`, melhor: o cron continua como fallback operacional.
 
 ## Documentacao interna
 - `docs/GUIA_MIGRACAO_NEXT_IA.md`
