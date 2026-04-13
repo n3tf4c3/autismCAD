@@ -58,9 +58,9 @@ export async function gerarRelatorioAssiduidadeAction(
   ActionResult<{ report: Awaited<ReturnType<typeof consolidateAssiduidadeReport>> }>
 > {
   try {
-    const { user } = await requirePermission("relatorios_admin:view");
+    const { user, access } = await requirePermission("relatorios_admin:view");
     const parsed = assiduidadeQuerySchema.parse(filters ?? {});
-    const report = await consolidateAssiduidadeReport({ query: parsed, user });
+    const report = await consolidateAssiduidadeReport({ query: parsed, user, access });
     return { ok: true, data: { report } };
   } catch (error) {
     return actionErrorResult(error);

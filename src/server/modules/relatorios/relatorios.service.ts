@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, ilike, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
@@ -18,6 +18,7 @@ import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock"
 import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
+import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 import { isEspecialidadeQuadroAdministrativo } from "@/lib/profissionais/especialidades";
 import {
@@ -163,6 +164,38 @@ async function assertProfissionalAssistencial(profissionalId: number): Promise<n
   }
 
   return Number(profissional.id);
+}
+
+async function resolveAssiduidadeScope(params: {
+  user: AuthenticatedUser;
+  access?: UserAccess;
+  roleCanon: string | null;
+  profissionalId?: number | null;
+}): Promise<{ profissionalFiltro: number | null; allowedPacienteIds: number[] | null }> {
+  const profissionalFiltro = await resolveProfissionalFiltro({
+    roleCanon: params.roleCanon,
+    userId: params.user.id,
+    profissionalId: params.profissionalId ?? null,
+  });
+
+  if (!params.roleCanon || params.roleCanon === "RECEPCAO" || params.roleCanon === "ADMIN_GERAL") {
+    return { profissionalFiltro, allowedPacienteIds: null };
+  }
+  if (params.roleCanon === "ADMIN") {
+    return { profissionalFiltro, allowedPacienteIds: null };
+  }
+  if (params.roleCanon === "PROFISSIONAL") {
+    return { profissionalFiltro, allowedPacienteIds: null };
+  }
+  if (params.roleCanon === "RESPONSAVEL") {
+    const vinculados = await getPacientesVinculadosByUserId(params.user.id);
+    const allowedPacienteIds = vinculados
+      .map((item) => Number(item.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    return { profissionalFiltro, allowedPacienteIds };
+  }
+
+  throw new AppError("Acesso negado", 403, "FORBIDDEN");
 }
 
 export async function consolidateEvolutivoReport(params: {
@@ -729,25 +762,42 @@ export async function consolidatePlanoEnsinoReport(params: {
 export async function consolidateAssiduidadeReport(params: {
   query: AssiduidadeQueryInput;
   user: AuthenticatedUser;
+  access?: UserAccess;
 }) {
   const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
-  const userId = params.user.id;
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
-  const profissionalFiltro = await resolveProfissionalFiltro({
+  const { profissionalFiltro, allowedPacienteIds } = await resolveAssiduidadeScope({
+    user: params.user,
+    access: params.access,
     roleCanon,
-    userId,
     profissionalId: params.query.profissionalId ?? null,
   });
+  if (Array.isArray(allowedPacienteIds) && allowedPacienteIds.length === 0) {
+    return {
+      periodo: { from, to },
+      filtros: {
+        profissionalId: profissionalFiltro,
+        pacienteNome: params.query.pacienteNome?.trim() || null,
+        presenca: params.query.presenca ?? null,
+        role: roleCanon,
+      },
+      resumo: { total: 0, presentes: 0, faltas: 0, semRegistro: 0, taxa: 0 },
+      linhas: [],
+    };
+  }
 
   const where = [
     isNull(atendimentos.deletedAt),
     gte(atendimentos.data, from),
     lte(atendimentos.data, to),
   ];
+  if (Array.isArray(allowedPacienteIds) && allowedPacienteIds.length > 0) {
+    where.push(inArray(atendimentos.pacienteId, allowedPacienteIds));
+  }
   if (profissionalFiltro) where.push(eq(atendimentos.profissionalId, profissionalFiltro));
   if (params.query.presenca) where.push(eq(atendimentos.presenca, params.query.presenca));
   const nomeFiltro = params.query.pacienteNome?.trim() || null;
