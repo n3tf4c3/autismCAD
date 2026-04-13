@@ -42,7 +42,7 @@ export const saveProfissionalSchema = z.object({
   cep: z.string().trim().max(12).optional().nullable(),
   especialidade: z.string().trim().min(1).max(80),
   observacao: z.string().trim().max(4000).optional().nullable(),
-});
+}).strict();
 
 export type ProfissionaisQueryInput = z.infer<typeof profissionaisQuerySchema>;
 export type SaveProfissionalInput = z.infer<typeof saveProfissionalSchema>;

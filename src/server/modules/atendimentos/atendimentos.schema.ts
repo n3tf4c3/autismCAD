@@ -44,7 +44,7 @@ export const saveAtendimentoSchema = z.object({
   presenca: z.string().trim().optional(),
   motivo: z.string().trim().optional().nullable(),
   observacoes: z.string().trim().optional().nullable(),
-});
+}).strict();
 
 export const recorrenteSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),
