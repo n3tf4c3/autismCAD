@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { loadUserAccess } from "@/server/auth/access";
 import { requirePermission, requireUser } from "@/server/auth/auth";
-import { hasPermissionKey } from "@/server/auth/permissions";
+import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import {
   saveProfissionalSchema,
   profissionaisQuerySchema,
@@ -45,6 +45,9 @@ async function assertCanEditProfissional(profissionalId: number): Promise<number
   const user = await requireUser();
   const userId = user.id;
   const access = await loadUserAccess(userId);
+  const roleForCheck = access.canonicalRole ?? access.role;
+  const isAdmin = roleForCheck ? ADMIN_ROLES.has(roleForCheck) : false;
+  if (isAdmin) return userId;
   const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
   const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
 

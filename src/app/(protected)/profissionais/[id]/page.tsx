@@ -1,7 +1,7 @@
 ﻿import { idParamSchema } from "@/lib/zod/api";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
-import { hasPermissionKey } from "@/server/auth/permissions";
+import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import {
   obterProfissionalDetalhe,
   obterProfissionalPorUsuario,
@@ -61,11 +61,13 @@ function pickEndereco(row: {
 export default async function ProfissionalDetalhePage(props: PageProps) {
   const user = await requireUser();
   const access = await loadUserAccess(user.id);
+  const roleForCheck = access.canonicalRole ?? access.role;
+  const isAdmin = roleForCheck ? ADMIN_ROLES.has(roleForCheck) : false;
   const canView = hasPermissionKey(access.permissions, "profissionais:view");
-  if (!canView) throw new AppError("Acesso negado", 403, "FORBIDDEN");
+  if (!isAdmin && !canView) throw new AppError("Acesso negado", 403, "FORBIDDEN");
 
   const { id } = idParamSchema.parse(await props.params);
-  const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
+  const canEditAny = isAdmin || hasPermissionKey(access.permissions, "profissionais:edit");
   const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
   const [row, self] = await Promise.all([
     obterProfissionalDetalhe(id),
@@ -196,7 +198,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
           profissionalNome={row.nome}
           ativo={Boolean(row.ativo)}
           canArchive={canEdit}
-          canDelete={hasPermissionKey(access.permissions, "profissionais:delete")}
+          canDelete={isAdmin || hasPermissionKey(access.permissions, "profissionais:delete")}
         />
       </div>
     </main>

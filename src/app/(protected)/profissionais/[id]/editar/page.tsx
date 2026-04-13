@@ -1,7 +1,7 @@
 ﻿import { idParamSchema } from "@/lib/zod/api";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
-import { hasPermissionKey } from "@/server/auth/permissions";
+import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import {
   obterProfissionalDetalhe,
   obterProfissionalPorUsuario,
@@ -16,12 +16,16 @@ type PageProps = {
 export default async function EditarProfissionalPage(props: PageProps) {
   const user = await requireUser();
   const access = await loadUserAccess(user.id);
+  const roleForCheck = access.canonicalRole ?? access.role;
+  const isAdmin = roleForCheck ? ADMIN_ROLES.has(roleForCheck) : false;
   const canEditAny = hasPermissionKey(access.permissions, "profissionais:edit");
   const canEditSelf = hasPermissionKey(access.permissions, "profissionais:edit_self");
-  if (!canEditAny && !canEditSelf) throw new AppError("Acesso negado", 403, "FORBIDDEN");
+  if (!isAdmin && !canEditAny && !canEditSelf) {
+    throw new AppError("Acesso negado", 403, "FORBIDDEN");
+  }
 
   const { id } = idParamSchema.parse(await props.params);
-  if (!canEditAny) {
+  if (!isAdmin && !canEditAny) {
     const self = await obterProfissionalPorUsuario(user.id);
     if (!self || self.id !== id) throw new AppError("Acesso negado", 403, "FORBIDDEN");
   }
