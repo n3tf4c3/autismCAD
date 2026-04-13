@@ -42,7 +42,7 @@ export type PacienteDetalhe = {
   nomeMae: string | null;
   nomePai: string | null;
   sexo: string | null;
-  ativo: boolean | number | string | null;
+  ativo: boolean;
   foto: string | null;
   laudo: string | null;
   documento: string | null;

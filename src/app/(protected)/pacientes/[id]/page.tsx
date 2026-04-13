@@ -58,17 +58,6 @@ async function maybeSignedUrl(stored: string | null): Promise<string | null> {
   }
 }
 
-function resolveAtivoFlag(value: unknown): boolean {
-  if (value === true || value === 1) return true;
-  if (value === false || value === 0 || value == null) return false;
-  if (typeof value === "string") {
-    const parsed = value.trim().toLowerCase();
-    if (["1", "true", "t", "ativo"].includes(parsed)) return true;
-    if (["0", "false", "f", "inativo", "arquivado"].includes(parsed)) return false;
-  }
-  return Boolean(value);
-}
-
 export default async function PacienteDetalhePage(props: { params: Promise<{ id: string }> }) {
   const { user } = await requirePermission("pacientes:view");
   const access = await loadUserAccess(user.id);
@@ -116,7 +105,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
     : "-";
   const canArchive = hasPermissionKey(access.permissions, "pacientes:edit");
   const canDelete = hasPermissionKey(access.permissions, "pacientes:delete");
-  const pacienteAtivo = resolveAtivoFlag(paciente.ativo);
+  const pacienteAtivo = paciente.ativo;
 
   return (
     <div className="space-y-6">

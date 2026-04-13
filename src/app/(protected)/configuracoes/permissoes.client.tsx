@@ -14,7 +14,7 @@ import {
   type ActionResult,
 } from "@/app/(protected)/configuracoes/permissoes.actions";
 
-type RoleRow = { nome: string };
+type RoleRow = { slug: string; nome: string };
 type PermissionRow = { id: number; resource: string; action: string };
 
 type UserRow = {
@@ -182,7 +182,7 @@ export function ConfiguracoesPermissoesClient() {
         setRoles(roleList);
         setPermissions(permList);
 
-        const first = roleList[0]?.nome || "";
+        const first = roleList[0]?.slug || "";
         setRoleSelected(first);
       } catch (err) {
         if (cancelled) return;
@@ -635,7 +635,7 @@ export function ConfiguracoesPermissoesClient() {
             >
               <option value="">Selecione um papel</option>
               {roles.map((r) => (
-                <option key={r.nome} value={r.nome}>
+                <option key={r.slug} value={r.slug}>
                   {r.nome}
                 </option>
               ))}

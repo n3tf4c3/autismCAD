@@ -203,7 +203,7 @@ export const userPacienteVinculosAudit = pgTable(
     ),
     check(
       "ck_user_paciente_vinculos_audit_removed_ids_positive_int",
-      sql`${table.removedPacienteIds}::text ~ '^\\[(?:[1-9][0-9]*(?:,[1-9][0-9]*)*)?\\]$'`
+      sql`public.jsonb_is_positive_int_array(${table.removedPacienteIds})`
     ),
     index("idx_user_paciente_vinc_audit_target").on(table.targetUserId),
     index("idx_user_paciente_vinc_audit_actor").on(table.actorUserId),
@@ -358,6 +358,7 @@ export const prontuarioDocumentos = pgTable(
     createdByUserId: bigint("created_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
     }),
+    // Snapshot do papel no momento da criacao; intencionalmente sem FK para preservar historico.
     createdByRole: varchar("created_by_role", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

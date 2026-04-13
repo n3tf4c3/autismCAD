@@ -450,7 +450,7 @@ export async function listPermissions() {
 export async function listRoles() {
   // Reference catalog: roles remain listable even when there are no active users.
   const baseRoles = await db
-    .select({ nome: roles.slug })
+    .select({ slug: roles.slug, nome: roles.nome })
     .from(roles)
     .orderBy(asc(roles.slug));
   return baseRoles;
