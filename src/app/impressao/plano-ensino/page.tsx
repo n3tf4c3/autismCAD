@@ -38,13 +38,13 @@ export default async function PlanoEnsinoImpressaoPage(props: {
         <main className="mx-auto max-w-4xl space-y-4 p-6">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-sm text-red-600">
-              Informe `pacienteId` para abrir o relatorio de plano de ensino para impressao.
+              Informe `pacienteId` para abrir o relatório de plano de ensino para impressão.
             </p>
             <Link
               href="/relatorios"
               className="mt-3 inline-flex text-sm font-semibold text-[var(--laranja)]"
             >
-              &larr; Voltar para relatorios
+              &larr; Voltar para relatórios
             </Link>
           </section>
         </main>
@@ -63,7 +63,7 @@ export default async function PlanoEnsinoImpressaoPage(props: {
               href="/relatorios"
               className="mt-3 inline-flex text-sm font-semibold text-[var(--laranja)]"
             >
-              &larr; Voltar para relatorios
+              &larr; Voltar para relatórios
             </Link>
           </section>
         </main>
@@ -97,10 +97,10 @@ export default async function PlanoEnsinoImpressaoPage(props: {
                   Relatorio plano de ensino
                 </p>
                 <h1 className="mt-2 text-2xl font-bold text-[var(--marrom)]">
-                  Versao para impressao, PDF e DOCX
+                  Versão para impressão, PDF e DOCX
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm text-gray-600">
-                  Recorte mensal ou por periodo para consolidar os planos de ensino cadastrados,
+                  Recorte mensal ou por período para consolidar os planos de ensino cadastrados,
                   com visualizacao pronta para imprimir, salvar em PDF ou exportar em DOCX.
                 </p>
               </div>
@@ -110,7 +110,7 @@ export default async function PlanoEnsinoImpressaoPage(props: {
                   href="/relatorios"
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-slate-50"
                 >
-                  &larr; Voltar para relatorios
+                  &larr; Voltar para relatórios
                 </Link>
               </div>
             </div>

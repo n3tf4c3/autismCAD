@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { MouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -250,7 +250,7 @@ export function QuickCalendarClient(props: {
             {"\u2190"}
           </button>
           <span className="text-xs text-gray-600">
-            {daysWithSessionsCount ? `${daysWithSessionsCount} dia(s)` : "Sem sessoes"}
+            {daysWithSessionsCount ? `${daysWithSessionsCount} dia(s)` : "Sem sessões"}
             {loading ? " - carregando..." : ""}
           </span>
           <button

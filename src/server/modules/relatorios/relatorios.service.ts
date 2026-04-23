@@ -428,21 +428,21 @@ export async function consolidateEvolutivoReport(params: {
 
   const adesaoTexto =
     tp >= 85
-      ? "Adesao considerada boa no periodo, com alta taxa de presenca."
+      ? "Adesão considerada boa no período, com alta taxa de presença."
       : tp < 70
-        ? "Adesao abaixo do esperado, com presencas reduzidas."
-        : "Adesao moderada, com variacao na presenca.";
+        ? "Adesão abaixo do esperado, com presenças reduzidas."
+        : "Adesão moderada, com variação na presença.";
   const faltasTexto =
     indicadores.ausentes >= 3
-      ? "Houve numero elevado de faltas; investigar causas e ajustar agenda."
+      ? "Houve número elevado de faltas; investigar causas e ajustar agenda."
       : "Faltas dentro do esperado.";
   const registrosTexto = observacoes.length
-    ? `Foram registrados ${observacoes.length} apontamentos clinicos relevantes.`
-    : "Nao ha registros textuais de evolucao no periodo.";
+    ? `Foram registrados ${observacoes.length} apontamentos clínicos relevantes.`
+    : "Não há registros textuais de evolução no período.";
   const recomendacaoTexto = regras.includes("MUITAS_FALTAS")
-    ? "Recomenda-se reforcar contato com a familia e revisar horarios."
+    ? "Recomenda-se reforçar contato com a família e revisar horários."
     : regras.includes("SEM_EVOLUCOES_TEXTUAIS")
-      ? "Reforcar registro de observacoes clinicas para melhor acompanhamento."
+      ? "Reforçar registro de observações clínicas para melhor acompanhamento."
       : "Manter acompanhamento atual e revisitar metas periodicamente.";
 
   const resumoAutomatico = {

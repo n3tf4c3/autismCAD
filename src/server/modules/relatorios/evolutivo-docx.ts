@@ -102,17 +102,17 @@ const COMPORTAMENTO_LABELS: Record<string, string> = {
   ecolalia_imediata: "Ecolalia imediata",
   ecolalia_tardia: "Ecolalia tardia",
   fugas_esquivas: "Fugas / esquivas",
-  agitacao_motora: "Agitacao motora",
-  demanda_atencao: "Demanda de atencao",
-  crise_ausencia: "Crise de ausencia",
+  agitacao_motora: "Agitação motora",
+  demanda_atencao: "Demanda de atenção",
+  crise_ausencia: "Crise de ausência",
   isolamento: "Isolamento",
   comportamento_desafiador: "Comportamento desafiador",
   baixo_interesse: "Baixo interesse",
-  desregulacao_emocional: "Desregulacao emocional",
+  desregulacao_emocional: "Desregulação emocional",
   calmo: "Calmo",
   animado: "Animado",
   alto_interesse: "Alto interesse",
-  foco_atencao: "Foco / atencao",
+  foco_atencao: "Foco / atenção",
   compartilhamento: "Compartilhamento",
   empatia: "Empatia",
   autonomia: "Autonomia",
@@ -223,7 +223,7 @@ function buildSinteseClinica(report: EvolutivoDocxReport) {
   const lines: string[] = [];
 
   lines.push(
-    `Paciente acompanhado no periodo de ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}, com ${report.indicadores.totalAtendimentos} atendimento(s) registrado(s) e taxa de presenca de ${report.indicadores.taxaPresencaPercent}%.`
+    `Paciente acompanhado no período de ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}, com ${report.indicadores.totalAtendimentos} atendimento(s) registrado(s) e taxa de presença de ${report.indicadores.taxaPresencaPercent}%.`
   );
 
   if (report.resumoAutomatico?.texto) {
@@ -246,7 +246,7 @@ function buildSinteseClinica(report: EvolutivoDocxReport) {
     );
     if (topBehavior) {
       lines.push(
-        `Comportamento com maior recorrencia no periodo: ${topBehavior.label} (${topBehavior.value} ocorrencia(s)).`
+        `Comportamento com maior recorrência no período: ${topBehavior.label} (${topBehavior.value} ocorrência(s)).`
       );
     }
   }
@@ -324,12 +324,12 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
     children.push(
       ...topSkillRows.map((item) =>
         bulletParagraph(
-          `${item.label}: ${item.total} registro(s), ${item.pctIndependente}% independente, ${item.pctAjuda}% com ajuda, ${item.pctNaoFez}% nao fez.`
+          `${item.label}: ${item.total} registro(s), ${item.pctIndependente}% independente, ${item.pctAjuda}% com ajuda, ${item.pctNaoFez}% não fez.`
         )
       )
     );
   } else {
-    children.push(bodyParagraph("Nao houve registros de desempenho no periodo selecionado."));
+    children.push(bodyParagraph("Nao houve registros de desempenho no período selecionado."));
   }
 
   children.push(sectionTitle("Comportamentos Apresentados"));
@@ -340,9 +340,9 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
         `Distribuicao geral: ${comportamentoResumo.totalPositivo} positivo(s) (${comportamentoResumo.pctPositivo}%) e ${comportamentoResumo.totalNegativo} negativo(s) (${comportamentoResumo.pctNegativo}%).`
       )
     );
-    children.push(...behaviorRows.map((item) => bulletParagraph(`${item.label}: ${item.value} ocorrencia(s).`)));
+    children.push(...behaviorRows.map((item) => bulletParagraph(`${item.label}: ${item.value} ocorrência(s).`)));
   } else {
-    children.push(bodyParagraph("Nao houve registros comportamentais consolidados no periodo."));
+    children.push(bodyParagraph("Não houve registros comportamentais consolidados no período."));
   }
 
   children.push(sectionTitle("Registros clínico"));
@@ -353,7 +353,7 @@ export async function buildEvolutivoDocx(report: EvolutivoDocxReport): Promise<B
       )
     );
   } else {
-    children.push(bodyParagraph("Nao ha observacoes clinicas registradas para este recorte."));
+    children.push(bodyParagraph("Não há observações clínicas registradas para este recorte."));
   }
 
   const doc = new Document({

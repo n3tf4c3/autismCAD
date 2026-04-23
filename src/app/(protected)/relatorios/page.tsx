@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -20,7 +20,7 @@ export default async function RelatoriosIndexPage(props: {
         <section className="rounded-xl bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-[var(--marrom)]">Acompanhamento</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Acesse os relatorios clinicos dos pacientes vinculados ao seu perfil.
+            Acesse os relatórios clínicos dos pacientes vinculados ao seu perfil.
           </p>
           {!pacientesVinculados.length ? (
             <p className="mt-3 text-sm text-red-600">
@@ -33,7 +33,7 @@ export default async function RelatoriosIndexPage(props: {
           <section className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-[var(--marrom)]">Devolutivas e plano de ensino</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Escolha o paciente para acompanhar devolutivas e gerar o relatorio de plano de ensino.
+              Escolha o paciente para acompanhar devolutivas e gerar o relatório de plano de ensino.
             </p>
             <ul className="mt-4 space-y-2">
               {pacientesVinculados.map((paciente) => (
@@ -55,7 +55,7 @@ export default async function RelatoriosIndexPage(props: {
                       href={`/relatorios/devolutiva-mensal?pacienteId=${paciente.id}`}
                       className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                     >
-                      Devolutiva periodo
+                      Devolutiva período
                     </Link>
                     <Link
                       href={`/impressao/plano-ensino?pacienteId=${paciente.id}`}
@@ -105,7 +105,7 @@ export default async function RelatoriosIndexPage(props: {
             <div>
               <h1 className="text-2xl font-bold text-[var(--marrom)]">Relatórios</h1>
               <p className="text-sm text-gray-600">
-                Acesse indicadores gerais ou gere relatorios por paciente.
+                Acesse indicadores gerais ou gere relatórios por paciente.
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default async function RelatoriosIndexPage(props: {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[var(--marrom)]">Indicadores gerais</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Assiduidade e presença por paciente no periodo selecionado.
+          Assiduidade e presença por paciente no período selecionado.
         </p>
         <div className="mt-4">
           <Link
@@ -130,7 +130,7 @@ export default async function RelatoriosIndexPage(props: {
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[var(--marrom)]">Relatórios por paciente</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Busque o paciente pelo nome ou ID para abrir o relatorio desejado.
+          Busque o paciente pelo nome ou ID para abrir o relatório desejado.
         </p>
         <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1">
@@ -162,7 +162,7 @@ export default async function RelatoriosIndexPage(props: {
         </form>
 
         {!query ? (
-          <p className="mt-4 text-sm text-gray-500">Nenhum paciente listado por padrao. Use a busca para localizar.</p>
+          <p className="mt-4 text-sm text-gray-500">Nenhum paciente listado por padrão. Use a busca para localizar.</p>
         ) : null}
 
         {query && !hasQuery ? (
@@ -202,21 +202,21 @@ export default async function RelatoriosIndexPage(props: {
                         href={`/relatorios/devolutiva-mensal?pacienteId=${row.id}`}
                         className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                       >
-                        Devolutiva periodo
+                        Devolutiva período
                       </Link>
                       <Link
                         href={`/impressao/devolutiva?pacienteId=${row.id}`}
                         target="_blank"
                         className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                       >
-                        Relatório para impressao
+                        Relatório para impressão
                       </Link>
                       <Link
                         href={`/impressao/plano-ensino?pacienteId=${row.id}`}
                         target="_blank"
                         className="inline-flex rounded-lg border border-[var(--laranja)] bg-white px-3 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
                       >
-                        Relatório plano de ensino
+                        Relatório de plano de ensino
                       </Link>
                     </div>
                   </td>

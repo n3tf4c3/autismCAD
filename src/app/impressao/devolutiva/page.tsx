@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -38,13 +38,13 @@ export default async function DevolutivaImpressaoPage(props: {
         <main className="mx-auto max-w-4xl space-y-4 p-6">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-sm text-red-600">
-              Informe `pacienteId` para abrir o relatorio devolutivo para impressao.
+              Informe `pacienteId` para abrir o relatório devolutivo para impressão.
             </p>
             <Link
               href="/relatorios/evolutivo"
               className="mt-3 inline-flex text-sm font-semibold text-[var(--laranja)]"
             >
-              &larr; Voltar para relatorios
+              &larr; Voltar para relatórios
             </Link>
           </section>
         </main>
@@ -63,7 +63,7 @@ export default async function DevolutivaImpressaoPage(props: {
               href="/relatorios/evolutivo"
               className="mt-3 inline-flex text-sm font-semibold text-[var(--laranja)]"
             >
-              &larr; Voltar para relatorios
+              &larr; Voltar para relatórios
             </Link>
           </section>
         </main>
@@ -97,7 +97,7 @@ export default async function DevolutivaImpressaoPage(props: {
                   Relatório devolutivo
                 </p>
                 <h1 className="mt-2 text-2xl font-bold text-[var(--marrom)]">
-                  Versao para impressao, PDF e DOCX
+                  Versão para impressão, PDF e DOCX
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm text-gray-600">
                   Layout separado das devolutivas atuais, pensado para imprimir ou salvar em PDF e compartilhar com
@@ -111,7 +111,7 @@ export default async function DevolutivaImpressaoPage(props: {
                   href={`/relatorios/devolutiva-mensal?pacienteId=${pacienteAtivo.id}`}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-slate-50"
                 >
-                  &larr; Voltar para devolutiva periodo
+                  &larr; Voltar para devolutiva período
                 </Link>
               </div>
             </div>

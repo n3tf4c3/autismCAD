@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
@@ -115,7 +115,7 @@ function fmtMonth(ym: string): string {
 }
 
 function fmtPeriodLabel(from?: string | null, to?: string | null): string {
-  if (!from || !to) return "periodo selecionado";
+  if (!from || !to) return "período selecionado";
   const fromMonth = from.slice(0, 7);
   const toMonth = to.slice(0, 7);
   if (fromMonth === toMonth) return fmtMonth(fromMonth);
@@ -166,17 +166,17 @@ const COMPORTAMENTO_LABELS: Record<string, string> = {
   ecolalia_imediata: "Ecolalia imediata",
   ecolalia_tardia: "Ecolalia tardia",
   fugas_esquivas: "Fugas / esquivas",
-  agitacao_motora: "Agitacao motora",
-  demanda_atencao: "Demanda de atencao",
-  crise_ausencia: "Crise de ausencia",
+  agitacao_motora: "Agitação motora",
+  demanda_atencao: "Demanda de atenção",
+  crise_ausencia: "Crise de ausência",
   isolamento: "Isolamento",
   comportamento_desafiador: "Comportamento desafiador",
   baixo_interesse: "Baixo interesse",
-  desregulacao_emocional: "Desregulacao emocional",
+  desregulacao_emocional: "Desregulação emocional",
   calmo: "Calmo",
   animado: "Animado",
   alto_interesse: "Alto interesse",
-  foco_atencao: "Foco / atencao",
+  foco_atencao: "Foco / atenção",
   compartilhamento: "Compartilhamento",
   empatia: "Empatia",
   autonomia: "Autonomia",
@@ -241,14 +241,14 @@ function AttendanceDistributionChart(props: { present: number; absent: number; o
   const rows = [
     {
       key: "present",
-      label: "Presencas confirmadas",
+      label: "Presenças confirmadas",
       value: props.present,
       pct: total ? Math.round((props.present / total) * 100) : 0,
       color: "#4cc8d3",
     },
     {
       key: "absent",
-      label: "Ausencias",
+      label: "Ausências",
       value: props.absent,
       pct: total ? Math.round((props.absent / total) * 100) : 0,
       color: "#ff6b8a",
@@ -309,7 +309,7 @@ function SkillDistributionChart(props: {
   }>;
 }) {
   if (!props.rows.length) {
-    return <p className="text-sm leading-7 text-slate-700">Não há habilidades suficientes para gerar o grafico neste periodo.</p>;
+    return <p className="text-sm leading-7 text-slate-700">Não há habilidades suficientes para gerar o gráfico neste período.</p>;
   }
 
   const chartHeight = 220;
@@ -423,8 +423,8 @@ function SkillDistributionChart(props: {
 
       <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
         <p>Azul: respostas independentes.</p>
-        <p>Amarelo: execucao com ajuda.</p>
-        <p>Vermelho: metas nao realizadas.</p>
+        <p>Amarelo: execução com ajuda.</p>
+        <p>Vermelho: metas não realizadas.</p>
       </div>
     </div>
   );
@@ -438,7 +438,7 @@ function BehaviorHorizontalChart(props: {
   }>;
 }) {
   if (!props.rows.length) {
-    return <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para gerar o grafico neste periodo.</p>;
+    return <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para gerar o gráfico neste período.</p>;
   }
 
   const maxValue = Math.max(...props.rows.map((row) => row.value), 1);
@@ -644,7 +644,7 @@ export function DevolutivaImpressaoClient(props: {
     if (!report) return [];
     const lines: string[] = [];
     lines.push(
-      `Paciente acompanhado no periodo de ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}, com ${report.indicadores.totalAtendimentos} atendimento(s) registrado(s) e taxa de presenca de ${report.indicadores.taxaPresencaPercent}%.`
+      `Paciente acompanhado no período de ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}, com ${report.indicadores.totalAtendimentos} atendimento(s) registrado(s) e taxa de presença de ${report.indicadores.taxaPresencaPercent}%.`
     );
     if (report.resumoAutomatico?.texto) {
       lines.push(...report.resumoAutomatico.texto.split("\n").map((line) => line.trim()).filter(Boolean));
@@ -663,8 +663,8 @@ export function DevolutivaImpressaoClient(props: {
       lines.push(
         `Foram consolidados ${comportamentoResumo.total} registro(s) comportamentais, sendo ${comportamentoResumo.totalPositivo} positivo(s) e ${comportamentoResumo.totalNegativo} negativo(s).`
       );
-      if (topPos) lines.push(`Principal destaque positivo: ${topPos.label} (${topPos.value} ocorrencia(s)).`);
-      if (topNeg) lines.push(`Principal ponto de atencao: ${topNeg.label} (${topNeg.value} ocorrencia(s)).`);
+      if (topPos) lines.push(`Principal destaque positivo: ${topPos.label} (${topPos.value} ocorrência(s)).`);
+      if (topNeg) lines.push(`Principal ponto de atenção: ${topNeg.label} (${topNeg.value} ocorrência(s)).`);
     }
     return lines;
   }, [comportamentoResumo, desempenhoResumo, report]);
@@ -683,12 +683,12 @@ export function DevolutivaImpressaoClient(props: {
           from: selectedRange.from,
           to: selectedRange.to,
         }),
-        "Erro ao carregar relatorio de impressao"
+        "Erro ao carregar relatório de impressão"
       );
       setReport(data.report as ImpressaoReport);
     } catch (error) {
       setReport(null);
-      setMsg(normalizeRelatorioApiError(error, "Erro ao carregar relatorio de impressao"));
+      setMsg(normalizeRelatorioApiError(error, "Erro ao carregar relatório de impressão"));
     } finally {
       setLoading(false);
     }
@@ -736,17 +736,17 @@ export function DevolutivaImpressaoClient(props: {
       <section className="print:hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Parametros do relatorio</p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--marrom)]">Recorte para impressao</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Parâmetros do relatório</p>
+            <h2 className="mt-2 text-lg font-semibold text-[var(--marrom)]">Recorte para impressão</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Selecione o periodo, gere a pagina e use os botoes de exportacao para imprimir, salvar em PDF ou baixar
+              Selecione o período, gere a página e use os botões de exportação para imprimir, salvar em PDF ou baixar
               o DOCX.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-[220px_190px_190px_auto_auto_auto]">
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de periodo</span>
+              <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de período</span>
               <select
                 value={periodPreset}
                 onChange={(event) => {
@@ -759,7 +759,7 @@ export function DevolutivaImpressaoClient(props: {
                 }}
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
               >
-                <option value="1m">1 mes</option>
+                <option value="1m">1 mês</option>
                 <option value="custom">Personalizado</option>
               </select>
             </label>
@@ -787,7 +787,7 @@ export function DevolutivaImpressaoClient(props: {
               </>
             ) : (
               <label className="flex flex-col gap-1.5 xl:col-span-2">
-                <span className="text-sm font-semibold text-[var(--marrom)]">Mes de referencia</span>
+                <span className="text-sm font-semibold text-[var(--marrom)]">Mês de referência</span>
                 <input
                   type="month"
                   value={referenceMonth}
@@ -803,7 +803,7 @@ export function DevolutivaImpressaoClient(props: {
               disabled={loading}
               className="min-h-11 rounded-xl bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Atualizar relatorio
+              Atualizar relatório
             </button>
 
             <button
@@ -839,7 +839,7 @@ export function DevolutivaImpressaoClient(props: {
 
       {loading ? (
         <section className="print:hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-600">Carregando relatorio para impressao...</p>
+          <p className="text-sm text-slate-600">Carregando relatório para impressão...</p>
         </section>
       ) : null}
 
@@ -879,7 +879,7 @@ export function DevolutivaImpressaoClient(props: {
           </header>
 
           <div className="space-y-4 px-6 pb-5 sm:px-8">
-            <DocumentSection title="Síntese clinica do periodo">
+            <DocumentSection title="Síntese clínica do período">
               <div className="space-y-2 text-sm leading-6 text-slate-700">
                 {sinteseClinica.map((paragraph, index) => (
                   <p key={`${paragraph}-${index}`}>{paragraph}</p>
@@ -906,11 +906,11 @@ export function DevolutivaImpressaoClient(props: {
                       </thead>
                       <tbody className="divide-y divide-[#ece2d8]">
                         <tr>
-                          <td className="px-3 py-2">Presencas confirmadas</td>
+                          <td className="px-3 py-2">Presenças confirmadas</td>
                           <td className="px-3 py-2 font-semibold">{report.indicadores.presentes}</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-2">Ausencias</td>
+                          <td className="px-3 py-2">Ausências</td>
                           <td className="px-3 py-2 font-semibold">{report.indicadores.ausentes}</td>
                         </tr>
                         <tr>
@@ -918,11 +918,11 @@ export function DevolutivaImpressaoClient(props: {
                           <td className="px-3 py-2 font-semibold">{report.indicadores.naoInformado}</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-2">Taxa de presenca</td>
+                          <td className="px-3 py-2">Taxa de presença</td>
                           <td className="px-3 py-2 font-semibold">{report.indicadores.taxaPresencaPercent}%</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-2">Media por sessao</td>
+                          <td className="px-3 py-2">Média por sessão</td>
                           <td className="px-3 py-2 font-semibold">{report.indicadores.mediaMinutosPorSessao} min</td>
                         </tr>
                         <tr>
@@ -935,7 +935,7 @@ export function DevolutivaImpressaoClient(props: {
                 </div>
               </DocumentSection>
 
-              <DocumentSection title="Intercorrencias e ausencias">
+              <DocumentSection title="Intercorrências e ausências">
                 <div className="space-y-3 text-sm text-slate-700">
                   {motivosAusencia.length ? (
                     motivosAusencia.map((item) => (
@@ -945,7 +945,7 @@ export function DevolutivaImpressaoClient(props: {
                       </div>
                     ))
                   ) : (
-                    <p className="leading-7">Não houve faltas com motivo estruturado registrado no periodo.</p>
+                    <p className="leading-7">Não houve faltas com motivo estruturado registrado no período.</p>
                   )}
                 </div>
               </DocumentSection>
@@ -982,7 +982,7 @@ export function DevolutivaImpressaoClient(props: {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm leading-7 text-slate-700">Não há habilidades com volume suficiente para consolidacao neste recorte.</p>
+                <p className="text-sm leading-7 text-slate-700">Não há habilidades com volume suficiente para consolidação neste recorte.</p>
               )}
             </DocumentSection>
 
@@ -993,7 +993,7 @@ export function DevolutivaImpressaoClient(props: {
                     <DocumentField
                       label="Total consolidado"
                       value={comportamentoResumo.total}
-                      helper="Ocorrencias comportamentais com registro estruturado."
+                      helper="Ocorrências comportamentais com registro estruturado."
                     />
                     <DocumentField
                       label="Registros positivos"
@@ -1023,7 +1023,7 @@ export function DevolutivaImpressaoClient(props: {
                           <th className="px-3 py-3">Registros</th>
                           <th className="px-3 py-3">Positivos</th>
                           <th className="px-3 py-3">Negativos</th>
-                          <th className="px-3 py-3">Participacao</th>
+                          <th className="px-3 py-3">Participação</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#ece2d8]">
@@ -1041,7 +1041,7 @@ export function DevolutivaImpressaoClient(props: {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para consolidacao neste periodo.</p>
+                <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para consolidação neste período.</p>
               )}
             </DocumentSection>
 
@@ -1063,7 +1063,7 @@ export function DevolutivaImpressaoClient(props: {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm leading-7 text-slate-700">Sem observacoes textuais selecionadas para o periodo analisado.</p>
+                <p className="text-sm leading-7 text-slate-700">Sem observações textuais selecionadas para o período analisado.</p>
               )}
             </DocumentSection>
           </div>

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
@@ -184,7 +184,7 @@ export default async function DashboardPage() {
           <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F50E}"}</span>
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Consultas / Sessões</h3>
-            <p className="text-sm text-gray-600">Organize sessoes, confirme presenca e acompanhe evolucoes.</p>
+            <p className="text-sm text-gray-600">Organize sessões, confirme presença e acompanhe evoluções.</p>
           </div>
         </div>
 
@@ -226,8 +226,8 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F4C5}"}</span>
           <div>
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendário rapido</h3>
-            <p className="text-sm text-gray-600">Visao mensal com sessoes marcadas.</p>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Calendário rápido</h3>
+            <p className="text-sm text-gray-600">Visão mensal com sessões marcadas.</p>
           </div>
         </div>
 
@@ -258,12 +258,12 @@ export default async function DashboardPage() {
                 B-DAY
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#b97316]">Mural do mes</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#b97316]">Mural do mês</p>
                 <h3 className="text-2xl font-bold text-[#9b5c00]">Aniversariantes</h3>
               </div>
             </div>
             <div className="rounded-full border border-[#f2c66f] bg-white/70 px-3 py-1 text-xs font-semibold text-[#9b5c00] backdrop-blur">
-              {aniversariantes.length} no mes
+              {aniversariantes.length} no mês
             </div>
           </div>
 
@@ -289,7 +289,7 @@ export default async function DashboardPage() {
                         {item.tipo}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-[#8a6a2f]">{item.destaque || "Aniversariante do mes"}</p>
+                    <p className="mt-1 text-xs text-[#8a6a2f]">{item.destaque || "Aniversariante do mês"}</p>
                   </div>
                   <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#fff7e8] text-[#9b5c00] shadow-inner">
                     <span className="text-lg font-black leading-none">{String(item.dia).padStart(2, "0")}</span>
@@ -299,7 +299,7 @@ export default async function DashboardPage() {
               ))
             ) : (
               <div className="flex h-full min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-[#f0c980] bg-white/55 px-6 text-center text-sm font-medium text-[#8a6a2f]">
-                Nenhum paciente ou profissional faz aniversario neste mes.
+                Nenhum paciente ou profissional faz aniversário neste mês.
               </div>
             )}
           </div>

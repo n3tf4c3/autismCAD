@@ -57,7 +57,7 @@ function fmtMonth(ym: string): string {
 }
 
 function fmtPeriodLabel(from?: string | null, to?: string | null): string {
-  if (!from || !to) return "periodo selecionado";
+  if (!from || !to) return "período selecionado";
   const fromMonth = from.slice(0, 7);
   const toMonth = to.slice(0, 7);
   if (fromMonth === toMonth) return fmtMonth(fromMonth);
@@ -138,7 +138,7 @@ export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<B
     bodyParagraph(`Emissao: ${fmtNowPtBr()}`),
     sectionTitle("Desempenho do ensino"),
     bodyParagraph(
-      "Consolidado a partir das evolucoes do periodo com foco em desempenho, tipo de ajuda, tentativas e acertos."
+      "Consolidado a partir das evoluções do período com foco em desempenho, tipo de ajuda, tentativas e acertos."
     ),
     bodyParagraph(
       "Legenda de ajuda: MOD - Modelo | INS - Instrucao | SV - Suporte Verbal | SVG - Suporte Verbal Gestual | SG - Suporte Gestual | SFP - Suporte Fisico Parcial | SFT - Suporte Fisico Total"
@@ -146,7 +146,7 @@ export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<B
   ];
 
   if (!rows.length) {
-    children.push(bodyParagraph("Sem evolucoes com metas de desempenho no periodo selecionado."));
+    children.push(bodyParagraph("Sem evolucoes com metas de desempenho no período selecionado."));
   } else {
     children.push(
       bulletParagraph(`Registros consolidados: ${rows.length}`),
@@ -166,7 +166,7 @@ export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<B
   }
 
   const doc = new Document({
-    creator: "Clinica Girassois",
+    creator: "Clínica Girassóis",
     title: "Relatorio de plano de ensino",
     description: "Exportacao DOCX do relatorio de plano de ensino",
     sections: [

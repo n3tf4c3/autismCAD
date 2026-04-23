@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -670,7 +670,7 @@ export function CalendarioClient(props: {
                   checked={bloquearHorario}
                   onChange={(e) => setBloquearHorario(e.target.checked)}
                 />
-                <span>Bloquear horario (sem paciente)</span>
+                <span>Bloquear horário (sem paciente)</span>
               </label>
               {!bloquearHorario ? (
                 <label className="ml-auto inline-flex items-center gap-2 text-gray-700">
@@ -727,7 +727,7 @@ export function CalendarioClient(props: {
                 : bloquearHorario
                   ? reservaModo === "periodo"
                     ? "Bloquear por periodo"
-                    : "Bloquear horario"
+                    : "Bloquear horário"
                   : reservaModo === "periodo"
                     ? "Reservar por periodo"
                     : "Reservar"}

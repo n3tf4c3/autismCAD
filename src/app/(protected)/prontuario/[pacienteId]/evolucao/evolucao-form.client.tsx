@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -130,19 +130,19 @@ const BEHAVIOR_OPTIONS: Record<BehaviorTipo, Array<{ value: string; label: strin
     { value: "ecolalia_imediata", label: "Ecolalia Imediata" },
     { value: "ecolalia_tardia", label: "Ecolalia Tardia" },
     { value: "fugas_esquivas", label: "Fugas/Esquivas" },
-    { value: "agitacao_motora", label: "Agitacao Motora" },
-    { value: "demanda_atencao", label: "Demanda de Atencao" },
-    { value: "crise_ausencia", label: "Crise de ausencia" },
+    { value: "agitacao_motora", label: "Agitação Motora" },
+    { value: "demanda_atencao", label: "Demanda de Atenção" },
+    { value: "crise_ausencia", label: "Crise de ausência" },
     { value: "isolamento", label: "Isolamento" },
     { value: "comportamento_desafiador", label: "Comportamento Desafiador" },
     { value: "baixo_interesse", label: "Baixo Interesse" },
-    { value: "desregulacao_emocional", label: "Desregulacao emocional (crise)" },
+    { value: "desregulacao_emocional", label: "Desregulação emocional (crise)" },
   ],
   positivo: [
     { value: "calmo", label: "Calmo" },
     { value: "animado", label: "Animado (alegre, sorridente)" },
     { value: "alto_interesse", label: "Alto interesse" },
-    { value: "foco_atencao", label: "Foco/Atencao" },
+    { value: "foco_atencao", label: "Foco/Atenção" },
     { value: "compartilhamento", label: "Compartilhamento" },
     { value: "empatia", label: "Empatia" },
     { value: "autonomia", label: "Autonomia" },
@@ -463,7 +463,7 @@ export function EvolucaoFormClient(props: {
       setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
     } catch (e) {
       const err = e as { message?: string };
-      setMsg(err.message || "Erro ao salvar evolucao");
+      setMsg(err.message || "Erro ao salvar evolução");
     } finally {
       setBusy(false);
     }
@@ -471,7 +471,7 @@ export function EvolucaoFormClient(props: {
 
   async function remove() {
     if (!props.evolucaoId) return;
-    if (!confirm("Deseja excluir esta evolucao?")) return;
+    if (!confirm("Deseja excluir esta evolução?")) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -480,7 +480,7 @@ export function EvolucaoFormClient(props: {
       setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
     } catch (e) {
       const err = e as { message?: string };
-      setMsg(err.message || "Erro ao excluir evolucao");
+      setMsg(err.message || "Erro ao excluir evolução");
     } finally {
       setBusy(false);
     }
@@ -552,7 +552,7 @@ export function EvolucaoFormClient(props: {
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-bold text-[var(--marrom)]">
-        {isEdit ? "Editar evolucao" : "Nova evolucao"}
+        {isEdit ? "Editar evolução" : "Nova evolução"}
       </h1>
 
       <form
@@ -600,7 +600,7 @@ export function EvolucaoFormClient(props: {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[var(--marrom)]">Título da sessao</label>
+            <label className="text-sm font-semibold text-[var(--marrom)]">Título da sessão</label>
             <div className="flex flex-col gap-2">
               <select
                 value={showTituloCustom ? "__outro__" : tituloIsKnown ? titulo.trim() : ""}
@@ -629,7 +629,7 @@ export function EvolucaoFormClient(props: {
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Digite o titulo da sessao"
+                  placeholder="Digite o título da sessão"
                 />
               ) : null}
             </div>
@@ -640,7 +640,7 @@ export function EvolucaoFormClient(props: {
               value={conduta}
               onChange={(e) => setConduta(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-              placeholder="Encaminhamentos ou combinados para proxima sessao."
+              placeholder="Encaminhamentos ou combinados para próxima sessão."
             />
           </div>
         </div>
@@ -684,20 +684,20 @@ export function EvolucaoFormClient(props: {
         )}
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-[var(--marrom)]">Descrição clinica</label>
+          <label className="text-sm font-semibold text-[var(--marrom)]">Descrição clínica</label>
           <textarea
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             rows={4}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-            placeholder="Evolução da sessao, respostas a intervencoes, pontos de alerta."
+            placeholder="Evolução da sessão, respostas a intervenções, pontos de alerta."
           />
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--marrom)]">Metas / desempenho da sessao</p>
+              <p className="text-sm font-semibold text-[var(--marrom)]">Metas / desempenho da sessão</p>
               <p className="text-xs text-gray-500">
                 Registre habilidade, alvo apresentado, desempenho (Ajuda / Nao fez / Independente), tipo de ajuda e
                 reforcador.
@@ -831,7 +831,7 @@ export function EvolucaoFormClient(props: {
         <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--marrom)]">Comportamentos observados na sessao</p>
+              <p className="text-sm font-semibold text-[var(--marrom)]">Comportamentos observados na sessão</p>
               <p className="text-xs text-gray-600">
                 Selecione o resultado geral e registre os comportamentos apresentados com suas quantidades.
               </p>
@@ -1044,7 +1044,7 @@ export function EvolucaoFormClient(props: {
               onChange={(e) => setCompDescricao(e.target.value)}
               rows={3}
               className="min-h-[96px] rounded-lg border bg-white px-3 py-2 text-sm"
-              placeholder="Contexto, frequencia, intensidade, antecedentes ou consequencias observadas."
+              placeholder="Contexto, frequência, intensidade, antecedentes ou consequências observadas."
             />
           </div>
         </div>
@@ -1057,7 +1057,7 @@ export function EvolucaoFormClient(props: {
               disabled={busy}
               className="text-sm font-semibold text-red-600 disabled:opacity-60"
           >
-            Excluir evolucao
+            Excluir evolução
           </button>
           ) : (
             <span />
@@ -1067,7 +1067,7 @@ export function EvolucaoFormClient(props: {
             disabled={busy}
             className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
           >
-            {isEdit ? "Atualizar evolucao" : "Salvar evolucao"}
+            {isEdit ? "Atualizar evolução" : "Salvar evolução"}
           </button>
         </div>
 

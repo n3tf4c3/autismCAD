@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -249,7 +249,7 @@ export function PacientesPageClient(props: {
             <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
               <th className="px-3 py-2">Nome</th>
               <th className="px-3 py-2">CPF</th>
-              <th className="px-3 py-2">Convenio</th>
+              <th className="px-3 py-2">Convênio</th>
               <th className="px-3 py-2">Contato</th>
               <th className="px-3 py-2">Terapias</th>
               <th className="px-3 py-2">Ações</th>

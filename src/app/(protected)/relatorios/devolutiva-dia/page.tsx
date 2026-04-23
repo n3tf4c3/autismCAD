@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -54,10 +54,10 @@ export default async function RelatorioDevolutivaDiaPage(props: {
         <main className="space-y-3">
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-sm text-red-600">
-              Informe `pacienteId` para abrir a devolutiva diaria a partir do relatorio evolutivo.
+              Informe `pacienteId` para abrir a devolutiva diária a partir do relatório evolutivo.
             </p>
             <Link href="/relatorios/evolutivo" className="mt-2 inline-flex text-sm font-semibold text-[var(--laranja)]">
-              &larr; Ir para relatorio evolutivo
+              &larr; Ir para relatório evolutivo
             </Link>
           </section>
         </main>
@@ -72,7 +72,7 @@ export default async function RelatorioDevolutivaDiaPage(props: {
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-sm text-red-600">{err.message}</p>
             <Link href="/relatorios/evolutivo" className="mt-2 inline-flex text-sm font-semibold text-[var(--laranja)]">
-              &larr; Voltar para relatorio evolutivo
+              &larr; Voltar para relatório evolutivo
             </Link>
           </section>
         </main>
@@ -109,8 +109,8 @@ export default async function RelatorioDevolutivaDiaPage(props: {
         </section>
       ) : (
         <ReportsHeader
-          title="Relatório diario"
-          subtitle="Visao diaria compacta para leitura rapida no celular, preservando o mesmo comportamento da tela atual."
+          title="Relatório diário"
+          subtitle="Visão diária compacta para leitura rápida no celular, preservando o mesmo comportamento da tela atual."
           modeToggle={<ReportModeToggle mode="daily" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
             <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">

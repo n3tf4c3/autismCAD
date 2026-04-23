@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { ReportFilters } from "@/components/reports/report-filters";
@@ -101,17 +101,17 @@ const COMPORTAMENTO_LABELS: Record<string, string> = {
   ecolalia_imediata: "Ecolalia Imediata",
   ecolalia_tardia: "Ecolalia Tardia",
   fugas_esquivas: "Fugas/Esquivas",
-  agitacao_motora: "Agitacao Motora",
-  demanda_atencao: "Demanda de Atencao",
-  crise_ausencia: "Crise de ausencia",
+  agitacao_motora: "Agitação Motora",
+  demanda_atencao: "Demanda de Atenção",
+  crise_ausencia: "Crise de ausência",
   isolamento: "Isolamento",
   comportamento_desafiador: "Comportamento Desafiador",
   baixo_interesse: "Baixo Interesse",
-  desregulacao_emocional: "Desregulacao emocional (crise)",
+  desregulacao_emocional: "Desregulação emocional (crise)",
   calmo: "Calmo",
   animado: "Animado (alegre, sorridente)",
   alto_interesse: "Alto interesse",
-  foco_atencao: "Foco/Atencao",
+  foco_atencao: "Foco/Atenção",
   compartilhamento: "Compartilhamento",
   empatia: "Empatia",
   autonomia: "Autonomia",
@@ -148,7 +148,7 @@ export function DevolutivaDiaClient(props: {
     const total = report.indicadores.totalAtendimentos;
 
     if (!total) {
-      return `No dia ${dia}, nao houve devolutiva registrada para ${props.pacienteNome}.`;
+      return `No dia ${dia}, não houve devolutiva registrada para ${props.pacienteNome}.`;
     }
 
     const base = `No dia ${dia}, a equipe realizou o acompanhamento de ${props.pacienteNome}.`;
@@ -399,7 +399,7 @@ export function DevolutivaDiaClient(props: {
           <section id="resumo" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Resumo rapido</h2>
+                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Resumo rápido</h2>
                 <p className="mt-1 text-sm text-gray-700">
                   Baseado nos registros de metas e atendimentos do dia {fmtDate(report.periodo.from)}.
                 </p>
@@ -444,15 +444,15 @@ export function DevolutivaDiaClient(props: {
             compact
             rows={desempenhoResumo.rowsBySkill}
             title="Habilidades trabalhadas"
-            subtitle="Cards mais compactos para leitura rapida no celular, mantendo comparacao clara entre os tres status."
-            emptyMessage="Não há habilidades suficientes para montar o grafico deste dia."
+            subtitle="Cards mais compactos para leitura rápida no celular, mantendo comparação clara entre os três status."
+            emptyMessage="Não há habilidades suficientes para montar o gráfico deste dia."
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Devolutivas do profissional</h2>
-                <p className="mt-1 text-sm text-gray-700">Comentarios com preview compacto e expansao sob demanda.</p>
+                <p className="mt-1 text-sm text-gray-700">Comentários com preview compacto e expansão sob demanda.</p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
                 {feedbackItems.length} item(ns)
@@ -470,7 +470,7 @@ export function DevolutivaDiaClient(props: {
               <div>
                 <h2 className="text-lg font-semibold text-[var(--marrom)]">Gráfico de comportamento</h2>
                 <p className="mt-1 text-sm text-gray-700">
-                  Distribuicao dos comportamentos registrados nas evolucoes do dia.
+                  Distribuição dos comportamentos registrados nas evoluções do dia.
                 </p>
               </div>
               <p className="text-sm font-medium text-gray-600">{fmtDate(report.periodo.from)}</p>
@@ -484,19 +484,19 @@ export function DevolutivaDiaClient(props: {
                     {
                       label: "Negativos",
                       value: `${comportamentoResumo.totalNegativo} (${comportamentoResumo.pctNegativo}%)`,
-                      description: "Ocorrencias classificadas como negativas.",
+                      description: "Ocorrências classificadas como negativas.",
                       tone: "danger",
                     },
                     {
                       label: "Positivos",
                       value: `${comportamentoResumo.totalPositivo} (${comportamentoResumo.pctPositivo}%)`,
-                      description: "Ocorrencias classificadas como positivas.",
+                      description: "Ocorrências classificadas como positivas.",
                       tone: "success",
                     },
                     {
                       label: "Resultado geral",
                       value: `${comportamentoResumo.resultado.positivo}/${comportamentoResumo.resultado.parcial}/${comportamentoResumo.resultado.negativo}`,
-                      description: "Positivo / Parcial / Negativo nas evolucoes.",
+                      description: "Positivo / Parcial / Negativo nas evoluções.",
                       tone: "warning",
                     },
                   ]}
@@ -567,7 +567,7 @@ export function DevolutivaDiaClient(props: {
               </div>
             ) : (
               <p className="mt-3 text-sm text-gray-700">
-                Não há registros de comportamentos estruturados nas evolucoes deste dia.
+                Não há registros de comportamentos estruturados nas evoluções deste dia.
               </p>
             )}
           </section>
@@ -595,7 +595,7 @@ export function DevolutivaDiaClient(props: {
                         {a.presenca}
                       </span>
                     </div>
-                    <p className="mt-3 text-xs text-gray-600">Duracao: {a.duracao_min || "-"} min</p>
+                    <p className="mt-3 text-xs text-gray-600">Duração: {a.duracao_min || "-"} min</p>
                     <p className="mt-2 text-sm text-gray-700">
                       {(a.resumo_repasse || a.observacoes || a.motivo || "-").slice(0, 180)}
                     </p>
@@ -613,7 +613,7 @@ export function DevolutivaDiaClient(props: {
                     <th className="px-4 py-2 text-left">Horário</th>
                     <th className="px-4 py-2 text-left">Profissional</th>
                     <th className="px-4 py-2 text-left">Presença</th>
-                    <th className="px-4 py-2 text-left">Duracao (min)</th>
+                    <th className="px-4 py-2 text-left">Duração (min)</th>
                     <th className="px-4 py-2 text-left">Feedback</th>
                   </tr>
                 </thead>

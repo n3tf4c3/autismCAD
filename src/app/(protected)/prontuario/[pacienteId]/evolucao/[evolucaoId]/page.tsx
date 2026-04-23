@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -96,7 +96,7 @@ export default async function EditarEvolucaoPage(props: {
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gray-500">Editar evolucao</p>
+            <p className="text-sm text-gray-500">Editar evolução</p>
             <h1 className="text-2xl font-bold text-[var(--marrom)]">
               {paciente.nome} <span className="text-gray-500">#{paciente.id}</span>
             </h1>

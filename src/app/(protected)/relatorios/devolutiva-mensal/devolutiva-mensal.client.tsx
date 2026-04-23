@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { DailyTimeline } from "@/components/reports/daily-timeline";
@@ -118,7 +118,7 @@ function fmtMonth(ym: string): string {
 }
 
 function fmtPeriodLabel(from?: string | null, to?: string | null): string {
-  if (!from || !to) return "periodo selecionado";
+  if (!from || !to) return "período selecionado";
   const fromMonth = from.slice(0, 7);
   const toMonth = to.slice(0, 7);
   if (fromMonth === toMonth) return fmtMonth(fromMonth);
@@ -157,17 +157,17 @@ const COMPORTAMENTO_LABELS: Record<string, string> = {
   ecolalia_imediata: "Ecolalia Imediata",
   ecolalia_tardia: "Ecolalia Tardia",
   fugas_esquivas: "Fugas/Esquivas",
-  agitacao_motora: "Agitacao Motora",
-  demanda_atencao: "Demanda de Atencao",
-  crise_ausencia: "Crise de ausencia",
+  agitacao_motora: "Agitação Motora",
+  demanda_atencao: "Demanda de Atenção",
+  crise_ausencia: "Crise de ausência",
   isolamento: "Isolamento",
   comportamento_desafiador: "Comportamento Desafiador",
   baixo_interesse: "Baixo Interesse",
-  desregulacao_emocional: "Desregulacao emocional (crise)",
+  desregulacao_emocional: "Desregulação emocional (crise)",
   calmo: "Calmo",
   animado: "Animado (alegre, sorridente)",
   alto_interesse: "Alto interesse",
-  foco_atencao: "Foco/Atencao",
+  foco_atencao: "Foco/Atenção",
   compartilhamento: "Compartilhamento",
   empatia: "Empatia",
   autonomia: "Autonomia",
@@ -295,11 +295,11 @@ export function DevolutivaMensalClient(props: {
   const resumoMensal = useMemo(() => {
     if (!report) return "";
     const lines: string[] = [];
-    lines.push(`Resumo do periodo de ${props.pacienteNome} (${fmtPeriodLabel(report.periodo.from, report.periodo.to)}).`);
+    lines.push(`Resumo do período de ${props.pacienteNome} (${fmtPeriodLabel(report.periodo.from, report.periodo.to)}).`);
     lines.push(
-      `Atendimentos: ${report.indicadores.totalAtendimentos} (Presencas: ${report.indicadores.presentes}, Ausencias: ${report.indicadores.ausentes}).`
+      `Atendimentos: ${report.indicadores.totalAtendimentos} (Presenças: ${report.indicadores.presentes}, Ausências: ${report.indicadores.ausentes}).`
     );
-    lines.push(`Taxa de presenca: ${report.indicadores.taxaPresencaPercent}%.`);
+    lines.push(`Taxa de presença: ${report.indicadores.taxaPresencaPercent}%.`);
     if (desempenhoMensal.total) {
       lines.push(`Metas avaliadas nas devolutivas: ${desempenhoMensal.total}.`);
       desempenhoMensal.rows.forEach((row) => {
@@ -337,7 +337,7 @@ export function DevolutivaMensalClient(props: {
       } else {
         throw new Error("Clipboard indisponivel");
       }
-      setCopyMsg("Resumo do periodo copiado.");
+      setCopyMsg("Resumo do período copiado.");
       setTimeout(() => setCopyMsg(null), 1800);
     } catch {
       setCopyMsg("Nao foi possível copiar.");
@@ -361,12 +361,12 @@ export function DevolutivaMensalClient(props: {
       };
       const data = unwrapRelatorioAction(
         await gerarRelatorioEvolutivoAction(filters),
-        "Erro ao consultar devolutiva do periodo"
+        "Erro ao consultar devolutiva do período"
       );
       setReport(data.report as MensalReport);
     } catch (err) {
       setReport(null);
-      setMsg(normalizeRelatorioApiError(err, "Erro ao consultar devolutiva do periodo"));
+      setMsg(normalizeRelatorioApiError(err, "Erro ao consultar devolutiva do período"));
     } finally {
       setLoading(false);
     }
@@ -384,14 +384,14 @@ export function DevolutivaMensalClient(props: {
           <div className="space-y-1">
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-600">Período</h2>
             <p className="hidden text-sm text-gray-700 sm:block">
-              Escolha o mes de referencia ou use intervalo personalizado.
+              Escolha o mês de referência ou use intervalo personalizado.
             </p>
           </div>
 
           <div className="flex w-full flex-col gap-3 lg:w-auto">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[200px_180px_180px_auto]">
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de periodo</span>
+                <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de período</span>
                 <select
                   value={periodPreset}
                   onChange={(event) => {
@@ -404,7 +404,7 @@ export function DevolutivaMensalClient(props: {
                   }}
                   className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
                 >
-                  <option value="1m">1 mes</option>
+                  <option value="1m">1 mês</option>
                   <option value="custom">Personalizado</option>
                 </select>
               </label>
@@ -432,7 +432,7 @@ export function DevolutivaMensalClient(props: {
                 </>
               ) : (
                 <label className="flex flex-col gap-1.5 sm:col-span-2">
-                  <span className="text-sm font-semibold text-[var(--marrom)]">Mes de referencia</span>
+                  <span className="text-sm font-semibold text-[var(--marrom)]">Mês de referência</span>
                   <input
                     type="month"
                     value={referenceMonth}
@@ -448,7 +448,7 @@ export function DevolutivaMensalClient(props: {
                 disabled={loading}
                 className="min-h-10 rounded-xl bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Consultar periodo
+                Consultar período
               </button>
             </div>
 
@@ -465,7 +465,7 @@ export function DevolutivaMensalClient(props: {
 
       {loading ? (
         <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-700">Carregando relatorio do periodo...</p>
+          <p className="text-sm text-gray-700">Carregando relatório do período...</p>
         </section>
       ) : null}
 
@@ -484,11 +484,11 @@ export function DevolutivaMensalClient(props: {
           <section id="resumo" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Resumo rapido</h2>
+                <h2 className="text-base font-semibold text-[var(--marrom)] sm:text-lg">Resumo rápido</h2>
                 <p className="mt-1 text-sm text-gray-700">
                   {desempenhoMensal.total
                     ? `${desempenhoMensal.total} metas avaliadas em ${desempenhoMensal.diasComRegistro} dia(s).`
-                    : "Sem metas estruturadas nas devolutivas deste periodo."}
+                    : "Sem metas estruturadas nas devolutivas deste período."}
                 </p>
               </div>
               <button
@@ -540,7 +540,7 @@ export function DevolutivaMensalClient(props: {
             rows={desempenhoMensal.rowsBySkill}
             title="Habilidades trabalhadas"
             subtitle="Cards compactos com barra empilhada para comparar rapidamente o desempenho em cada habilidade."
-            emptyMessage="Não há habilidades suficientes para montar o grafico deste periodo."
+            emptyMessage="Não há habilidades suficientes para montar o gráfico deste período."
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -558,16 +558,16 @@ export function DevolutivaMensalClient(props: {
             <RecentFeedbackList
               items={feedbackItems}
               previewLength={180}
-              emptyMessage="Sem devolutiva registrada neste periodo."
+              emptyMessage="Sem devolutiva registrada neste período."
             />
           </section>
 
           <section id="comportamentos" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do periodo</h2>
+                <h2 className="text-lg font-semibold text-[var(--marrom)]">Comportamentos do período</h2>
                 <p className="mt-1 text-sm text-gray-700">
-                  Consolidado comportamental estruturado a partir das devolutivas do periodo selecionado.
+                  Consolidado comportamental estruturado a partir das devolutivas do período selecionado.
                 </p>
               </div>
               <p className="text-sm font-medium text-gray-600">{fmtPeriodLabel(report.periodo.from, report.periodo.to)}</p>
@@ -581,19 +581,19 @@ export function DevolutivaMensalClient(props: {
                     {
                       label: "Negativos",
                       value: `${comportamentoMensal.totalNegativo} (${comportamentoMensal.pctNegativo}%)`,
-                      description: "Ocorrencias classificadas como negativas no periodo.",
+                      description: "Ocorrências classificadas como negativas no período.",
                       tone: "danger",
                     },
                     {
                       label: "Positivos",
                       value: `${comportamentoMensal.totalPositivo} (${comportamentoMensal.pctPositivo}%)`,
-                      description: "Ocorrencias classificadas como positivas no periodo.",
+                      description: "Ocorrências classificadas como positivas no período.",
                       tone: "success",
                     },
                     {
                       label: "Resultado geral",
                       value: `${comportamentoMensal.resultado.positivo}/${comportamentoMensal.resultado.parcial}/${comportamentoMensal.resultado.negativo}`,
-                      description: "Positivo / Parcial / Negativo nas evolucoes.",
+                      description: "Positivo / Parcial / Negativo nas evoluções.",
                       tone: "warning",
                     },
                   ]}
@@ -631,7 +631,7 @@ export function DevolutivaMensalClient(props: {
               </div>
             ) : (
               <p className="mt-3 text-sm text-gray-700">
-                Não há comportamentos estruturados registrados nas devolutivas deste periodo.
+                Não há comportamentos estruturados registrados nas devolutivas deste período.
               </p>
             )}
           </section>
@@ -641,7 +641,7 @@ export function DevolutivaMensalClient(props: {
               <div>
                 <h2 className="text-lg font-semibold text-[var(--marrom)]">Evolução por dia</h2>
                 <p className="mt-1 text-sm text-gray-700">
-                  No celular a distribuicao vira uma timeline compacta; no desktop a leitura analitica continua em tabela.
+                  No celular a distribuição vira uma timeline compacta; no desktop a leitura analítica continua em tabela.
                 </p>
               </div>
               <p className="text-sm font-medium text-gray-600">{fmtPeriodLabel(report.periodo.from, report.periodo.to)}</p>
@@ -650,7 +650,7 @@ export function DevolutivaMensalClient(props: {
               <DailyTimeline
                 rows={desempenhoMensal.rowsByDay}
                 formatDate={fmtDate}
-                emptyMessage="Não há distribuicao diaria para este periodo."
+                emptyMessage="Não há distribuição diária para este período."
               />
             </div>
           </section>

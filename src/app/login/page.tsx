@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
@@ -89,7 +89,7 @@ export default function LoginPage() {
               Plataforma de cuidado e desenvolvimento.
             </p>
             <p className="mt-2 max-w-xs leading-relaxed text-white/90">
-              Acompanhe cada passo da evolucao com carinho e precisão.
+              Acompanhe cada passo da evolução com carinho e precisão.
             </p>
           </div>
           <p className="relative z-10 text-base font-bold text-white">Suporte: girassoisclinica@gmail.com</p>

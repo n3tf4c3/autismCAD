@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { loadUserAccess } from "@/server/auth/access";
@@ -140,7 +140,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
               <div className="text-right text-sm">
                 <p className="font-semibold text-[var(--texto)]">CPF: {formatCpf(paciente.cpf)}</p>
                 <p className="font-semibold text-[var(--texto)]">
-                  Convenio: {paciente.convenio || "Particular"}
+                  Convênio: {paciente.convenio || "Particular"}
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
@@ -252,12 +252,12 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{paciente.nomeResponsavel || "-"}</p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Telefone do responsavel</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Telefone do responsável</p>
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{formatTelefone(paciente.telefone)}</p>
             </div>
 
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Telefone do responsavel (2)</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Telefone do responsável (2)</p>
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{formatTelefone(paciente.telefone2)}</p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -270,7 +270,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{paciente.sexo || "-"}</p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Nome da mae</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Nome da mãe</p>
               <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{paciente.nomeMae || "-"}</p>
             </div>
 

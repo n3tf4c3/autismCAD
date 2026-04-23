@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { gerarRelatorioAssiduidadeAction } from "@/app/(protected)/relatorios/relatorios.actions";
@@ -88,10 +88,10 @@ export function AssiduidadeClient(props: {
         to: to || undefined,
         presenca: presenca || undefined,
       };
-      const data = unwrapRelatorioAction(await gerarRelatorioAssiduidadeAction(filters), "Erro ao gerar relatorio");
+      const data = unwrapRelatorioAction(await gerarRelatorioAssiduidadeAction(filters), "Erro ao gerar relatório");
       setReport(data.report as Report);
     } catch (err) {
-      setMsg(normalizeRelatorioApiError(err, "Erro ao gerar relatorio"));
+      setMsg(normalizeRelatorioApiError(err, "Erro ao gerar relatório"));
     } finally {
       setLoading(false);
     }
@@ -106,7 +106,7 @@ export function AssiduidadeClient(props: {
             <div>
               <h2 className="text-lg font-bold text-[var(--marrom)]">Relatório de assiduidade</h2>
               <p className="text-sm text-gray-600">
-                Filtre por paciente, profissional e periodo para acompanhar presenca e faltas.
+                Filtre por paciente, profissional e período para acompanhar presença e faltas.
               </p>
             </div>
           </div>
@@ -203,11 +203,11 @@ export function AssiduidadeClient(props: {
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Atendimentos no periodo</p>
+          <p className="text-sm text-gray-500">Atendimentos no período</p>
           <p className="text-2xl font-bold text-[var(--marrom)]">{report?.resumo.total ?? 0}</p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Presencas</p>
+          <p className="text-sm text-gray-500">Presenças</p>
           <p className="text-2xl font-bold text-green-600">{report?.resumo.presentes ?? 0}</p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -219,7 +219,7 @@ export function AssiduidadeClient(props: {
           <p className="text-2xl font-bold text-gray-600">{report?.resumo.semRegistro ?? 0}</p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-2">
-          <p className="text-sm text-gray-500">Taxa de presenca</p>
+          <p className="text-sm text-gray-500">Taxa de presença</p>
           <p className="text-2xl font-bold text-[var(--marrom)]">{report?.resumo.taxa ?? 0}%</p>
           <p className="text-xs text-gray-500">
             Base: presentes / (presentes + faltas)
@@ -248,8 +248,8 @@ export function AssiduidadeClient(props: {
               <tr>
                 <th className="px-6 py-3">Paciente</th>
                 <th className="px-6 py-3">Total</th>
-                <th className="px-6 py-3">Presencas</th>
-                <th className="px-6 py-3">Ausencias</th>
+                <th className="px-6 py-3">Presenças</th>
+                <th className="px-6 py-3">Ausências</th>
                 <th className="px-6 py-3">Taxa</th>
                 <th className="px-6 py-3">Sem registro</th>
                 <th className="px-6 py-3">Último atendimento</th>
@@ -290,7 +290,7 @@ export function AssiduidadeClient(props: {
         <h4 className="text-base font-semibold text-[var(--marrom)]">Contexto clinico</h4>
         <p className="mt-2 text-sm text-gray-600">
           Assiduidade consistente e um marcador importante. Use este painel para identificar quedas
-          de presenca, investigar motivos registrados e agir junto a familia.
+          de presença, investigar motivos registrados e agir junto à família.
         </p>
       </section>
     </main>

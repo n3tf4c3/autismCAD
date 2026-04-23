@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -420,7 +420,7 @@ export function PacienteFormClient(props: {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold text-[var(--marrom)]">Convenio do paciente</span>
+          <span className="text-sm font-semibold text-[var(--marrom)]">Convênio do paciente</span>
           <select
             {...register("convenio")}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -433,7 +433,7 @@ export function PacienteFormClient(props: {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold text-[var(--marrom)]">Nome da mae</span>
+          <span className="text-sm font-semibold text-[var(--marrom)]">Nome da mãe</span>
           <input
             {...register("nomeMae", {
               setValueAs: (value) => (typeof value === "string" && value.trim() === "" ? null : value),
@@ -455,7 +455,7 @@ export function PacienteFormClient(props: {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold text-[var(--marrom)]">Nome do responsavel</span>
+          <span className="text-sm font-semibold text-[var(--marrom)]">Nome do responsável</span>
           <input
             {...register("nomeResponsavel")}
             className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -467,7 +467,7 @@ export function PacienteFormClient(props: {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold text-[var(--marrom)]">Telefone do responsavel</span>
+          <span className="text-sm font-semibold text-[var(--marrom)]">Telefone do responsável</span>
           <Controller
             name="telefone"
             control={control}
@@ -487,7 +487,7 @@ export function PacienteFormClient(props: {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold text-[var(--marrom)]">Telefone do responsavel (2)</span>
+          <span className="text-sm font-semibold text-[var(--marrom)]">Telefone do responsável (2)</span>
           <Controller
             name="telefone2"
             control={control}
@@ -504,7 +504,7 @@ export function PacienteFormClient(props: {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold text-[var(--marrom)]">Email do responsavel</span>
+          <span className="text-sm font-semibold text-[var(--marrom)]">E-mail do responsável</span>
           <input
             type="email"
             {...register("email", {

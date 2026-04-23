@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
@@ -54,10 +54,10 @@ export default async function RelatorioDevolutivaMensalPage(props: {
         <main className="space-y-3">
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-sm text-red-600">
-              Informe `pacienteId` para abrir a devolutiva periodo a partir do relatorio evolutivo.
+              Informe `pacienteId` para abrir a devolutiva período a partir do relatório evolutivo.
             </p>
             <Link href="/relatorios/evolutivo" className="mt-2 inline-flex text-sm font-semibold text-[var(--laranja)]">
-              &larr; Ir para relatorio evolutivo
+              &larr; Ir para relatório evolutivo
             </Link>
           </section>
         </main>
@@ -72,7 +72,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
           <section className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-sm text-red-600">{err.message}</p>
             <Link href="/relatorios/evolutivo" className="mt-2 inline-flex text-sm font-semibold text-[var(--laranja)]">
-              &larr; Voltar para relatorio evolutivo
+              &larr; Voltar para relatório evolutivo
             </Link>
           </section>
         </main>
@@ -109,8 +109,8 @@ export default async function RelatorioDevolutivaMensalPage(props: {
         </section>
       ) : (
         <ReportsHeader
-          title="Devolutiva periodo"
-          subtitle="Visao consolidada por periodo com foco em leitura rapida no celular e comparacao clara entre habilidades."
+          title="Devolutiva período"
+          subtitle="Visão consolidada por período com foco em leitura rápida no celular e comparação clara entre habilidades."
           modeToggle={<ReportModeToggle mode="monthly" dailyHref={dailyHref} monthlyHref={monthlyHref} />}
           actions={
             <div className="flex flex-wrap items-center gap-3">
@@ -120,7 +120,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
                   target="_blank"
                   className="text-sm font-semibold text-[var(--laranja)]"
                 >
-                  Versao para impressao
+                  Versão para impressão
                 </Link>
               ) : null}
               <Link href={backHref} className="text-sm font-semibold text-[var(--laranja)]">
@@ -146,7 +146,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
                   <p className="text-base font-semibold text-[var(--marrom)]">
                     {pacienteAtivo.nome} #{pacienteAtivo.id}
                   </p>
-                  <p className="hidden text-sm text-gray-700 sm:block">Período selecionado no cliente, com a mesma consolidacao atual.</p>
+                  <p className="hidden text-sm text-gray-700 sm:block">Período selecionado no cliente, com a mesma consolidação atual.</p>
                 </div>
               </div>
             ) : null

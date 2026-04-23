@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -107,10 +107,10 @@ export function EvolutivoReportClient(props: {
         profissionalId:
           props.canChooseProfissional && profissionalId ? Number(profissionalId) : undefined,
       };
-      const data = unwrapRelatorioAction(await gerarRelatorioEvolutivoAction(filters), "Erro ao gerar relatorio");
+      const data = unwrapRelatorioAction(await gerarRelatorioEvolutivoAction(filters), "Erro ao gerar relatório");
       setReport(data.report as EvolutivoReport);
     } catch (err) {
-      setMsg(normalizeRelatorioApiError(err, "Erro ao gerar relatorio"));
+      setMsg(normalizeRelatorioApiError(err, "Erro ao gerar relatório"));
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ export function EvolutivoReportClient(props: {
             className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
             disabled={loading}
           >
-            Gerar relatorio
+            Gerar relatório
           </button>
         </div>
 
@@ -241,7 +241,7 @@ export function EvolutivoReportClient(props: {
               (!pacienteId ? "pointer-events-none opacity-50" : "")
             }
           >
-            Devolutiva periodo
+            Devolutiva período
           </Link>
           <Link
             href={pacienteId ? `/impressao/devolutiva?pacienteId=${pacienteId}` : "/impressao/devolutiva"}
@@ -252,7 +252,7 @@ export function EvolutivoReportClient(props: {
               (!pacienteId ? "pointer-events-none opacity-50" : "")
             }
           >
-            Relatório para impressao
+            Relatório para impressão
           </Link>
         </div>
 
@@ -277,15 +277,15 @@ export function EvolutivoReportClient(props: {
                 <p className="text-2xl font-bold text-[var(--marrom)]">{report.indicadores.totalAtendimentos}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Presencas</p>
+                <p className="text-sm text-gray-500">Presenças</p>
                 <p className="text-2xl font-bold text-green-600">{report.indicadores.presentes}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Ausencias</p>
+                <p className="text-sm text-gray-500">Ausências</p>
                 <p className="text-2xl font-bold text-red-600">{report.indicadores.ausentes}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Taxa de presenca</p>
+                <p className="text-sm text-gray-500">Taxa de presença</p>
                 <p className="text-2xl font-bold text-[var(--marrom)]">{report.indicadores.taxaPresencaPercent}%</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
@@ -293,7 +293,7 @@ export function EvolutivoReportClient(props: {
                 <p className="text-2xl font-bold text-[var(--marrom)]">{report.indicadores.tempoTotalMinutos}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Media (min)</p>
+                <p className="text-sm text-gray-500">Média (min)</p>
                 <p className="text-2xl font-bold text-[var(--marrom)]">{report.indicadores.mediaMinutosPorSessao}</p>
               </div>
             </div>
@@ -301,7 +301,7 @@ export function EvolutivoReportClient(props: {
 
           <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-[var(--marrom)]">Últimas observacoes</h3>
+              <h3 className="text-lg font-semibold text-[var(--marrom)]">Últimas observações</h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
                 {(report.destaques.ultimasObservacoes || []).length ? (
                   report.destaques.ultimasObservacoes.map((o, idx) => (
@@ -313,13 +313,13 @@ export function EvolutivoReportClient(props: {
                     </li>
                   ))
                 ) : (
-                  <li className="text-gray-600">Sem observacoes registradas.</li>
+                  <li className="text-gray-600">Sem observações registradas.</li>
                 )}
               </ul>
             </div>
 
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-[var(--marrom)]">Resumo automatico</h3>
+              <h3 className="text-lg font-semibold text-[var(--marrom)]">Resumo automático</h3>
               <p className="mt-3 whitespace-pre-line text-sm text-gray-700">
                 {report.resumoAutomatico?.texto || "-"}
               </p>
@@ -330,7 +330,7 @@ export function EvolutivoReportClient(props: {
                   : "-"}
               </p>
 
-              <h4 className="mt-5 text-sm font-semibold text-[var(--marrom)]">Principais motivos de ausencia</h4>
+              <h4 className="mt-5 text-sm font-semibold text-[var(--marrom)]">Principais motivos de ausência</h4>
               <ul className="mt-2 space-y-1 text-sm text-gray-700">
                 {(report.destaques.principaisMotivosAusencia || []).length ? (
                   report.destaques.principaisMotivosAusencia.map((m) => (
@@ -357,7 +357,7 @@ export function EvolutivoReportClient(props: {
                     <th className="px-4 py-2 text-left">Data</th>
                     <th className="px-4 py-2 text-left">Profissional</th>
                     <th className="px-4 py-2 text-left">Presença</th>
-                    <th className="px-4 py-2 text-left">Duracao (min)</th>
+                    <th className="px-4 py-2 text-left">Duração (min)</th>
                     <th className="px-4 py-2 text-left">Observação</th>
                   </tr>
                 </thead>
@@ -376,7 +376,7 @@ export function EvolutivoReportClient(props: {
                   {!report.atendimentos?.length ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
-                        Nenhum atendimento no periodo.
+                        Nenhum atendimento no período.
                       </td>
                     </tr>
                   ) : null}

@@ -138,7 +138,7 @@ function fmtMonth(ym: string): string {
 }
 
 function fmtPeriodLabel(from?: string | null, to?: string | null): string {
-  if (!from || !to) return "periodo selecionado";
+  if (!from || !to) return "período selecionado";
   const fromMonth = from.slice(0, 7);
   const toMonth = to.slice(0, 7);
   if (fromMonth === toMonth) return fmtMonth(fromMonth);
@@ -189,7 +189,7 @@ function desempenhoLabel(value: DesempenhoKey | null): string {
 
 function AcertividadeChart(props: { rows: EnsinoDesempenhoRow[] }) {
   if (!props.rows.length) {
-    return <p className="text-sm text-slate-700">Sem dados de desempenho para gerar grafico de acertividade.</p>;
+    return <p className="text-sm text-slate-700">Sem dados de desempenho para gerar gráfico de assertividade.</p>;
   }
 
   const rows = props.rows.slice(-10);
@@ -406,12 +406,12 @@ export function PlanoEnsinoImpressaoClient(props: {
           from: selectedRange.from,
           to: selectedRange.to,
         }),
-        "Erro ao carregar relatorio de plano de ensino"
+        "Erro ao carregar relatório de plano de ensino"
       );
       setReport(data.report as PlanoEnsinoReport);
     } catch (error) {
       setReport(null);
-      setMsg(normalizeRelatorioApiError(error, "Erro ao carregar relatorio de plano de ensino"));
+      setMsg(normalizeRelatorioApiError(error, "Erro ao carregar relatório de plano de ensino"));
     } finally {
       setLoading(false);
     }
@@ -459,17 +459,17 @@ export function PlanoEnsinoImpressaoClient(props: {
       <section className="print:hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Parametros do relatorio</p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--marrom)]">Recorte para impressao</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Parâmetros do relatório</p>
+            <h2 className="mt-2 text-lg font-semibold text-[var(--marrom)]">Recorte para impressão</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Selecione o periodo, gere a pagina e use os botoes para imprimir, salvar PDF
+              Selecione o período, gere a página e use os botões para imprimir, salvar PDF
               ou baixar o DOCX.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-[220px_190px_190px_auto_auto_auto]">
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de periodo</span>
+              <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de período</span>
               <select
                 value={periodPreset}
                 onChange={(event) => {
@@ -482,7 +482,7 @@ export function PlanoEnsinoImpressaoClient(props: {
                 }}
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
               >
-                <option value="1m">1 mes</option>
+                <option value="1m">1 mês</option>
                 <option value="custom">Personalizado</option>
               </select>
             </label>
@@ -510,7 +510,7 @@ export function PlanoEnsinoImpressaoClient(props: {
               </>
             ) : (
               <label className="flex flex-col gap-1.5 xl:col-span-2">
-                <span className="text-sm font-semibold text-[var(--marrom)]">Mes de referencia</span>
+                <span className="text-sm font-semibold text-[var(--marrom)]">Mês de referência</span>
                 <input
                   type="month"
                   value={referenceMonth}
@@ -526,7 +526,7 @@ export function PlanoEnsinoImpressaoClient(props: {
               disabled={loading}
               className="min-h-11 rounded-xl bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Atualizar relatorio
+              Atualizar relatório
             </button>
 
             <button
@@ -562,7 +562,7 @@ export function PlanoEnsinoImpressaoClient(props: {
 
       {loading ? (
         <section className="print:hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-600">Carregando relatorio de plano de ensino...</p>
+          <p className="text-sm text-slate-600">Carregando relatório de plano de ensino...</p>
         </section>
       ) : null}
 
@@ -571,7 +571,7 @@ export function PlanoEnsinoImpressaoClient(props: {
           <header className="px-6 pb-4 pt-5 sm:px-8">
             <div className="flex items-start justify-between gap-4 border-b border-[#e8ddd2] pb-4">
               <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d1a06c]">Clinica Girassois</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d1a06c]">Clínica Girassóis</p>
                 <h1 className="max-w-3xl text-2xl font-semibold uppercase tracking-[0.06em] text-[#4d392a] sm:text-3xl">
                   Relatorio de Plano de Ensino
                 </h1>
@@ -581,7 +581,7 @@ export function PlanoEnsinoImpressaoClient(props: {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/girassois.svg"
-                  alt="Clinica Girassois"
+                  alt="Clínica Girassóis"
                   className="h-20 w-auto max-w-[180px] object-contain sm:h-24 sm:max-w-[220px]"
                 />
               </div>
@@ -602,7 +602,7 @@ export function PlanoEnsinoImpressaoClient(props: {
             <section className="rounded-2xl border border-[#ece2d8] bg-[#fcfaf7] p-4">
               <h2 className="text-base font-semibold uppercase tracking-[0.08em] text-[#5e4632]">Desempenho do ensino</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Consolidado a partir das evolucoes do periodo com foco em desempenho, tipo de ajuda, tentativas e acertos.
+                Consolidado a partir das evoluções do período com foco em desempenho, tipo de ajuda, tentativas e acertos.
               </p>
 
               <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -653,7 +653,7 @@ export function PlanoEnsinoImpressaoClient(props: {
                 </div>
               ) : (
                 <div className="mt-3 rounded-xl border border-[#e7ddd2] bg-white p-4 text-sm text-slate-700">
-                  Sem evolucoes com metas de desempenho no periodo selecionado.
+                  Sem evolucoes com metas de desempenho no período selecionado.
                 </div>
               )}
             </section>

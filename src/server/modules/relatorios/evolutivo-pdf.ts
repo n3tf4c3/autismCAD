@@ -81,8 +81,8 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
 
   const contentWidth = pageSize[0] - margin * 2;
 
-  drawLine("Clinica Girassois", { bold: true, size: 18, color: rgb(0.42, 0.27, 0.14) });
-  drawLine("RELATORIO EVOLUTIVO", { bold: true, size: 14 });
+  drawLine("Clínica Girassóis", { bold: true, size: 18, color: rgb(0.42, 0.27, 0.14) });
+  drawLine("RELATÓRIO EVOLUTIVO", { bold: true, size: 14 });
   drawLine(`Emitido em ${new Date().toLocaleString("pt-BR", { timeZone: env.APP_TIMEZONE })}`, { size: 10 });
   y -= 6;
 
@@ -90,20 +90,20 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   const periodo = report.periodo;
   drawLine(`Paciente: ${p.nome} (ID ${p.id})`, { bold: true });
   drawLine(`CPF: ${p.cpf || "-"}`);
-  drawLine(`Periodo: ${periodo.from} a ${periodo.to}`);
+  drawLine(`Período: ${periodo.from} a ${periodo.to}`);
   y -= 8;
 
   const i = report.indicadores;
   drawLine("Indicadores", { bold: true, size: 13 });
   drawLine(
-    `Total: ${i.totalAtendimentos}  Presencas: ${i.presentes}  Ausencias: ${i.ausentes}  Sem registro: ${i.naoInformado}`
+    `Total: ${i.totalAtendimentos}  Presenças: ${i.presentes}  Ausências: ${i.ausentes}  Sem registro: ${i.naoInformado}`
   );
   drawLine(
-    `Taxa de presenca: ${i.taxaPresencaPercent}%  Tempo total (min): ${i.tempoTotalMinutos}  Media (min): ${i.mediaMinutosPorSessao}`
+    `Taxa de presença: ${i.taxaPresencaPercent}%  Tempo total (min): ${i.tempoTotalMinutos}  Média (min): ${i.mediaMinutosPorSessao}`
   );
   y -= 6;
 
-  drawLine("Resumo automatico", { bold: true, size: 13 });
+  drawLine("Resumo automático", { bold: true, size: 13 });
   const resumo = String(report.resumoAutomatico?.texto || "").trim() || "-";
   const resumoLines = resumo.split("\n").flatMap((line) => {
     const measure = (t: string) => font.widthOfTextAtSize(t, 11);
@@ -120,10 +120,10 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   drawLine(`Regras: ${regras}`, { size: 10 });
   y -= 6;
 
-  drawLine("Ultimas observacoes", { bold: true, size: 13 });
+  drawLine("Últimas observações", { bold: true, size: 13 });
   const obs = report.destaques?.ultimasObservacoes ?? [];
   if (!obs.length) {
-    drawLine("- Sem observacoes registradas.");
+    drawLine("- Sem observações registradas.");
   } else {
     for (const o of obs) {
       const prefix = `${o.data} - ${o.profissional_nome || "Profissional"}: `;
@@ -138,7 +138,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   }
   y -= 6;
 
-  drawLine("Principais motivos de ausencia", { bold: true, size: 13 });
+  drawLine("Principais motivos de ausência", { bold: true, size: 13 });
   const motivos = report.destaques?.principaisMotivosAusencia ?? [];
   if (!motivos.length) {
     drawLine("- Sem faltas registradas.");
@@ -153,7 +153,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   drawLine("Atendimentos (resumo)", { bold: true, size: 13 });
   const atend = report.atendimentos ?? [];
   if (!atend.length) {
-    drawLine("- Nenhum atendimento no periodo.");
+    drawLine("- Nenhum atendimento no período.");
   } else {
     for (const a of atend.slice(0, 40)) {
       const obsText = (a.observacoes || a.resumo_repasse || a.motivo || "").trim();
