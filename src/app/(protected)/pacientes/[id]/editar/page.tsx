@@ -71,7 +71,7 @@ export default async function EditarPacientePage(props: {
           nome: paciente.nome,
           cpf: paciente.cpf,
           sexo: paciente.sexo,
-          nascimento: paciente.dataNascimento,
+          dataNascimento: paciente.dataNascimento,
           convenio: paciente.convenio,
           nomeMae: paciente.nomeMae,
           nomePai: paciente.nomePai,

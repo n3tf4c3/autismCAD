@@ -13,7 +13,7 @@ type ProfissionalFormInitial = {
   id?: number | null;
   nome?: string | null;
   cpf?: string | null;
-  nascimento?: string | null;
+  dataNascimento?: string | null;
   telefone?: string | null;
   cep?: string | null;
   logradouro?: string | null;
@@ -37,7 +37,7 @@ type ProfissionalFormValues = z.input<typeof saveProfissionalSchema>;
 const EMPTY_FORM_VALUES: ProfissionalFormValues = {
   nome: "",
   cpf: "",
-  nascimento: "",
+  dataNascimento: "",
   email: "",
   telefone: "",
   endereco: null,
@@ -108,7 +108,7 @@ function buildFormValues(initial?: ProfissionalFormInitial): ProfissionalFormVal
   return {
     nome: String(initial?.nome ?? ""),
     cpf: formatCpf(String(initial?.cpf ?? "")),
-    nascimento: ymd(initial?.nascimento ?? null),
+    dataNascimento: ymd(initial?.dataNascimento ?? null),
     email: String(initial?.email ?? ""),
     telefone: formatTelefone(String(initial?.telefone ?? "")),
     endereco: null,
@@ -148,7 +148,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
 
   const nome = watch("nome") ?? "";
   const cpf = watch("cpf") ?? "";
-  const nascimento = watch("nascimento") ?? "";
+  const dataNascimento = watch("dataNascimento") ?? "";
   const telefone = watch("telefone") ?? "";
   const cep = watch("cep") ?? "";
   const logradouro = watch("logradouro") ?? "";
@@ -262,7 +262,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
         const payload = {
           nome: values.nome.trim(),
           cpf: digitsOnly(values.cpf).slice(0, 11),
-          nascimento: values.nascimento || null,
+          dataNascimento: values.dataNascimento || null,
           telefone: digitsOnly(String(values.telefone ?? "")) ? String(values.telefone).trim() : null,
           cep: digitsOnly(String(values.cep ?? "")).slice(0, 8) || null,
           logradouro: String(values.logradouro ?? "").trim() || null,
@@ -344,14 +344,14 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="nascimento">
+              <label className="text-sm font-semibold text-[var(--marrom)]" htmlFor="dataNascimento">
                 Data de nascimento
               </label>
               <input
-                id="nascimento"
+                id="dataNascimento"
                 type="date"
                 className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                {...register("nascimento")}
+                {...register("dataNascimento")}
               />
             </div>
 
@@ -560,7 +560,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
               </div>
               <div className="flex flex-col border-b border-gray-100 pb-3">
                 <span className="text-gray-500">Nascimento</span>
-                <strong className="text-[var(--texto)]">{nascimento || "-"}</strong>
+                <strong className="text-[var(--texto)]">{dataNascimento || "-"}</strong>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

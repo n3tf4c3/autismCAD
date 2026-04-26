@@ -25,7 +25,7 @@ export const savePacienteSchema = z.object({
     .max(20)
     .transform((value) => value.replace(/\D/g, ""))
     .refine((value) => value.length === 11, "CPF invalido."),
-  nascimento: requiredDate("Informe a data de nascimento."),
+  dataNascimento: requiredDate("Informe a data de nascimento."),
   convenio: z.string().trim().optional().nullable(),
   email: z.string().trim().email().max(120).optional().nullable(),
   nomeResponsavel: z.string().trim().min(1, "Informe o nome do responsavel.").max(120),

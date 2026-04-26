@@ -31,7 +31,7 @@ export const saveProfissionalSchema = z.object({
     .max(20)
     .transform((value) => value.replace(/\D/g, ""))
     .refine((value) => value.length === 11, "CPF invalido."),
-  nascimento: nullableDate,
+  dataNascimento: nullableDate,
   email: z.string().trim().email().max(120).optional().nullable(),
   telefone: z.string().trim().max(20).optional().nullable(),
   endereco: nullableTrimmed,

@@ -124,7 +124,7 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
   const payloadBase = {
     nome,
     cpf,
-    dataNascimento: normalizeDateOnlyLoose(input.nascimento),
+    dataNascimento: normalizeDateOnlyLoose(input.dataNascimento),
     email: normalizeOptionalText(input.email),
     telefone: normalizeOptionalText(input.telefone),
     endereco: composeEndereco(input),

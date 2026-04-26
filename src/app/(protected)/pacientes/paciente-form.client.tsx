@@ -34,7 +34,7 @@ export type PacienteFormInitial = {
   nome?: string | null;
   cpf?: string | null;
   sexo?: string | null;
-  nascimento?: string | null;
+  dataNascimento?: string | null;
   convenio?: string | null;
   nomeMae?: string | null;
   nomePai?: string | null;
@@ -113,7 +113,7 @@ function buildFormValues(initial?: PacienteFormInitial): PacienteFormValues {
     nome: String(initial?.nome ?? ""),
     cpf: formatCpf(String(initial?.cpf ?? "")),
     sexo: String(initial?.sexo ?? ""),
-    nascimento: ymd(initial?.nascimento ?? null),
+    dataNascimento: ymd(initial?.dataNascimento ?? null),
     convenio: String(initial?.convenio ?? "Particular"),
     nomeMae: String(initial?.nomeMae ?? ""),
     nomePai: String(initial?.nomePai ?? ""),
@@ -275,7 +275,7 @@ export function PacienteFormClient(props: {
           ...values,
           nome: typeof values.nome === "string" ? values.nome.trim() : "",
           cpf: digitsOnly(String(values.cpf ?? "")).slice(0, 11),
-          nascimento: typeof values.nascimento === "string" ? values.nascimento : null,
+          dataNascimento: typeof values.dataNascimento === "string" ? values.dataNascimento : null,
           convenio: typeof values.convenio === "string" && values.convenio ? values.convenio : "Particular",
           email: typeof values.email === "string" ? values.email.trim() || null : null,
           nomeResponsavel:
@@ -411,11 +411,11 @@ export function PacienteFormClient(props: {
           <span className="text-sm font-semibold text-[var(--marrom)]">Data de nascimento</span>
           <input
             type="date"
-            {...register("nascimento")}
+            {...register("dataNascimento")}
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
           />
-          {readFieldError(errors.nascimento?.message) ? (
-            <p className="text-xs text-red-600">{readFieldError(errors.nascimento?.message)}</p>
+          {readFieldError(errors.dataNascimento?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.dataNascimento?.message)}</p>
           ) : null}
         </label>
 

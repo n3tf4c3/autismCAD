@@ -41,7 +41,7 @@ export default async function EditarProfissionalPage(props: PageProps) {
         id: row.id,
         nome: row.nome,
         cpf: row.cpf,
-        nascimento: row.dataNascimento,
+        dataNascimento: row.dataNascimento,
         telefone: row.telefone,
         cep: row.cep,
         logradouro: row.logradouro,

@@ -302,7 +302,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
           .set({
             nome,
             cpf,
-            dataNascimento: normalizeDateOnlyLoose(input.nascimento),
+            dataNascimento: normalizeDateOnlyLoose(input.dataNascimento),
             convenio,
             email: normalizeOptionalText(input.email),
             nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
@@ -334,7 +334,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
           .values({
             nome,
             cpf,
-            dataNascimento: normalizeDateOnlyLoose(input.nascimento),
+            dataNascimento: normalizeDateOnlyLoose(input.dataNascimento),
             convenio,
             email: normalizeOptionalText(input.email),
             nomeResponsavel: normalizeOptionalText(input.nomeResponsavel),
