@@ -19,6 +19,7 @@ import {
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
+import { isUniqueViolation } from "@/server/shared/pg-errors";
 import {
   escapeLikePattern,
   normalizeCpf,
@@ -71,7 +72,10 @@ function normalizeTerapias(input: SavePacienteInput): string[] {
   for (const item of fromTerapias) {
     const trimmed = item.trim();
     if (!trimmed) continue;
-    const canonical = terapiaCanonicalByNormalized.get(normalizeTextForMatch(trimmed)) ?? trimmed;
+    const canonical = terapiaCanonicalByNormalized.get(normalizeTextForMatch(trimmed));
+    if (!canonical) {
+      throw new AppError(`Terapia invalida: ${trimmed}`, 400, "INVALID_INPUT");
+    }
     const dedupeKey = normalizeTextForMatch(canonical);
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
@@ -380,7 +384,12 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
       return pacienteId!;
     },
     { operation: "pacientes.salvarPaciente", mode: "required" }
-  );
+  ).catch((error) => {
+    if (isUniqueViolation(error)) {
+      throw new AppError("CPF ja cadastrado para outro paciente", 409, "CONFLICT");
+    }
+    throw error;
+  });
 }
 
 export async function softDeletePaciente(id: number, deletedByUserId?: number | null) {

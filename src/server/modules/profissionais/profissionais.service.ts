@@ -9,6 +9,7 @@ import {
   ProfissionaisQueryInput,
 } from "@/server/modules/profissionais/profissionais.schema";
 import { AppError } from "@/server/shared/errors";
+import { isUniqueViolation } from "@/server/shared/pg-errors";
 import {
   escapeLikePattern,
   normalizeCpf,
@@ -158,7 +159,12 @@ export async function salvarProfissional(input: SaveProfissionalInput, id?: numb
       return saved.id;
     },
     { operation: "profissionais.salvarProfissional", mode: "required" }
-  );
+  ).catch((error) => {
+    if (isUniqueViolation(error)) {
+      throw new AppError("CPF ja cadastrado para outro profissional", 409, "CONFLICT");
+    }
+    throw error;
+  });
 }
 
 export async function obterProfissionalPorUsuario(userId: number) {
