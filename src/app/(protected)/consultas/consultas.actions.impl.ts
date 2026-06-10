@@ -34,16 +34,44 @@ type ActionOk<T> = {
 
 export type ActionResult<T> = ActionOk<T> | ActionError;
 
+export type PacienteAccessInfo = {
+  profissionalId: number | null;
+};
+
+export type AtendimentoExistente = {
+  id: number;
+  pacienteId: number;
+  profissionalId: number | null;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  isGrupo: boolean;
+  turno: string | null;
+  periodoInicio: string | null;
+  periodoFim: string | null;
+};
+
 export type ConsultasActionsDeps<
   TAtendimentosFilters = unknown,
   TAtendimentosRows = unknown,
-  TRecorrenteInput extends { pacienteId: number } = { pacienteId: number },
+  TRecorrenteInput extends { pacienteId: number; profissionalId?: number | null } = {
+    pacienteId: number;
+    profissionalId?: number | null;
+  },
   TRecorrentesResult = unknown,
   TExcluirDiaInput extends { pacienteId: number } = { pacienteId: number },
-  TSaveAtendimentoInput extends { pacienteId: number } = { pacienteId: number }
+  TSaveAtendimentoInput extends { pacienteId: number; profissionalId?: number | null } = {
+    pacienteId: number;
+    profissionalId?: number | null;
+  }
 > = {
   requirePermission: (permissionKey: string | string[]) => Promise<RequirePermissionResult>;
-  assertPacienteAccess: (user: SessionUserLike, pacienteId: number, access?: UserAccess) => Promise<unknown>;
+  assertPacienteAccess: (
+    user: SessionUserLike,
+    pacienteId: number,
+    access?: UserAccess
+  ) => Promise<PacienteAccessInfo>;
+  hasConsultasEditPermission: (access?: UserAccess) => boolean;
   atendimentosQuerySchema: ZodSchemaLike<TAtendimentosFilters>;
   excluirDiaSchema: ZodSchemaLike<TExcluirDiaInput>;
   recorrenteSchema: ZodSchemaLike<TRecorrenteInput>;
@@ -52,7 +80,7 @@ export type ConsultasActionsDeps<
   excluirDia: (input: TExcluirDiaInput, deletedByUserId?: number | null) => Promise<{ removidos: number }>;
   listarAtendimentosPorUsuario: (userId: number, filters: TAtendimentosFilters) => Promise<TAtendimentosRows>;
   salvarAtendimento: (input: TSaveAtendimentoInput, id?: number | null) => Promise<number>;
-  getAtendimentoById: (id: number) => Promise<{ id: number; pacienteId: number } | null>;
+  getAtendimentoById: (id: number) => Promise<AtendimentoExistente | null>;
   softDeleteAtendimento: (
     id: number,
     pacienteId: number,
@@ -87,13 +115,34 @@ function actionErrorResult(error: unknown, toAppError: ConsultasActionsDeps["toA
   };
 }
 
+function assertProfissionalAtribuido(
+  profissionalProprio: number | null,
+  profissionalAtribuido: number | null | undefined,
+  AppErrorCtor: ConsultasActionsDeps["AppError"]
+) {
+  if (profissionalProprio == null) return;
+  if (Number(profissionalAtribuido) !== Number(profissionalProprio)) {
+    throw new AppErrorCtor(
+      "Nao e permitido atribuir atendimento a outro profissional",
+      403,
+      "FORBIDDEN"
+    );
+  }
+}
+
 export function buildConsultasActions<
   TAtendimentosFilters = unknown,
   TAtendimentosRows = unknown,
-  TRecorrenteInput extends { pacienteId: number } = { pacienteId: number },
+  TRecorrenteInput extends { pacienteId: number; profissionalId?: number | null } = {
+    pacienteId: number;
+    profissionalId?: number | null;
+  },
   TRecorrentesResult = unknown,
   TExcluirDiaInput extends { pacienteId: number } = { pacienteId: number },
-  TSaveAtendimentoInput extends { pacienteId: number } = { pacienteId: number }
+  TSaveAtendimentoInput extends { pacienteId: number; profissionalId?: number | null } = {
+    pacienteId: number;
+    profissionalId?: number | null;
+  }
 >(
   deps: ConsultasActionsDeps<
     TAtendimentosFilters,
@@ -134,7 +183,7 @@ export function buildConsultasActions<
         if (!atendimento) {
           throw new deps.AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
         }
-        await deps.assertPacienteAccess(user, atendimento.pacienteId, access);
+        const acesso = await deps.assertPacienteAccess(user, atendimento.pacienteId, access);
         if (Number(atendimento.pacienteId) !== Number(parsed.pacienteId)) {
           throw new deps.AppError(
             "Atendimento nao pertence ao paciente informado",
@@ -142,7 +191,35 @@ export function buildConsultasActions<
             "FORBIDDEN"
           );
         }
-        const savedId = await deps.salvarAtendimento(parsed, idNum);
+        const profissionalProprio = acesso.profissionalId;
+        if (
+          profissionalProprio != null &&
+          Number(atendimento.profissionalId) !== Number(profissionalProprio)
+        ) {
+          throw new deps.AppError(
+            "Atendimento pertence a outro profissional",
+            403,
+            "FORBIDDEN"
+          );
+        }
+        // Quem tem apenas consultas:presence altera presenca/motivo/observacoes;
+        // os campos de agenda sao preservados do registro existente.
+        const inputEfetivo = deps.hasConsultasEditPermission(access)
+          ? parsed
+          : ({
+              ...parsed,
+              pacienteId: atendimento.pacienteId,
+              profissionalId: atendimento.profissionalId,
+              data: atendimento.data,
+              horaInicio: atendimento.horaInicio,
+              horaFim: atendimento.horaFim,
+              isGrupo: atendimento.isGrupo,
+              turno: atendimento.turno ?? undefined,
+              periodoInicio: atendimento.periodoInicio,
+              periodoFim: atendimento.periodoFim,
+            } as TSaveAtendimentoInput);
+        assertProfissionalAtribuido(profissionalProprio, inputEfetivo.profissionalId, deps.AppError);
+        const savedId = await deps.salvarAtendimento(inputEfetivo, idNum);
         return { ok: true, data: { id: savedId } };
       } catch (error) {
         return actionErrorResult(error, deps.toAppError);
@@ -154,7 +231,8 @@ export function buildConsultasActions<
         const { user, access } = await deps.requirePermission("consultas:create");
         assertNoLegacyAtendimentoFields(input, deps.AppError);
         const parsed = deps.saveAtendimentoSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId, access);
+        const acesso = await deps.assertPacienteAccess(user, parsed.pacienteId, access);
+        assertProfissionalAtribuido(acesso.profissionalId, parsed.profissionalId, deps.AppError);
         const savedId = await deps.salvarAtendimento(parsed, null);
         return { ok: true, data: { id: savedId } };
       } catch (error) {
@@ -168,7 +246,8 @@ export function buildConsultasActions<
       try {
         const { user, access } = await deps.requirePermission("consultas:create");
         const parsed = deps.recorrenteSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId, access);
+        const acesso = await deps.assertPacienteAccess(user, parsed.pacienteId, access);
+        assertProfissionalAtribuido(acesso.profissionalId, parsed.profissionalId, deps.AppError);
         const result = await deps.criarRecorrentes(parsed);
         return { ok: true, data: result };
       } catch (error) {

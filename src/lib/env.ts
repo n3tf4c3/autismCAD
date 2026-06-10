@@ -30,6 +30,7 @@ const envSchema = z.object({
   CRON_SECRET: z.string().min(16).optional(),
   R2_TEMP_UPLOAD_RETENTION_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   R2_TEMP_UPLOAD_CLEANUP_BATCH_SIZE: z.coerce.number().int().min(1).max(1000).default(500),
+  ACCESS_LOG_RETENTION_DAYS: z.coerce.number().int().min(7).max(365).default(30).catch(30),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -39,15 +40,21 @@ if (!parsed.success) {
 
 const authSecret = parsed.data.AUTH_SECRET ?? parsed.data.NEXTAUTH_SECRET ?? DEV_AUTH_SECRET;
 
-if (parsed.data.NODE_ENV === "production" && authSecret === DEV_AUTH_SECRET) {
-  throw new Error("Invalid environment variables: AUTH_SECRET deve ser definido com valor seguro em producao.");
-}
-
 const requireDbTransactions =
   parsed.data.REQUIRE_DB_TRANSACTIONS ?? (parsed.data.NODE_ENV === "production" ? 1 : 0);
 
 export const env = {
   ...parsed.data,
-  AUTH_SECRET: authSecret,
+  // Getter para nao falhar no build do Next (a coleta de dados importa os modulos
+  // com NODE_ENV=production); em runtime de producao, o primeiro uso falha rapido.
+  get AUTH_SECRET(): string {
+    const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+    if (!isBuildPhase && parsed.data.NODE_ENV === "production" && authSecret === DEV_AUTH_SECRET) {
+      throw new Error(
+        "Invalid environment variables: AUTH_SECRET deve ser definido com valor seguro em producao."
+      );
+    }
+    return authSecret;
+  },
   REQUIRE_DB_TRANSACTIONS: requireDbTransactions,
 };

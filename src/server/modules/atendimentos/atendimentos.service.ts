@@ -145,9 +145,12 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
     return null;
   }
 
+  // Regra simetrica: sessoes em grupo convivem com individuais, entao a
+  // checagem de conflito do profissional considera apenas sessoes individuais.
   const whereProfissional = [
     eq(atendimentos.profissionalId, params.profissionalId),
     eq(atendimentos.data, params.data),
+    eq(atendimentos.isGrupo, false),
     isNull(atendimentos.deletedAt),
     sql`${params.horaFim}::time > ${atendimentos.horaInicio} AND ${params.horaInicio}::time < ${atendimentos.horaFim}`,
   ];
@@ -395,6 +398,14 @@ export async function getAtendimentoById(id: number) {
     .select({
       id: atendimentos.id,
       pacienteId: atendimentos.pacienteId,
+      profissionalId: atendimentos.profissionalId,
+      data: atendimentos.data,
+      horaInicio: atendimentos.horaInicio,
+      horaFim: atendimentos.horaFim,
+      isGrupo: atendimentos.isGrupo,
+      turno: atendimentos.turno,
+      periodoInicio: atendimentos.periodoInicio,
+      periodoFim: atendimentos.periodoFim,
     })
     .from(atendimentos)
     .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))

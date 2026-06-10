@@ -5,10 +5,11 @@ import {
   listRecentAccessLogs,
 } from "@/server/modules/access-logs/access-logs.service";
 import { toAppError } from "@/server/shared/errors";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-const ACCESS_LOG_TIMEZONE = "America/Cuiaba";
+const ACCESS_LOG_TIMEZONE = env.APP_TIMEZONE;
 
 function formatDateTime(value: Date | null) {
   if (!value) return "-";
@@ -81,7 +82,7 @@ export default async function LogsAcessoPage() {
           <p className="mt-2 text-sm text-gray-600">
             Tentativas de login (sucesso e falha). Retencao automatica de {ACCESS_LOG_RETENTION_DAYS} dias.
           </p>
-          <p className="mt-1 text-xs text-gray-500">Horarios exibidos em Cuiaba/MT (GMT-4).</p>
+          <p className="mt-1 text-xs text-gray-500">Horarios exibidos no fuso {ACCESS_LOG_TIMEZONE}.</p>
         </div>
       </section>
 
@@ -93,7 +94,7 @@ export default async function LogsAcessoPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-                <th className="px-3 py-2">Data/Hora (Cuiaba GMT-4)</th>
+                <th className="px-3 py-2">Data/Hora ({ACCESS_LOG_TIMEZONE})</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Usuário</th>
                 <th className="px-3 py-2">Email</th>

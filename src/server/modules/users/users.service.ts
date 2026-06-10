@@ -7,6 +7,7 @@ import {
   ilike,
   inArray,
   isNull,
+  ne,
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
@@ -28,6 +29,7 @@ import {
 import { runDbTransaction } from "@/server/db/transaction";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
+import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 function isResponsavelRole(roleName: string): boolean {
   return normalizeRoleForMatch(roleName) === "RESPONSAVEL";
@@ -199,8 +201,7 @@ export async function createUser(input: CreateUserInput) {
 
     return saved;
   } catch (error) {
-    const err = error as { code?: string; message?: string };
-    if (err.code === "23505" || String(err.message ?? "").includes("unique")) {
+    if (isUniqueViolation(error)) {
       throw new AppError("Email ja cadastrado", 409, "CONFLICT");
     }
     throw error;
@@ -263,6 +264,40 @@ export async function updateUser(
         throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
       }
 
+      const currentRoleCanon = normalizeRoleForMatch(current.role);
+      const nextRoleCanon = normalizeRoleForMatch(storedRoleSlug);
+      if (currentRoleCanon !== nextRoleCanon) {
+        const requesterParsed = Number(requesterUserId);
+        if (Number.isFinite(requesterParsed) && requesterParsed === id) {
+          throw new AppError(
+            "Nao e possivel alterar a propria role",
+            400,
+            "SELF_ROLE_CHANGE"
+          );
+        }
+        if (currentRoleCanon === "ADMIN_GERAL") {
+          const [outroAdminGeral] = await tx
+            .select({ id: users.id })
+            .from(users)
+            .where(
+              and(
+                inArray(users.role, ["admin-geral", "ADMIN_GERAL"]),
+                eq(users.ativo, true),
+                isNull(users.deletedAt),
+                ne(users.id, id)
+              )
+            )
+            .limit(1);
+          if (!outroAdminGeral) {
+            throw new AppError(
+              "Nao e possivel rebaixar o ultimo admin-geral ativo",
+              400,
+              "LAST_ADMIN_GERAL"
+            );
+          }
+        }
+      }
+
       previousRoleForAudit = current.role ?? null;
       const currentVinculos = await tx
         .select({ pacienteId: userPacienteVinculos.pacienteId })
@@ -308,7 +343,12 @@ export async function updateUser(
       }
     },
     { operation: "users.updateUser", mode: "required" }
-  );
+  ).catch((error) => {
+    if (isUniqueViolation(error)) {
+      throw new AppError("Email ja cadastrado", 409, "CONFLICT");
+    }
+    throw error;
+  });
 
   if (removedPacienteIdsForAudit.length > 0) {
     const actorParsed = Number(requesterUserId);

@@ -5,6 +5,7 @@ import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
+import { escapeLikePattern } from "@/server/shared/normalize";
 
 export default async function RelatoriosIndexPage(props: {
   searchParams?: Promise<{ q?: string }>;
@@ -80,18 +81,19 @@ export default async function RelatoriosIndexPage(props: {
   const hasNumericQuery = query !== "" && Number.isInteger(queryDigits) && queryDigits > 0;
   const hasQuery = query.length >= 2 || hasNumericQuery;
 
+  const queryLike = `%${escapeLikePattern(query)}%`;
   const rows = hasQuery
     ? hasNumericQuery
       ? await db
           .select({ id: pacientes.id, nome: pacientes.nome })
           .from(pacientes)
-          .where(and(isNull(pacientes.deletedAt), or(ilike(pacientes.nome, `%${query}%`), eq(pacientes.id, queryDigits))))
+          .where(and(isNull(pacientes.deletedAt), or(ilike(pacientes.nome, queryLike), eq(pacientes.id, queryDigits))))
           .orderBy(asc(pacientes.nome))
           .limit(20)
       : await db
           .select({ id: pacientes.id, nome: pacientes.nome })
           .from(pacientes)
-          .where(and(isNull(pacientes.deletedAt), ilike(pacientes.nome, `%${query}%`)))
+          .where(and(isNull(pacientes.deletedAt), ilike(pacientes.nome, queryLike)))
           .orderBy(asc(pacientes.nome))
           .limit(20)
     : [];

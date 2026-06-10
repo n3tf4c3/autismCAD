@@ -7,8 +7,10 @@ export const conveniosPermitidos = new Set([
   "CASSI",
 ]);
 
-const nullableTrimmed = z.string().trim().max(255).optional().nullable();
-const requiredDate = (message: string) => z.string().trim().min(1, message);
+// max(120) alinhado com varchar(120) das colunas nome_mae/nome_pai.
+const nullableTrimmed = z.string().trim().max(120).optional().nullable();
+const requiredDate = (message: string) =>
+  z.string().trim().min(1, message).regex(/^\d{4}-\d{2}-\d{2}$/, message);
 
 export const pacientesQuerySchema = z.object({
   id: z.coerce.number().int().positive().optional(),

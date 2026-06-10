@@ -29,10 +29,41 @@ const calls = {
   softDeleteAtendimento: [] as Array<{ id: number; pacienteId: number; deletedByUserId?: number | null }>,
 };
 
+type AtendimentoExistente = {
+  id: number;
+  pacienteId: number;
+  profissionalId: number | null;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  isGrupo: boolean;
+  turno: string | null;
+  periodoInicio: string | null;
+  periodoFim: string | null;
+};
+
+function atendimentoExistente(overrides: Partial<AtendimentoExistente> = {}): AtendimentoExistente {
+  return {
+    id: 77,
+    pacienteId: 17,
+    profissionalId: 5,
+    data: "2026-04-06",
+    horaInicio: "08:00:00",
+    horaFim: "09:00:00",
+    isGrupo: false,
+    turno: "Matutino",
+    periodoInicio: null,
+    periodoFim: null,
+    ...overrides,
+  };
+}
+
 const state = {
   requirePermissionError: null as unknown,
   requirePermissionUser: { id: 101, role: "profissional" } as SessionUser,
   assertPacienteAccessError: null as unknown,
+  assertPacienteAccessProfissionalId: null as number | null,
+  hasConsultasEditPermissionResult: true,
   listarAtendimentosPorUsuarioResult: [] as unknown[],
   salvarAtendimentoResult: 999,
   criarRecorrentesResult: {
@@ -40,7 +71,7 @@ const state = {
     atendimentos: [{ id: 777, data: "2026-04-06" }],
   },
   excluirDiaResult: { removidos: 3 },
-  getAtendimentoByIdResult: { id: 77, pacienteId: 17 } as { id: number; pacienteId: number } | null,
+  getAtendimentoByIdResult: atendimentoExistente() as AtendimentoExistente | null,
 };
 
 function resetState() {
@@ -56,6 +87,8 @@ function resetState() {
   state.requirePermissionError = null;
   state.requirePermissionUser = { id: 101, role: "profissional" };
   state.assertPacienteAccessError = null;
+  state.assertPacienteAccessProfissionalId = null;
+  state.hasConsultasEditPermissionResult = true;
   state.listarAtendimentosPorUsuarioResult = [];
   state.salvarAtendimentoResult = 999;
   state.criarRecorrentesResult = {
@@ -63,7 +96,7 @@ function resetState() {
     atendimentos: [{ id: 777, data: "2026-04-06" }],
   };
   state.excluirDiaResult = { removidos: 3 };
-  state.getAtendimentoByIdResult = { id: 77, pacienteId: 17 };
+  state.getAtendimentoByIdResult = atendimentoExistente();
 }
 
 function buildUserAccess(user: SessionUser): UserAccess {
@@ -89,8 +122,13 @@ const deps: ConsultasActionsDeps = {
   assertPacienteAccess: async (user, pacienteId) => {
     calls.assertPacienteAccess.push({ user: user as SessionUser, pacienteId });
     if (state.assertPacienteAccessError) throw state.assertPacienteAccessError;
-    return { userId: Number(user.id), access: {}, profissionalId: null };
+    return {
+      userId: Number(user.id),
+      access: {},
+      profissionalId: state.assertPacienteAccessProfissionalId,
+    };
   },
+  hasConsultasEditPermission: () => state.hasConsultasEditPermissionResult,
   atendimentosQuerySchema: { parse: (input) => input },
   excluirDiaSchema: { parse: (input) => input as { pacienteId: number } },
   recorrenteSchema: { parse: (input) => input as { pacienteId: number } },
@@ -205,7 +243,7 @@ test("salvarAtendimentoAction bloqueia persistencia quando acesso ao paciente e 
 });
 
 test("salvarAtendimentoAction bloqueia quando atendimento nao pertence ao paciente informado", async () => {
-  state.getAtendimentoByIdResult = { id: 33, pacienteId: 99 };
+  state.getAtendimentoByIdResult = atendimentoExistente({ id: 33, pacienteId: 99 });
 
   const result = await actions.salvarAtendimentoAction(33, {
     pacienteId: 17,
@@ -283,9 +321,139 @@ test("excluirDiaAtendimentosAction valida acesso do paciente antes de excluir", 
   });
 });
 
+test("salvarAtendimentoAction bloqueia profissional de editar atendimento de outro profissional", async () => {
+  state.assertPacienteAccessProfissionalId = 6;
+  state.getAtendimentoByIdResult = atendimentoExistente({ id: 33, profissionalId: 5 });
+
+  const result = await actions.salvarAtendimentoAction(33, {
+    pacienteId: 17,
+    profissionalId: 6,
+    data: "2026-04-06",
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    presenca: "Nao informado",
+  });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.equal(calls.salvarAtendimento.length, 0);
+});
+
+test("salvarAtendimentoAction bloqueia profissional de reatribuir atendimento para outro profissional", async () => {
+  state.assertPacienteAccessProfissionalId = 5;
+  state.getAtendimentoByIdResult = atendimentoExistente({ id: 33, profissionalId: 5 });
+
+  const result = await actions.salvarAtendimentoAction(33, {
+    pacienteId: 17,
+    profissionalId: 9,
+    data: "2026-04-06",
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    presenca: "Nao informado",
+  });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.equal(calls.salvarAtendimento.length, 0);
+});
+
+test("salvarAtendimentoAction preserva campos de agenda quando usuario tem apenas consultas:presence", async () => {
+  state.hasConsultasEditPermissionResult = false;
+  state.getAtendimentoByIdResult = atendimentoExistente({
+    id: 33,
+    pacienteId: 17,
+    profissionalId: 5,
+    data: "2026-04-06",
+    horaInicio: "08:00:00",
+    horaFim: "09:00:00",
+  });
+
+  const result = await actions.salvarAtendimentoAction(33, {
+    pacienteId: 17,
+    profissionalId: 5,
+    data: "2026-05-20",
+    horaInicio: "14:00",
+    horaFim: "15:00",
+    isGrupo: true,
+    turno: "Vespertino",
+    periodoInicio: "2026-05-01",
+    periodoFim: "2026-05-31",
+    presenca: "Ausente",
+    motivo: "Paciente doente",
+    observacoes: null,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.salvarAtendimento.length, 1);
+  assert.deepEqual(calls.salvarAtendimento[0], {
+    input: {
+      pacienteId: 17,
+      profissionalId: 5,
+      data: "2026-04-06",
+      horaInicio: "08:00:00",
+      horaFim: "09:00:00",
+      isGrupo: false,
+      turno: "Matutino",
+      periodoInicio: null,
+      periodoFim: null,
+      presenca: "Ausente",
+      motivo: "Paciente doente",
+      observacoes: null,
+    },
+    id: 33,
+  });
+});
+
+test("criarAtendimentoAction bloqueia profissional de criar atendimento para outro profissional", async () => {
+  state.assertPacienteAccessProfissionalId = 5;
+
+  const result = await actions.criarAtendimentoAction({
+    pacienteId: 17,
+    profissionalId: 9,
+    data: "2026-04-06",
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    presenca: "Nao informado",
+  });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.equal(calls.salvarAtendimento.length, 0);
+});
+
+test("criarAtendimentosRecorrentesAction bloqueia profissional de criar para outro profissional", async () => {
+  state.assertPacienteAccessProfissionalId = 5;
+
+  const result = await actions.criarAtendimentosRecorrentesAction({
+    pacienteId: 17,
+    profissionalId: 9,
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    periodoInicio: "2026-04-01",
+    periodoFim: "2026-04-30",
+    diasSemana: [1],
+  });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.equal(calls.criarRecorrentes.length, 0);
+});
+
 test("excluirAtendimentoAction valida acesso ao paciente do atendimento antes de excluir", async () => {
   state.requirePermissionUser = { id: 999, role: "profissional" };
-  state.getAtendimentoByIdResult = { id: 88, pacienteId: 17 };
+  state.getAtendimentoByIdResult = atendimentoExistente({ id: 88, pacienteId: 17 });
 
   const result = await actions.excluirAtendimentoAction(88);
 
@@ -303,7 +471,7 @@ test("excluirAtendimentoAction valida acesso ao paciente do atendimento antes de
 
 test("excluirAtendimentoAction bloqueia exclusao quando acesso ao paciente e negado", async () => {
   state.requirePermissionUser = { id: 321, role: "profissional" };
-  state.getAtendimentoByIdResult = { id: 55, pacienteId: 44 };
+  state.getAtendimentoByIdResult = atendimentoExistente({ id: 55, pacienteId: 44 });
   state.assertPacienteAccessError = new AppError("Acesso negado ao paciente", 403, "FORBIDDEN");
 
   const result = await actions.excluirAtendimentoAction(55);

@@ -1,9 +1,17 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/env";
 import { AppError } from "@/server/shared/errors";
 import { withErrorHandlingNoContext } from "@/server/shared/http";
 import { cleanupTempObjectsInR2 } from "@/server/storage/r2";
 
 export const runtime = "nodejs";
+
+// Comparacao constant-time sobre hashes de mesmo tamanho para evitar timing attack.
+function secretsMatch(provided: string, configured: string) {
+  const providedHash = createHash("sha256").update(provided).digest();
+  const configuredHash = createHash("sha256").update(configured).digest();
+  return timingSafeEqual(providedHash, configuredHash);
+}
 
 function assertCronAuthorized(request: Request) {
   const configuredSecret = env.CRON_SECRET?.trim();
@@ -17,7 +25,7 @@ function assertCronAuthorized(request: Request) {
     ? authHeader.slice(bearerPrefix.length).trim()
     : null;
 
-  if (providedSecret !== configuredSecret) {
+  if (!providedSecret || !secretsMatch(providedSecret, configuredSecret)) {
     throw new AppError("Nao autorizado", 401, "UNAUTHORIZED");
   }
 }
