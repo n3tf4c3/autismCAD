@@ -18,6 +18,7 @@ import {
   updateUser,
 } from "@/server/modules/users/users.service";
 import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
+import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 
 type ActionError = {
   ok: false;
@@ -121,6 +122,21 @@ export async function listPacientesForConfigAction(): Promise<
   try {
     await requireAdminGeral();
     const rows = await listarPacientes({});
+    return {
+      ok: true,
+      data: rows.map((item) => ({ id: item.id, nome: item.nome ?? null })),
+    };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function listProfissionaisForConfigAction(): Promise<
+  ActionResult<Array<{ id: number; nome: string | null }>>
+> {
+  try {
+    await requireAdminGeral();
+    const rows = await listarProfissionais({});
     return {
       ok: true,
       data: rows.map((item) => ({ id: item.id, nome: item.nome ?? null })),
