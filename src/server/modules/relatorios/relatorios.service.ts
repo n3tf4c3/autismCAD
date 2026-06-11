@@ -355,7 +355,8 @@ export async function consolidateEvolutivoReport(params: {
         eq(evolucoes.pacienteId, pacienteId),
         isNull(evolucoes.deletedAt),
         gte(evolucoes.data, from),
-        lte(evolucoes.data, to)
+        lte(evolucoes.data, to),
+        ...(profissionalFiltro ? [eq(evolucoes.profissionalId, profissionalFiltro)] : [])
       )
     )
     .orderBy(desc(evolucoes.data), desc(evolucoes.createdAt));
