@@ -17,6 +17,7 @@ import {
   permissions,
   rolePermissions,
   roles,
+  terapeutas,
   userPacienteVinculosAudit,
   userPacienteVinculos,
   users,
@@ -33,6 +34,45 @@ import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 function isResponsavelRole(roleName: string): boolean {
   return normalizeRoleForMatch(roleName) === "RESPONSAVEL";
+}
+
+function isProfissionalRole(roleName: string): boolean {
+  return normalizeRoleForMatch(roleName) === "PROFISSIONAL";
+}
+
+// Mantem terapeutas.usuario_id em dia: remove o vinculo anterior do usuario e,
+// quando informado, vincula o profissional (1 usuario por profissional ativo).
+async function sincronizarVinculoProfissional(
+  tx: typeof db,
+  userId: number,
+  profissionalId: number | null
+) {
+  await tx
+    .update(terapeutas)
+    .set({ usuarioId: null, updatedAt: sql`now()` })
+    .where(
+      and(
+        eq(terapeutas.usuarioId, userId),
+        ...(profissionalId ? [ne(terapeutas.id, profissionalId)] : [])
+      )
+    );
+  if (!profissionalId) return;
+
+  const [profissional] = await tx
+    .select({ id: terapeutas.id, usuarioId: terapeutas.usuarioId })
+    .from(terapeutas)
+    .where(and(eq(terapeutas.id, profissionalId), isNull(terapeutas.deletedAt)))
+    .limit(1);
+  if (!profissional) {
+    throw new AppError("Profissional vinculado nao encontrado", 404, "NOT_FOUND");
+  }
+  if (profissional.usuarioId != null && Number(profissional.usuarioId) !== userId) {
+    throw new AppError("Profissional ja vinculado a outro usuario", 409, "CONFLICT");
+  }
+  await tx
+    .update(terapeutas)
+    .set({ usuarioId: userId, updatedAt: sql`now()` })
+    .where(eq(terapeutas.id, profissionalId));
 }
 
 function normalizePacienteIdsFromInput(input: {
@@ -110,15 +150,33 @@ export async function listUsers() {
     }
   });
 
+  const profissionaisRows = await db
+    .select({
+      usuarioId: terapeutas.usuarioId,
+      id: terapeutas.id,
+      nome: terapeutas.nome,
+    })
+    .from(terapeutas)
+    .where(and(inArray(terapeutas.usuarioId, userIds), isNull(terapeutas.deletedAt)));
+  const profissionalMap = new Map<number, { id: number; nome: string | null }>();
+  profissionaisRows.forEach((row) => {
+    if (row.usuarioId != null) {
+      profissionalMap.set(Number(row.usuarioId), { id: Number(row.id), nome: row.nome ?? null });
+    }
+  });
+
   return rows.map((row) => {
     const vinculos = vinculosMap.get(Number(row.id)) ?? [];
     const first = vinculos[0] ?? null;
+    const profissional = profissionalMap.get(Number(row.id)) ?? null;
     return {
       ...row,
       pacienteIdVinculado: first?.id ?? null,
       pacienteNomeVinculado: first?.nome ?? null,
       pacienteIdsVinculados: vinculos.map((item) => item.id),
       pacientesVinculados: vinculos,
+      profissionalIdVinculado: profissional?.id ?? null,
+      profissionalNomeVinculado: profissional?.nome ?? null,
     };
   });
 }
@@ -191,6 +249,9 @@ export async function createUser(input: CreateUserInput) {
               }))
             )
             .onConflictDoNothing();
+        }
+        if (isProfissionalRole(storedRoleSlug) && input.profissionalId) {
+          await sincronizarVinculoProfissional(tx, savedUser.id, Number(input.profissionalId));
         }
       },
       { operation: "users.createUser", mode: "required" }
@@ -340,6 +401,18 @@ export async function updateUser(
           .onConflictDoNothing();
       } else {
         await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.userId, id));
+      }
+      if (input.profissionalId !== undefined) {
+        await sincronizarVinculoProfissional(
+          tx,
+          id,
+          isProfissionalRole(storedRoleSlug) && input.profissionalId
+            ? Number(input.profissionalId)
+            : null
+        );
+      } else if (!isProfissionalRole(storedRoleSlug)) {
+        // Campo ausente preserva o vinculo atual, exceto quando a role deixou de ser profissional.
+        await sincronizarVinculoProfissional(tx, id, null);
       }
     },
     { operation: "users.updateUser", mode: "required" }

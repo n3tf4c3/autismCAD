@@ -7,6 +7,7 @@ import {
   getRolePermissionsAction,
   listPacientesForConfigAction,
   listPermissionsAction,
+  listProfissionaisForConfigAction,
   listRolesAction,
   listUsersAction,
   updateRolePermissionsAction,
@@ -24,6 +25,10 @@ type UserRow = {
   role: string | null;
   pacienteIdVinculado?: number | null;
   pacienteNomeVinculado?: string | null;
+  pacienteIdsVinculados?: number[];
+  pacientesVinculados?: Array<{ id: number; nome: string | null }>;
+  profissionalIdVinculado?: number | null;
+  profissionalNomeVinculado?: string | null;
   createdAt?: string | Date | null;
 };
 
@@ -34,15 +39,39 @@ type PacienteOption = {
 
 type Tone = "neutral" | "success" | "error";
 
-const ACTIONS = ["view", "create", "edit", "delete", "export", "finalize"] as const;
-const ACTION_LABEL: Record<(typeof ACTIONS)[number], string> = {
+// Ordem preferida das colunas; acoes desconhecidas entram no fim (matriz dinamica).
+const ACTION_ORDER = [
+  "view",
+  "create",
+  "edit",
+  "edit_self",
+  "delete",
+  "cancel",
+  "presence",
+  "version",
+  "finalize",
+  "export",
+  "pdf",
+  "manage",
+] as const;
+const ACTION_LABEL: Record<string, string> = {
   view: "Ver",
   create: "Criar",
   edit: "Editar",
+  edit_self: "Editar próprio",
   delete: "Excluir",
-  export: "Exportar",
+  cancel: "Cancelar",
+  presence: "Presença",
+  version: "Versionar",
   finalize: "Finalizar",
+  export: "Exportar",
+  pdf: "PDF",
+  manage: "Gerenciar",
 };
+
+function actionLabel(action: string): string {
+  return ACTION_LABEL[action] ?? action;
+}
 
 const ALLOWED_ROLES = ["admin-geral", "admin", "recepcao", "profissional", "responsavel"] as const;
 type AllowedRole = (typeof ALLOWED_ROLES)[number];
@@ -63,14 +92,24 @@ function isAllowedRole(value: string): value is AllowedRole {
 }
 
 function groupPermissions(perms: PermissionRow[]) {
-  const map = new Map<string, Partial<Record<(typeof ACTIONS)[number], PermissionRow>>>();
+  const map = new Map<string, Record<string, PermissionRow>>();
   for (const p of perms) {
     const action = String(p.action);
-    if (!(ACTIONS as readonly string[]).includes(action)) continue;
     if (!map.has(p.resource)) map.set(p.resource, {});
-    map.get(p.resource)![action as (typeof ACTIONS)[number]] = p;
+    map.get(p.resource)![action] = p;
   }
   return map;
+}
+
+function sortActions(actions: Iterable<string>): string[] {
+  const order = ACTION_ORDER as readonly string[];
+  return Array.from(new Set(actions)).sort((a, b) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+    const ra = ia === -1 ? order.length : ia;
+    const rb = ib === -1 ? order.length : ib;
+    return ra - rb || a.localeCompare(b);
+  });
 }
 
 function unwrapAction<T>(result: ActionResult<T>): T {
@@ -98,6 +137,10 @@ export function ConfiguracoesPermissoesClient() {
   const [pacientesLoaded, setPacientesLoaded] = useState(false);
   const [pacientesLoading, setPacientesLoading] = useState(false);
   const [pacientesError, setPacientesError] = useState("");
+  const [profissionais, setProfissionais] = useState<PacienteOption[]>([]);
+  const [profissionaisLoaded, setProfissionaisLoaded] = useState(false);
+  const [profissionaisLoading, setProfissionaisLoading] = useState(false);
+  const [profissionaisError, setProfissionaisError] = useState("");
   const [userListMsg, setUserListMsg] = useState<string>("");
   const [userListTone, setUserListTone] = useState<Tone>("neutral");
 
@@ -105,20 +148,27 @@ export function ConfiguracoesPermissoesClient() {
   const [createEmail, setCreateEmail] = useState("");
   const [createSenha, setCreateSenha] = useState("");
   const [createRole, setCreateRole] = useState<AllowedRole | "">("");
-  const [createPacienteId, setCreatePacienteId] = useState("");
+  const [createPacienteIds, setCreatePacienteIds] = useState<string[]>([]);
+  const [createProfissionalId, setCreateProfissionalId] = useState("");
   const [createMsg, setCreateMsg] = useState<string>("");
   const [createTone, setCreateTone] = useState<Tone>("neutral");
   const [creatingUser, setCreatingUser] = useState(false);
 
   const [editRoleByUserId, setEditRoleByUserId] = useState<Record<number, string>>({});
-  const [editPacienteIdByUserId, setEditPacienteIdByUserId] = useState<Record<number, string>>({});
+  const [editPacienteIdsByUserId, setEditPacienteIdsByUserId] = useState<Record<number, string[]>>({});
+  const [editProfissionalIdByUserId, setEditProfissionalIdByUserId] = useState<Record<number, string>>({});
   const [editPassByUserId, setEditPassByUserId] = useState<Record<number, string>>({});
   const [savingUserId, setSavingUserId] = useState<number | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const pacientesLoadRequestedRef = useRef(false);
+  const profissionaisLoadRequestedRef = useRef(false);
 
   const grouped = useMemo(() => groupPermissions(permissions), [permissions]);
   const resources = useMemo(() => Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b)), [grouped]);
+  const actionColumns = useMemo(
+    () => sortActions(permissions.map((p) => String(p.action))),
+    [permissions]
+  );
 
   async function refreshUsers() {
     setUserListMsg("Carregando usuarios...");
@@ -149,6 +199,24 @@ export function ConfiguracoesPermissoesClient() {
     } finally {
       setPacientesLoading(false);
       pacientesLoadRequestedRef.current = false;
+    }
+  }
+
+  async function ensureProfissionaisLoaded() {
+    if (profissionaisLoaded || profissionaisLoading || profissionaisLoadRequestedRef.current) return;
+    profissionaisLoadRequestedRef.current = true;
+    setProfissionaisLoading(true);
+    setProfissionaisError("");
+    try {
+      const data = unwrapAction(await listProfissionaisForConfigAction());
+      setProfissionais(Array.isArray(data) ? data : []);
+      setProfissionaisLoaded(true);
+    } catch (err) {
+      setProfissionais([]);
+      setProfissionaisError(normalizeApiError(err));
+    } finally {
+      setProfissionaisLoading(false);
+      profissionaisLoadRequestedRef.current = false;
     }
   }
 
@@ -203,15 +271,23 @@ export function ConfiguracoesPermissoesClient() {
   }, [roleSelected]);
 
   useEffect(() => {
-    // Pre-fill edit role selects with current roles (so the table is usable immediately).
+    // Pre-fill edit selects with current values (so the table is usable immediately).
     const nextRole: Record<number, string> = {};
-    const nextPaciente: Record<number, string> = {};
+    const nextPacientes: Record<number, string[]> = {};
+    const nextProfissional: Record<number, string> = {};
     users.forEach((u) => {
       nextRole[u.id] = String(u.role || "");
-      nextPaciente[u.id] = u.pacienteIdVinculado ? String(u.pacienteIdVinculado) : "";
+      const ids = Array.isArray(u.pacienteIdsVinculados)
+        ? u.pacienteIdsVinculados
+        : u.pacienteIdVinculado
+          ? [u.pacienteIdVinculado]
+          : [];
+      nextPacientes[u.id] = ids.map((id) => String(id));
+      nextProfissional[u.id] = u.profissionalIdVinculado ? String(u.profissionalIdVinculado) : "";
     });
     setEditRoleByUserId(nextRole);
-    setEditPacienteIdByUserId(nextPaciente);
+    setEditPacienteIdsByUserId(nextPacientes);
+    setEditProfissionalIdByUserId(nextProfissional);
     setEditPassByUserId({});
   }, [users]);
 
@@ -263,26 +339,32 @@ export function ConfiguracoesPermissoesClient() {
       setCreateTone("error");
       return;
     }
-    const pacienteIdRaw = createPacienteId.trim();
-    const pacienteIdVinculado = pacienteIdRaw ? Number(pacienteIdRaw) : null;
-    if (role === "responsavel" && !pacienteIdVinculado) {
-      setCreateMsg("Para responsavel, selecione o paciente vinculado.");
+    const pacienteIdsVinculados = createPacienteIds
+      .map((value) => Number(value))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    if (role === "responsavel" && !pacienteIdsVinculados.length) {
+      setCreateMsg("Para responsavel, selecione ao menos um paciente vinculado.");
       setCreateTone("error");
       return;
     }
+    const profissionalIdRaw = createProfissionalId.trim();
+    const profissionalId = role === "profissional" && profissionalIdRaw ? Number(profissionalIdRaw) : null;
 
     setCreatingUser(true);
     setCreateMsg("Criando usuario...");
     setCreateTone("neutral");
     try {
-      unwrapAction(await createUserAction({ nome, email, senha, role, pacienteIdVinculado }));
+      unwrapAction(
+        await createUserAction({ nome, email, senha, role, pacienteIdsVinculados, profissionalId })
+      );
       setCreateMsg("Usuário criado/atualizado com sucesso.");
       setCreateTone("success");
       setCreateNome("");
       setCreateEmail("");
       setCreateSenha("");
       setCreateRole("");
-      setCreatePacienteId("");
+      setCreatePacienteIds([]);
+      setCreateProfissionalId("");
       await refreshUsers();
     } catch (err) {
       setCreateMsg(normalizeApiError(err));
@@ -298,8 +380,10 @@ export function ConfiguracoesPermissoesClient() {
     const nome = String(user.nome || "").trim();
     const email = String(user.email || "").trim();
     const role = String(editRoleByUserId[userId] || "").trim();
-    const pacienteIdRaw = String(editPacienteIdByUserId[userId] || "").trim();
-    const pacienteIdVinculado = pacienteIdRaw ? Number(pacienteIdRaw) : null;
+    const pacienteIdsVinculados = (editPacienteIdsByUserId[userId] ?? [])
+      .map((value) => Number(value))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    const profissionalIdRaw = String(editProfissionalIdByUserId[userId] || "").trim();
     const senha = String(editPassByUserId[userId] || "");
     if (!nome || !email || !role) {
       setUserListMsg("Nome, email e papel sao obrigatorios.");
@@ -311,8 +395,8 @@ export function ConfiguracoesPermissoesClient() {
       setUserListTone("error");
       return;
     }
-    if (role === "responsavel" && !pacienteIdVinculado) {
-      setUserListMsg("Usuário responsavel precisa de paciente vinculado.");
+    if (role === "responsavel" && !pacienteIdsVinculados.length) {
+      setUserListMsg("Usuário responsavel precisa de ao menos um paciente vinculado.");
       setUserListTone("error");
       return;
     }
@@ -327,7 +411,9 @@ export function ConfiguracoesPermissoesClient() {
           email,
           role,
           senha: senha.trim() ? senha : undefined,
-          pacienteIdVinculado,
+          pacienteIdsVinculados,
+          profissionalId:
+            role === "profissional" ? (profissionalIdRaw ? Number(profissionalIdRaw) : null) : null,
         })
       );
       setUserListMsg("Usuário atualizado.");
@@ -442,34 +528,78 @@ export function ConfiguracoesPermissoesClient() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="font-semibold text-[var(--marrom)]">Paciente vinculado</span>
-            <select
-              value={createPacienteId}
-              onChange={(e) => setCreatePacienteId(e.target.value)}
-              onFocus={() => void ensurePacientesLoaded()}
-              disabled={createRole !== "responsavel"}
-              className="rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--laranja)]/40 disabled:bg-gray-100 disabled:text-gray-400"
-            >
-              <option value="">
-                {createRole !== "responsavel"
-                  ? "Somente responsavel"
-                  : pacientesLoading
-                    ? "Carregando pacientes..."
-                    : !pacientesLoaded
-                      ? "Clique para carregar pacientes"
-                      : pacientes.length
-                        ? "Selecione..."
-                        : "Nenhum paciente disponivel"}
-              </option>
-              {pacientes.map((p) => (
-                <option key={p.id} value={String(p.id)}>
-                  {(p.nome || "Sem nome").trim()} (#{p.id})
-                </option>
-              ))}
-            </select>
-            {createRole === "responsavel" && pacientesError ? (
-              <span className="text-xs text-red-600">{pacientesError}</span>
-            ) : null}
+            <span className="font-semibold text-[var(--marrom)]">
+              {createRole === "profissional" ? "Profissional vinculado" : "Pacientes vinculados"}
+            </span>
+            {createRole === "profissional" ? (
+              <>
+                <select
+                  value={createProfissionalId}
+                  onChange={(e) => setCreateProfissionalId(e.target.value)}
+                  onFocus={() => void ensureProfissionaisLoaded()}
+                  className="rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--laranja)]/40"
+                >
+                  <option value="">
+                    {profissionaisLoading
+                      ? "Carregando profissionais..."
+                      : !profissionaisLoaded
+                        ? "Clique para carregar profissionais"
+                        : profissionais.length
+                          ? "Selecione..."
+                          : "Nenhum profissional disponivel"}
+                  </option>
+                  {profissionais.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {(p.nome || "Sem nome").trim()} (#{p.id})
+                    </option>
+                  ))}
+                </select>
+                {profissionaisError ? (
+                  <span className="text-xs text-red-600">{profissionaisError}</span>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <select
+                  multiple
+                  value={createPacienteIds}
+                  onChange={(e) =>
+                    setCreatePacienteIds(
+                      Array.from(e.target.selectedOptions).map((option) => option.value)
+                    )
+                  }
+                  onFocus={() => void ensurePacientesLoaded()}
+                  disabled={createRole !== "responsavel"}
+                  className="min-h-[42px] rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--laranja)]/40 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  {createRole !== "responsavel" ? (
+                    <option value="" disabled>
+                      Somente responsavel
+                    </option>
+                  ) : pacientesLoading ? (
+                    <option value="" disabled>
+                      Carregando pacientes...
+                    </option>
+                  ) : !pacientesLoaded ? (
+                    <option value="" disabled>
+                      Clique para carregar pacientes
+                    </option>
+                  ) : !pacientes.length ? (
+                    <option value="" disabled>
+                      Nenhum paciente disponivel
+                    </option>
+                  ) : null}
+                  {pacientes.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {(p.nome || "Sem nome").trim()} (#{p.id})
+                    </option>
+                  ))}
+                </select>
+                {createRole === "responsavel" && pacientesError ? (
+                  <span className="text-xs text-red-600">{pacientesError}</span>
+                ) : null}
+              </>
+            )}
           </label>
 
           <div className="flex items-center justify-between gap-3 lg:col-span-4">
@@ -503,7 +633,7 @@ export function ConfiguracoesPermissoesClient() {
                 <th className="px-2 py-2">Nome</th>
                 <th className="px-2 py-2">E-mail</th>
                 <th className="px-2 py-2">Papel</th>
-                <th className="px-2 py-2">Paciente vinculado</th>
+                <th className="px-2 py-2">Vinculo (paciente/profissional)</th>
                 <th className="px-2 py-2">Nova senha (opcional)</th>
                 <th className="px-2 py-2 text-center">Ações</th>
               </tr>
@@ -534,40 +664,88 @@ export function ConfiguracoesPermissoesClient() {
                       </td>
                       <td className="px-2 py-2">
                         {(() => {
-                          const selectedPacienteId = editPacienteIdByUserId[u.id] ?? "";
-                          const isResponsavel = String(editRoleByUserId[u.id] || "") === "responsavel";
-                          const selectedMissing =
-                            selectedPacienteId && !pacientesById.has(selectedPacienteId);
+                          const roleAtual = String(editRoleByUserId[u.id] || "");
+                          if (roleAtual === "profissional") {
+                            const selectedProfissionalId = editProfissionalIdByUserId[u.id] ?? "";
+                            const selectedMissing =
+                              selectedProfissionalId &&
+                              !profissionais.some((p) => String(p.id) === selectedProfissionalId);
+                            return (
+                              <select
+                                value={selectedProfissionalId}
+                                onChange={(e) =>
+                                  setEditProfissionalIdByUserId((prev) => ({
+                                    ...prev,
+                                    [u.id]: e.target.value,
+                                  }))
+                                }
+                                onFocus={() => void ensureProfissionaisLoaded()}
+                                className="w-full rounded-lg border border-gray-200 px-2 py-1"
+                              >
+                                <option value="">
+                                  {profissionaisLoading
+                                    ? "Carregando profissionais..."
+                                    : !profissionaisLoaded
+                                      ? "Clique para carregar profissionais"
+                                      : "Sem vinculo"}
+                                </option>
+                                {selectedMissing ? (
+                                  <option value={selectedProfissionalId}>
+                                    {(u.profissionalNomeVinculado || "Profissional vinculado").trim()} (#
+                                    {selectedProfissionalId})
+                                  </option>
+                                ) : null}
+                                {profissionais.map((p) => (
+                                  <option key={p.id} value={String(p.id)}>
+                                    {(p.nome || "Sem nome").trim()} (#{p.id})
+                                  </option>
+                                ))}
+                              </select>
+                            );
+                          }
+
+                          const selectedPacienteIds = editPacienteIdsByUserId[u.id] ?? [];
+                          const isResponsavel = roleAtual === "responsavel";
+                          const missingIds = selectedPacienteIds.filter(
+                            (id) => !pacientesById.has(id)
+                          );
+                          if (!isResponsavel) {
+                            return <span className="text-xs text-gray-400">Nao se aplica</span>;
+                          }
                           return (
                             <select
-                              value={selectedPacienteId}
+                              multiple
+                              value={selectedPacienteIds}
                               onChange={(e) =>
-                                setEditPacienteIdByUserId((prev) => ({
+                                setEditPacienteIdsByUserId((prev) => ({
                                   ...prev,
-                                  [u.id]: e.target.value,
+                                  [u.id]: Array.from(e.target.selectedOptions).map(
+                                    (option) => option.value
+                                  ),
                                 }))
                               }
                               onFocus={() => void ensurePacientesLoaded()}
-                              disabled={!isResponsavel}
-                              className="w-full rounded-lg border border-gray-200 px-2 py-1 disabled:bg-gray-100 disabled:text-gray-400"
+                              className="min-h-[42px] w-full rounded-lg border border-gray-200 px-2 py-1"
                             >
-                              <option value="">
-                                {!isResponsavel
-                                  ? "Nao se aplica"
-                                  : pacientesLoading
-                                    ? "Carregando pacientes..."
-                                    : !pacientesLoaded
-                                      ? "Clique para carregar pacientes"
-                                      : pacientes.length
-                                        ? "Selecione..."
-                                        : "Nenhum paciente disponivel"}
-                              </option>
-                              {selectedMissing ? (
-                                <option value={selectedPacienteId}>
-                                  {(u.pacienteNomeVinculado || "Paciente indisponivel").trim()} (#
-                                  {selectedPacienteId})
+                              {pacientesLoading ? (
+                                <option value="" disabled>
+                                  Carregando pacientes...
+                                </option>
+                              ) : !pacientesLoaded && !missingIds.length ? (
+                                <option value="" disabled>
+                                  Clique para carregar pacientes
                                 </option>
                               ) : null}
+                              {missingIds.map((id) => {
+                                const vinculo = (u.pacientesVinculados ?? []).find(
+                                  (item) => String(item.id) === id
+                                );
+                                return (
+                                  <option key={`missing-${id}`} value={id}>
+                                    {(vinculo?.nome || "Paciente vinculado").trim()} (#{id})
+                                  </option>
+                                );
+                              })}
                               {pacientes.map((p) => (
                                 <option key={p.id} value={String(p.id)}>
                                   {(p.nome || "Sem nome").trim()} (#{p.id})
@@ -665,9 +843,9 @@ export function ConfiguracoesPermissoesClient() {
             <thead>
               <tr className="border-b text-left text-slate-600">
                 <th className="py-2 pr-3">Recurso</th>
-                {ACTIONS.map((action) => (
+                {actionColumns.map((action) => (
                   <th key={action} className="px-2 py-2 text-center">
-                    {ACTION_LABEL[action]}
+                    {actionLabel(action)}
                   </th>
                 ))}
               </tr>
@@ -678,7 +856,7 @@ export function ConfiguracoesPermissoesClient() {
                 return (
                   <tr key={resource} className="hover:bg-slate-50">
                     <td className="py-2 pr-3 font-semibold capitalize">{resource}</td>
-                    {ACTIONS.map((action) => {
+                    {actionColumns.map((action) => {
                       const perm = row[action];
                       if (!perm) {
                         return (
@@ -705,7 +883,7 @@ export function ConfiguracoesPermissoesClient() {
               })}
               {!resources.length ? (
                 <tr>
-                  <td className="py-3 text-slate-600" colSpan={1 + ACTIONS.length}>
+                  <td className="py-3 text-slate-600" colSpan={1 + actionColumns.length}>
                     Nenhuma permissao encontrada.
                   </td>
                 </tr>
