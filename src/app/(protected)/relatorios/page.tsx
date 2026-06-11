@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
-import { db } from "@/db";
-import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
-import { escapeLikePattern } from "@/server/shared/normalize";
+import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 
 export default async function RelatoriosIndexPage(props: {
   searchParams?: Promise<{ q?: string }>;
@@ -81,22 +78,17 @@ export default async function RelatoriosIndexPage(props: {
   const hasNumericQuery = query !== "" && Number.isInteger(queryDigits) && queryDigits > 0;
   const hasQuery = query.length >= 2 || hasNumericQuery;
 
-  const queryLike = `%${escapeLikePattern(query)}%`;
-  const rows = hasQuery
-    ? hasNumericQuery
-      ? await db
-          .select({ id: pacientes.id, nome: pacientes.nome })
-          .from(pacientes)
-          .where(and(isNull(pacientes.deletedAt), or(ilike(pacientes.nome, queryLike), eq(pacientes.id, queryDigits))))
-          .orderBy(asc(pacientes.nome))
-          .limit(20)
-      : await db
-          .select({ id: pacientes.id, nome: pacientes.nome })
-          .from(pacientes)
-          .where(and(isNull(pacientes.deletedAt), ilike(pacientes.nome, queryLike)))
-          .orderBy(asc(pacientes.nome))
-          .limit(20)
-    : [];
+  // Busca escopada pelo perfil do usuario (admin/recepcao = global; profissional =
+  // apenas pacientes atendidos) para nao enumerar pacientes fora do escopo.
+  const rowsPorNome =
+    hasQuery && query.length >= 2 ? await listarPacientesPorUsuario(user.id, { nome: query }) : [];
+  const rowsPorId = hasNumericQuery ? await listarPacientesPorUsuario(user.id, { id: queryDigits }) : [];
+  const vistos = new Set<number>();
+  const rows = [...rowsPorId, ...rowsPorNome]
+    .filter((row) => (vistos.has(row.id) ? false : (vistos.add(row.id), true)))
+    .sort((a, b) => a.nome.localeCompare(b.nome))
+    .slice(0, 20)
+    .map((row) => ({ id: row.id, nome: row.nome }));
 
   return (
     <main className="space-y-4">

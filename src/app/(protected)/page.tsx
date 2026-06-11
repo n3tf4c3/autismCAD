@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
-import { pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
@@ -78,7 +78,24 @@ export default async function DashboardPage() {
         and(
           isNull(pacientes.deletedAt),
           eq(pacientes.ativo, true),
-          sql`extract(month from ${pacientes.dataNascimento}) = ${birthdayMonth}`
+          sql`extract(month from ${pacientes.dataNascimento}) = ${birthdayMonth}`,
+          // Profissional ve apenas aniversariantes dos pacientes que atende.
+          ...(profissionalId
+            ? [
+                inArray(
+                  pacientes.id,
+                  db
+                    .select({ id: atendimentos.pacienteId })
+                    .from(atendimentos)
+                    .where(
+                      and(
+                        eq(atendimentos.profissionalId, profissionalId),
+                        isNull(atendimentos.deletedAt)
+                      )
+                    )
+                ),
+              ]
+            : [])
         )
       )
       .orderBy(asc(sql`extract(day from ${pacientes.dataNascimento})`), asc(pacientes.nome)),
