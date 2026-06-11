@@ -24,6 +24,27 @@ const optionalBooleanLike = z
     return Number.isFinite(parsed) ? parsed > 0 : false;
   });
 
+function horaParaMinutos(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function exigirHoraFimMaior(
+  data: { horaInicio: string; horaFim: string },
+  ctx: z.RefinementCtx
+) {
+  const inicio = horaParaMinutos(data.horaInicio);
+  const fim = horaParaMinutos(data.horaFim);
+  if (inicio !== null && fim !== null && fim <= inicio) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["horaFim"],
+      message: "Hora final deve ser maior que a hora inicial",
+    });
+  }
+}
+
 export const atendimentosQuerySchema = z.object({
   pacienteId: z.coerce.number().int().positive().optional(),
   profissionalId: optionalId,
@@ -44,7 +65,7 @@ export const saveAtendimentoSchema = z.object({
   presenca: z.string().trim().optional(),
   motivo: z.string().trim().optional().nullable(),
   observacoes: z.string().trim().optional().nullable(),
-}).strict();
+}).strict().superRefine(exigirHoraFimMaior);
 
 export const recorrenteSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),
@@ -59,7 +80,7 @@ export const recorrenteSchema = z.object({
   motivo: z.string().trim().optional().nullable(),
   observacoes: z.string().trim().optional().nullable(),
   diasSemana: z.array(z.coerce.number().int().min(0).max(6)).min(1),
-});
+}).superRefine(exigirHoraFimMaior);
 
 export const excluirDiaSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),

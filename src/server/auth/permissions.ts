@@ -10,7 +10,6 @@ const PERMISSION_ALIASES: Record<string, string[]> = {
   "atendimentos:delete": ["consultas:cancel"],
   "relatorios_clinicos:view": ["relatorios:view"],
   "relatorios_clinicos:export": ["relatorios:export"],
-  "prontuario:version": ["prontuario:delete"],
   "profissionais:view": ["terapeutas:view"],
   "profissionais:create": ["terapeutas:create"],
   "profissionais:edit": ["terapeutas:edit"],

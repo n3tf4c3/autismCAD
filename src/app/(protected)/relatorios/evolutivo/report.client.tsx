@@ -65,6 +65,10 @@ function ymdMinusDays(days: number): string {
 
 function fmtDate(d?: string | null): string {
   if (!d) return "-";
+  // Date-only: formata manualmente para evitar deslocamento de dia
+  // (new Date("YYYY-MM-DD") interpreta UTC e pode exibir o dia anterior).
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d));
+  if (dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return String(d);
   return dt.toLocaleDateString("pt-BR");
