@@ -164,9 +164,12 @@ export async function salvarDocumentoProntuarioAction(
 ): Promise<ActionResult<Awaited<ReturnType<typeof salvarDocumento>>>> {
   try {
     const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
-    const { user, access } = await requirePermission("prontuario:create");
-    await assertPacienteAccess(user, parsedPacienteId, access);
     const parsedInput = salvarDocumentoSchema.parse(input ?? {});
+    // Atualizar documento existente exige permissao de versionamento, nao de criacao.
+    const { user, access } = await requirePermission(
+      parsedInput.documentoId ? "prontuario:version" : "prontuario:create"
+    );
+    await assertPacienteAccess(user, parsedPacienteId, access);
     const saved = await salvarDocumento(parsedPacienteId, parsedInput, user);
     revalidatePath(`/prontuario/${parsedPacienteId}`);
     revalidatePath(`/prontuario/${parsedPacienteId}/plano-ensino`);
@@ -206,7 +209,7 @@ export async function finalizarDocumentoProntuarioAction(
 ): Promise<ActionResult<{ id: number; finalized: true }>> {
   try {
     const parsedDocumentoId = parsePositiveInt(documentoId, "Documento", "INVALID_INPUT");
-    const { user, access } = await requirePermission("prontuario:version");
+    const { user, access } = await requirePermission("prontuario:finalize");
     const finalized = await finalizarDocumento(parsedDocumentoId, user, access);
 
     const pacienteId = Number(finalized.pacienteId ?? 0);

@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { prontuarioDocumentos } from "../../src/server/db/schema";
@@ -123,7 +123,13 @@ async function main() {
       payload: prontuarioDocumentos.payload,
     })
     .from(prontuarioDocumentos)
-    .where(eq(prontuarioDocumentos.tipo, "PLANO_ENSINO"));
+    .where(
+      and(
+        eq(prontuarioDocumentos.tipo, "PLANO_ENSINO"),
+        // Nao tocar historico excluido logicamente.
+        isNull(prontuarioDocumentos.deletedAt)
+      )
+    );
 
   let changedCount = 0;
   let typoRecords = 0;
