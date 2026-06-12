@@ -15,7 +15,7 @@ import {
   conveniosPermitidos,
   PacientesQueryInput,
   SavePacienteInput,
-} from "@/server/modules/pacientes/pacientes.schema";
+} from "@/lib/pacientes/pacientes.schema";
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";

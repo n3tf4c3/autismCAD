@@ -7,6 +7,7 @@ import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
+import { formatDateBr } from "@/lib/date-only";
 import {
   gerarRelatorioEvolutivoAction,
 } from "@/app/(protected)/relatorios/relatorios.actions";
@@ -59,11 +60,9 @@ function ymdToday(): string {
   return `${y}-${m}-${d}`;
 }
 
+// Achado 47: usa helper date-only para nao deslocar um dia em strings YYYY-MM-DD.
 function fmtDate(value?: string | null): string {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString("pt-BR");
+  return formatDateBr(value);
 }
 
 function fmtHour(value?: string | null): string {

@@ -11,7 +11,7 @@ import { runDbTransaction } from "@/server/db/transaction";
 import {
   pacientesQuerySchema,
   savePacienteSchema,
-} from "@/server/modules/pacientes/pacientes.schema";
+} from "@/lib/pacientes/pacientes.schema";
 import {
   findPacienteByCpfAtivo,
   listarPacientes,

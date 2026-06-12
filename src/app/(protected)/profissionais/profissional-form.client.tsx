@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { ESPECIALIDADES_PROFISSIONAL } from "@/lib/profissionais/especialidades";
-import { saveProfissionalSchema } from "@/server/modules/profissionais/profissionais.schema";
+import { saveProfissionalSchema } from "@/lib/profissionais/profissionais.schema";
 import { salvarProfissionalAction } from "@/app/(protected)/profissionais/profissional.actions";
 
 type ProfissionalFormInitial = {
