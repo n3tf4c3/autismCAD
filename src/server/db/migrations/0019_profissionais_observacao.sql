@@ -1,2 +1,0 @@
-ALTER TABLE terapeutas
-  ADD COLUMN IF NOT EXISTS observacao TEXT;
