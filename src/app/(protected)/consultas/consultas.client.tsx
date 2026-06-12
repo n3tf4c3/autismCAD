@@ -106,15 +106,21 @@ export function ConsultasClient(props: {
   const [delItem, setDelItem] = useState<Atendimento | null>(null);
   const [delBusy, setDelBusy] = useState(false);
 
-  async function loadAtendimentos() {
+  async function loadAtendimentos(overrides?: {
+    pacienteId?: string;
+    profissionalId?: string;
+    dataIni?: string;
+    dataFim?: string;
+  }) {
     setLoading(true);
     setError(null);
     try {
+      // Overrides evitam ler estado defasado quando o load roda logo apos setState.
       const filters = {
-        pacienteId: pacienteId || undefined,
-        profissionalId: profissionalId || undefined,
-        dataIni: dataIni || undefined,
-        dataFim: dataFim || undefined,
+        pacienteId: (overrides?.pacienteId ?? pacienteId) || undefined,
+        profissionalId: (overrides?.profissionalId ?? profissionalId) || undefined,
+        dataIni: (overrides?.dataIni ?? dataIni) || undefined,
+        dataFim: (overrides?.dataFim ?? dataFim) || undefined,
       };
       const result = await listarAtendimentosAction(filters);
       if (!result.ok) throw new Error(result.error || "Erro ao listar atendimentos");
@@ -338,11 +344,17 @@ export function ConsultasClient(props: {
             <button
               type="button"
               onClick={() => {
+                const hoje = ymdToday();
                 setPacienteId("");
                 setProfissionalId("");
-                setDataIni(ymdToday());
-                setDataFim(ymdToday());
-                void loadAtendimentos();
+                setDataIni(hoje);
+                setDataFim(hoje);
+                void loadAtendimentos({
+                  pacienteId: "",
+                  profissionalId: "",
+                  dataIni: hoje,
+                  dataFim: hoje,
+                });
               }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 font-semibold text-gray-700 hover:bg-gray-50"
             >

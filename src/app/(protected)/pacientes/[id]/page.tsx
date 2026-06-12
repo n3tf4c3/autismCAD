@@ -105,6 +105,8 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
     : "-";
   const canArchive = hasPermissionKey(access.permissions, "pacientes:edit");
   const canDelete = hasPermissionKey(access.permissions, "pacientes:delete");
+  const canEdit = hasPermissionKey(access.permissions, "pacientes:edit");
+  const canViewProntuario = hasPermissionKey(access.permissions, "prontuario:view");
   const pacienteAtivo = paciente.ativo;
 
   return (
@@ -156,12 +158,14 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 >
                   Ficha de Anamnese
                 </Link>
-                <Link
-                  href={`/pacientes/${paciente.id}/editar`}
-                  className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-                >
-                  Editar
-                </Link>
+                {canEdit ? (
+                  <Link
+                    href={`/pacientes/${paciente.id}/editar`}
+                    className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                  >
+                    Editar
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
@@ -175,12 +179,16 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/prontuario/${paciente.id}`}
-                  className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f]"
-                >
-                  Abrir Prontuário
-                </Link>
+                {canViewProntuario ? (
+                  <Link
+                    href={`/prontuario/${paciente.id}`}
+                    className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f]"
+                  >
+                    Abrir Prontuário
+                  </Link>
+                ) : (
+                  <p className="text-sm text-gray-500">Sem permissão para abrir o prontuário.</p>
+                )}
               </div>
             </div>
           </div>

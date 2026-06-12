@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermissionKey } from "@/server/auth/permissions";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterTimelineProntuario } from "@/server/modules/prontuario/prontuario.service";
 import { TimelineClient, type TimelineItem } from "@/app/(protected)/prontuario/[pacienteId]/timeline.client";
@@ -11,7 +12,13 @@ import { toAppError } from "@/server/shared/errors";
 export default async function ProntuarioPacientePage(props: {
   params: Promise<{ pacienteId: string }>;
 }) {
-  const { user } = await requirePermission("prontuario:view");
+  const { user, access } = await requirePermission("prontuario:view");
+  const canCreateEvolucao = hasPermissionKey(access.permissions, "evolucoes:create");
+  const canEditarPlano = hasPermissionKey(access.permissions, "prontuario:create");
+  const canEditEvolucao = hasPermissionKey(access.permissions, "evolucoes:edit");
+  const canDeleteEvolucao = hasPermissionKey(access.permissions, "evolucoes:delete");
+  const canEditDocumento = hasPermissionKey(access.permissions, "prontuario:version");
+  const canDeleteDocumento = hasPermissionKey(access.permissions, "prontuario:delete");
   const { pacienteId } = await props.params;
   const id = Number(pacienteId);
   if (!id) {
@@ -62,24 +69,28 @@ export default async function ProntuarioPacientePage(props: {
             </h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/prontuario/${paciente.id}/evolucao/nova`}
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-            >
-              Nova Evolução
-            </Link>
+            {canCreateEvolucao ? (
+              <Link
+                href={`/prontuario/${paciente.id}/evolucao/nova`}
+                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              >
+                Nova Evolução
+              </Link>
+            ) : null}
             <Link
               href={`/relatorios/evolutivo?pacienteId=${paciente.id}`}
               className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
             >
               Relatório Evolutivo
             </Link>
-            <Link
-              href={`/prontuario/${paciente.id}/plano-ensino`}
-              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
-            >
-              Plano de Ensino
-            </Link>
+            {canEditarPlano ? (
+              <Link
+                href={`/prontuario/${paciente.id}/plano-ensino`}
+                className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+              >
+                Plano de Ensino
+              </Link>
+            ) : null}
             <Link
               href={`/impressao/plano-ensino?pacienteId=${paciente.id}`}
               className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
@@ -91,7 +102,14 @@ export default async function ProntuarioPacientePage(props: {
         </div>
       </section>
 
-      <TimelineClient pacienteId={paciente.id} initialItems={timeline as TimelineItem[]} />
+      <TimelineClient
+        pacienteId={paciente.id}
+        initialItems={timeline as TimelineItem[]}
+        canEditEvolucao={canEditEvolucao}
+        canDeleteEvolucao={canDeleteEvolucao}
+        canEditDocumento={canEditDocumento}
+        canDeleteDocumento={canDeleteDocumento}
+      />
     </main>
   );
 }

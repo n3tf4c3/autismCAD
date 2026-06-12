@@ -33,7 +33,14 @@ export type TimelineItem =
       horario?: string | null;
     };
 
-export function TimelineClient(props: { pacienteId: number; initialItems: TimelineItem[] }) {
+export function TimelineClient(props: {
+  pacienteId: number;
+  initialItems: TimelineItem[];
+  canEditEvolucao: boolean;
+  canDeleteEvolucao: boolean;
+  canEditDocumento: boolean;
+  canDeleteDocumento: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [tipo, setTipo] = useState("");
@@ -174,39 +181,47 @@ export function TimelineClient(props: { pacienteId: number; initialItems: Timeli
                       </Link>
                       {item.tipo === "PLANO_ENSINO" ? (
                         <>
-                          <Link
-                            className="text-sm font-semibold text-[var(--laranja)]"
-                            href={getDocumentoEditarHref(props.pacienteId, item.tipo, item.id)}
-                          >
-                            Editar
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => deleteDocumento(item.id)}
-                            className="text-sm font-semibold text-red-600"
-                            disabled={isPending}
-                          >
-                            Excluir
-                          </button>
+                          {props.canEditDocumento ? (
+                            <Link
+                              className="text-sm font-semibold text-[var(--laranja)]"
+                              href={getDocumentoEditarHref(props.pacienteId, item.tipo, item.id)}
+                            >
+                              Editar
+                            </Link>
+                          ) : null}
+                          {props.canDeleteDocumento ? (
+                            <button
+                              type="button"
+                              onClick={() => deleteDocumento(item.id)}
+                              className="text-sm font-semibold text-red-600"
+                              disabled={isPending}
+                            >
+                              Excluir
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
                     </>
                   ) : (
                     <>
-                      <Link
-                        className="text-sm font-semibold text-[var(--laranja)]"
-                        href={`/prontuario/${props.pacienteId}/evolucao/${item.id}`}
-                      >
-                        Editar
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => deleteEvolucao(item.id)}
-                        className="text-sm font-semibold text-red-600"
-                        disabled={isPending}
-                      >
-                        Excluir
-                      </button>
+                      {props.canEditEvolucao ? (
+                        <Link
+                          className="text-sm font-semibold text-[var(--laranja)]"
+                          href={`/prontuario/${props.pacienteId}/evolucao/${item.id}`}
+                        >
+                          Editar
+                        </Link>
+                      ) : null}
+                      {props.canDeleteEvolucao ? (
+                        <button
+                          type="button"
+                          onClick={() => deleteEvolucao(item.id)}
+                          className="text-sm font-semibold text-red-600"
+                          disabled={isPending}
+                        >
+                          Excluir
+                        </button>
+                      ) : null}
                     </>
                   )}
                 </div>
