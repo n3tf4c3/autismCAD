@@ -1,7 +1,7 @@
 import "server-only";
 import { desc, eq, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { accessLogs, users } from "@/server/db/schema";
+import { accessLogs, users } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import { AppError } from "@/server/shared/errors";
 import { env } from "@/lib/env";

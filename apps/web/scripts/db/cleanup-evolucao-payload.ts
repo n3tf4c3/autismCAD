@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import { eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { evolucoes } from "../../src/server/db/schema";
+import { evolucoes } from "@autismcad/db/schema";
 import { sanitizeEvolucaoPayload } from "../../src/lib/prontuario/evolucao-payload";
 
 config({ path: ".env.local" });

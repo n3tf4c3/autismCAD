@@ -1,7 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { pacientes } from "@/server/db/schema";
+import { pacientes } from "@autismcad/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { toAppError } from "@/server/shared/errors";

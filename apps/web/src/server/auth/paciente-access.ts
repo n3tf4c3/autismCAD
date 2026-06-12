@@ -7,7 +7,7 @@ import { loadUserAccess } from "@/server/auth/access";
 import type { UserAccess } from "@/server/auth/access";
 import { parseSessionUserId } from "@/server/auth/user-id";
 import { AppError } from "@/server/shared/errors";
-import { pacientes } from "@/server/db/schema";
+import { pacientes } from "@autismcad/db/schema";
 import {
   obterProfissionalPorUsuario,
   profissionalAtendePaciente,

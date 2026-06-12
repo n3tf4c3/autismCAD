@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { pacientes } from "@/server/db/schema";
+import { pacientes } from "@autismcad/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { hasPermissionKey } from "@/server/auth/permissions";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";

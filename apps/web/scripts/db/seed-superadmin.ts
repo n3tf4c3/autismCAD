@@ -9,7 +9,7 @@ import {
   rolePermissions,
   roles,
   users,
-} from "../../src/server/db/schema";
+} from "@autismcad/db/schema";
 
 config({ path: ".env.local" });
 config({ path: ".env" });

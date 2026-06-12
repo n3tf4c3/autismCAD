@@ -9,7 +9,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, pacienteTerapia, pacientes, terapias } from "@/server/db/schema";
+import { atendimentos, pacienteTerapia, pacientes, terapias } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   conveniosPermitidos,

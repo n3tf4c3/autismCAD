@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { users } from "../../src/server/db/schema";
+import { users } from "@autismcad/db/schema";
 
 config({ path: ".env.local" });
 config({ path: ".env" });

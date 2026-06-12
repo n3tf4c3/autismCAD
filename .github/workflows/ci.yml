@@ -43,7 +43,7 @@ jobs:
         run: npm run typecheck
 
       - name: Drizzle Check
-        run: npm run db:check -w @autismcad/web
+        run: npm run db:check -w @autismcad/db
 
       - name: Build
         run: npm run build

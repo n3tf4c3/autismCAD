@@ -1,12 +1,13 @@
 import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-config({ path: ".env.local" });
-config({ path: ".env" });
+// O .env.local/.env do app continua em apps/web/; este config roda com cwd=packages/db.
+config({ path: "../../apps/web/.env.local" });
+config({ path: "../../apps/web/.env" });
 
 export default defineConfig({
-  schema: "./src/server/db/schema.ts",
-  out: "./src/server/db/migrations",
+  schema: "./src/schema.ts",
+  out: "./src/migrations",
   dialect: "postgresql",
   dbCredentials: {
     url:

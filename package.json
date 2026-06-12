@@ -12,7 +12,12 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "db:generate": "npm run db:generate -w @autismcad/db",
+    "db:migrate": "npm run db:migrate -w @autismcad/db",
+    "db:check": "npm run db:check -w @autismcad/db",
+    "db:push": "npm run db:push -w @autismcad/db",
+    "db:studio": "npm run db:studio -w @autismcad/db"
   },
   "devDependencies": {
     "turbo": "^2"

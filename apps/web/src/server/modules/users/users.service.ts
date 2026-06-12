@@ -21,7 +21,7 @@ import {
   userPacienteVinculosAudit,
   userPacienteVinculos,
   users,
-} from "@/server/db/schema";
+} from "@autismcad/db/schema";
 import {
   CreateUserInput,
   UpdateRolePermissionsInput,

@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { pacientes, userPacienteVinculos } from "@/server/db/schema";
+import { pacientes, userPacienteVinculos } from "@autismcad/db/schema";
 
 export async function getPacientesVinculadosByUserId(
   userId: number

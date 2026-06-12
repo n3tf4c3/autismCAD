@@ -10,7 +10,7 @@ import {
   prontuarioDocumentos,
   terapeutas as profissionaisTabela,
   users,
-} from "@/server/db/schema";
+} from "@autismcad/db/schema";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";

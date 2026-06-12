@@ -2,7 +2,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { PlanoEnsinoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client";
-import { pacientes } from "@/server/db/schema";
+import { pacientes } from "@autismcad/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";

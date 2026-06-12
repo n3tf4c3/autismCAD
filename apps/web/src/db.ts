@@ -2,7 +2,7 @@ import "server-only";
 import { drizzle as drizzleHttp } from "drizzle-orm/neon-http";
 import { drizzle as drizzleServerless } from "drizzle-orm/neon-serverless";
 import { neon } from "@neondatabase/serverless";
-import * as schema from "@/server/db/schema";
+import * as schema from "@autismcad/db/schema";
 import { env } from "@/lib/env";
 
 const httpDb = drizzleHttp({ client: neon(env.DATABASE_URL), schema });
