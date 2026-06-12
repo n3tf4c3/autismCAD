@@ -30,6 +30,9 @@ export const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
+// Limite de tamanho aplicado na consolidacao do upload (achado 44).
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
 export function normalizeUploadContentType(contentType: string): string {
   return String(contentType || "")
     .split(";")[0]
@@ -252,6 +255,28 @@ function isNotFoundR2Error(error: unknown): boolean {
   const status = candidate.$metadata?.httpStatusCode;
   const code = String(candidate.name ?? candidate.Code ?? candidate.code ?? "");
   return status === 404 || code === "NotFound" || code === "NoSuchKey";
+}
+
+// Retorna tamanho e content-type reais do objeto, ou null se nao existir (achado 44).
+export async function headObjectMetadataInR2(
+  key: string
+): Promise<{ size: number; contentType: string } | null> {
+  const client = getR2Client();
+  try {
+    const result = await client.send(
+      new HeadObjectCommand({
+        Bucket: env.R2_BUCKET!,
+        Key: key,
+      })
+    );
+    return {
+      size: Number(result.ContentLength ?? 0),
+      contentType: normalizeUploadContentType(String(result.ContentType ?? "")),
+    };
+  } catch (error) {
+    if (isNotFoundR2Error(error)) return null;
+    throw error;
+  }
 }
 
 export async function objectExistsInR2(key: string): Promise<boolean> {

@@ -23,14 +23,15 @@ import {
 import { AppError, toAppError } from "@/server/shared/errors";
 import {
   ALLOWED_UPLOAD_CONTENT_TYPES,
+  MAX_UPLOAD_BYTES,
   buildObjectKey,
   copyObjectInR2,
   createSignedReadUrl,
   createSignedWriteUrl,
   deleteObjectFromR2,
+  headObjectMetadataInR2,
   isAllowedUploadContentType,
   normalizeUploadContentType,
-  objectExistsInR2,
 } from "@/server/storage/r2";
 
 type ActionError = {
@@ -339,6 +340,34 @@ export async function commitArquivoPacienteAction(
         throw new AppError("Arquivo invalido para este paciente", 403, "FORBIDDEN");
       }
 
+      // Achado 44: valida metadados reais (tamanho/content-type) do objeto enviado
+      // antes de consolidar a chave. Feito antes de qualquer copia temp->final, de
+      // modo que uma rejeicao nao deixe objeto promovido orfao.
+      const meta = await headObjectMetadataInR2(parsed.key);
+      if (!meta) {
+        throw new AppError(
+          isTempKey
+            ? "Arquivo temporario nao encontrado ou expirado, envie novamente"
+            : "O upload na nuvem nao foi confirmado, tente novamente",
+          409,
+          isTempKey ? "UPLOAD_EXPIRED" : "UPLOAD_NOT_CONFIRMED"
+        );
+      }
+      if (meta.size <= 0 || meta.size > MAX_UPLOAD_BYTES) {
+        throw new AppError(
+          "Arquivo excede o tamanho maximo permitido (20 MB)",
+          400,
+          "UPLOAD_TOO_LARGE"
+        );
+      }
+      if (!allowedContentTypesByKind[parsed.kind].has(meta.contentType)) {
+        throw new AppError(
+          "Conteudo do arquivo nao corresponde ao tipo esperado",
+          400,
+          "INVALID_CONTENT_TYPE"
+        );
+      }
+
       if (isTempKey) {
         const fileName = parsed.key.split("/").pop() || `${parsed.kind}.bin`;
         const promotedKey = buildObjectKey(`pacientes/${idNum}/${parsed.kind}`, fileName);
@@ -364,16 +393,8 @@ export async function commitArquivoPacienteAction(
         nextKey = promotedKey;
         tempKeyToDelete = parsed.key;
         promotedKeyToRollback = promotedKey;
-      } else {
-        const exists = await objectExistsInR2(parsed.key);
-        if (!exists) {
-          throw new AppError(
-            "O upload na nuvem nao foi confirmado, tente novamente",
-            409,
-            "UPLOAD_NOT_CONFIRMED"
-          );
-        }
       }
+      // Para chave final, a existencia ja foi confirmada pelo HEAD de metadados acima.
     }
 
     let previousKey: string | null = null;

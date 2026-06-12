@@ -1,8 +1,13 @@
 import "server-only";
 import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { agendaBloqueios, atendimentos } from "@/server/db/schema";
+import { runDbTransaction } from "@/server/db/transaction";
+import { agendaBloqueios, atendimentos, terapeutas } from "@/server/db/schema";
 import { AppError } from "@/server/shared/errors";
+
+function advisoryLockHash64(value: string) {
+  return sql`(('x' || substr(md5(${value}), 1, 16))::bit(64)::bigint)`;
+}
 import type {
   CriarBloqueiosInput,
   ListarBloqueiosInput,
@@ -50,62 +55,91 @@ export async function listarBloqueios(input: ListarBloqueiosInput) {
 export async function criarBloqueios(input: CriarBloqueiosInput, createdByUserId: number) {
   const datas = Array.from(new Set(input.datas));
 
-  // Conflito com atendimento existente do profissional (qualquer sessao).
-  const [conflitoAtendimento] = await db
-    .select({ data: atendimentos.data })
-    .from(atendimentos)
-    .where(
-      and(
-        eq(atendimentos.profissionalId, input.profissionalId),
-        inArray(atendimentos.data, datas),
-        isNull(atendimentos.deletedAt),
-        sql`${input.horaFim}::time > ${atendimentos.horaInicio} AND ${input.horaInicio}::time < ${atendimentos.horaFim}`
-      )
-    )
-    .limit(1);
-  if (conflitoAtendimento) {
-    throw new AppError(
-      `Ja existe atendimento neste horario em ${String(conflitoAtendimento.data).slice(0, 10)}`,
-      409,
-      "SCHEDULE_CONFLICT"
-    );
-  }
+  // Achado 45: checagem de conflito e insert correm na mesma transacao, com
+  // advisory lock por profissional+data, evitando corrida entre validacao e gravacao
+  // (inclusive contra a criacao de atendimentos, que usa o mesmo padrao de lock).
+  return runDbTransaction(
+    async (tx) => {
+      // Achado 46: garante que o profissional existe, esta ativo e nao foi deletado.
+      const [prof] = await tx
+        .select({ id: terapeutas.id })
+        .from(terapeutas)
+        .where(
+          and(
+            eq(terapeutas.id, input.profissionalId),
+            eq(terapeutas.ativo, true),
+            isNull(terapeutas.deletedAt)
+          )
+        )
+        .limit(1);
+      if (!prof) {
+        throw new AppError("Profissional inativo ou removido", 409, "PROFISSIONAL_INATIVO");
+      }
 
-  // Conflito com bloqueio existente.
-  const [conflitoBloqueio] = await db
-    .select({ data: agendaBloqueios.data })
-    .from(agendaBloqueios)
-    .where(
-      and(
-        eq(agendaBloqueios.profissionalId, input.profissionalId),
-        inArray(agendaBloqueios.data, datas),
-        sql`${input.horaFim}::time > ${agendaBloqueios.horaInicio} AND ${input.horaInicio}::time < ${agendaBloqueios.horaFim}`
-      )
-    )
-    .limit(1);
-  if (conflitoBloqueio) {
-    throw new AppError(
-      `Ja existe bloqueio neste horario em ${String(conflitoBloqueio.data).slice(0, 10)}`,
-      409,
-      "SCHEDULE_CONFLICT"
-    );
-  }
+      for (const data of datas) {
+        const lockKey = `atendimentos:profissional:${input.profissionalId}:${data}`;
+        await tx.execute(sql`select pg_advisory_xact_lock(${advisoryLockHash64(lockKey)})`);
+      }
 
-  const inserted = await db
-    .insert(agendaBloqueios)
-    .values(
-      datas.map((data) => ({
-        profissionalId: input.profissionalId,
-        data,
-        horaInicio: input.horaInicio,
-        horaFim: input.horaFim,
-        observacoes: input.observacoes?.trim() || null,
-        createdByUserId,
-      }))
-    )
-    .returning({ id: agendaBloqueios.id });
+      // Conflito com atendimento existente do profissional (qualquer sessao).
+      const [conflitoAtendimento] = await tx
+        .select({ data: atendimentos.data })
+        .from(atendimentos)
+        .where(
+          and(
+            eq(atendimentos.profissionalId, input.profissionalId),
+            inArray(atendimentos.data, datas),
+            isNull(atendimentos.deletedAt),
+            sql`${input.horaFim}::time > ${atendimentos.horaInicio} AND ${input.horaInicio}::time < ${atendimentos.horaFim}`
+          )
+        )
+        .limit(1);
+      if (conflitoAtendimento) {
+        throw new AppError(
+          `Ja existe atendimento neste horario em ${String(conflitoAtendimento.data).slice(0, 10)}`,
+          409,
+          "SCHEDULE_CONFLICT"
+        );
+      }
 
-  return { criados: inserted.length };
+      // Conflito com bloqueio existente.
+      const [conflitoBloqueio] = await tx
+        .select({ data: agendaBloqueios.data })
+        .from(agendaBloqueios)
+        .where(
+          and(
+            eq(agendaBloqueios.profissionalId, input.profissionalId),
+            inArray(agendaBloqueios.data, datas),
+            sql`${input.horaFim}::time > ${agendaBloqueios.horaInicio} AND ${input.horaInicio}::time < ${agendaBloqueios.horaFim}`
+          )
+        )
+        .limit(1);
+      if (conflitoBloqueio) {
+        throw new AppError(
+          `Ja existe bloqueio neste horario em ${String(conflitoBloqueio.data).slice(0, 10)}`,
+          409,
+          "SCHEDULE_CONFLICT"
+        );
+      }
+
+      const inserted = await tx
+        .insert(agendaBloqueios)
+        .values(
+          datas.map((data) => ({
+            profissionalId: input.profissionalId,
+            data,
+            horaInicio: input.horaInicio,
+            horaFim: input.horaFim,
+            observacoes: input.observacoes?.trim() || null,
+            createdByUserId,
+          }))
+        )
+        .returning({ id: agendaBloqueios.id });
+
+      return { criados: inserted.length };
+    },
+    { operation: "agenda.criarBloqueios", mode: "required" }
+  );
 }
 
 export async function excluirBloqueio(id: number) {

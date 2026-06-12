@@ -113,6 +113,43 @@ async function acquireAtendimentoScheduleLock(executor: DbExecutor, params: {
   }
 }
 
+// Achado 46: FKs garantem existencia fisica, mas nao que paciente/profissional
+// estejam ativos e nao deletados. Valida na mesma transacao da gravacao.
+async function assertEntidadesAtivas(
+  executor: DbExecutor,
+  params: { pacienteId: number; profissionalId: number }
+) {
+  const [pac] = await executor
+    .select({ id: pacientes.id })
+    .from(pacientes)
+    .where(
+      and(
+        eq(pacientes.id, params.pacienteId),
+        eq(pacientes.ativo, true),
+        isNull(pacientes.deletedAt)
+      )
+    )
+    .limit(1);
+  if (!pac) {
+    throw new AppError("Paciente inativo ou removido", 409, "PACIENTE_INATIVO");
+  }
+
+  const [prof] = await executor
+    .select({ id: profissionaisTabela.id })
+    .from(profissionaisTabela)
+    .where(
+      and(
+        eq(profissionaisTabela.id, params.profissionalId),
+        eq(profissionaisTabela.ativo, true),
+        isNull(profissionaisTabela.deletedAt)
+      )
+    )
+    .limit(1);
+  if (!prof) {
+    throw new AppError("Profissional inativo ou removido", 409, "PROFISSIONAL_INATIVO");
+  }
+}
+
 async function existeConflitoHorario(executor: DbExecutor, params: {
   pacienteId: number;
   profissionalId: number;
@@ -183,6 +220,11 @@ async function salvarAtendimentoDb(
     profissionalId,
     data,
     isGrupo,
+  });
+
+  await assertEntidadesAtivas(executor, {
+    pacienteId: input.pacienteId,
+    profissionalId,
   });
 
   const conflito = await existeConflitoHorario(executor, {
