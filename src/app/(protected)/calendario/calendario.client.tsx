@@ -6,6 +6,11 @@ import {
   criarAtendimentosRecorrentesAction,
   listarAtendimentosAction,
 } from "@/app/(protected)/consultas/consultas.actions";
+import {
+  criarBloqueiosAction,
+  excluirBloqueioAction,
+  listarBloqueiosAction,
+} from "@/app/(protected)/calendario/bloqueios.actions";
 
 type Atendimento = {
   id: number;
@@ -22,7 +27,7 @@ type Profissional = { id: number; nome: string; especialidade?: string | null };
 type Paciente = { id: number; nome: string };
 
 type BloqueioAgenda = {
-  id: string;
+  id: number;
   profissionalId: number;
   data: string;
   horaInicio: string;
@@ -41,8 +46,6 @@ type ActionResult<T> =
       code: string;
       status: number;
     };
-
-const BLOQUEIOS_STORAGE_KEY = "calendario.bloqueios";
 
 function weekMonday(date = new Date()): Date {
   const d = new Date(date);
@@ -96,52 +99,12 @@ function overlaps(h1i: string, h1f: string, h2i: string, h2f: string): boolean {
   return h1f > h2i && h1i < h2f;
 }
 
-function parseBloqueiosStorage(): BloqueioAgenda[] {
-  try {
-    const raw = localStorage.getItem(BLOQUEIOS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item) => item && typeof item === "object")
-      .map((item) => {
-        const rec = item as Record<string, unknown>;
-        return {
-          id: String(rec.id ?? ""),
-          profissionalId: Number(rec.profissionalId ?? 0),
-          data: String(rec.data ?? "").slice(0, 10),
-          horaInicio: String(rec.horaInicio ?? "").slice(0, 5),
-          horaFim: String(rec.horaFim ?? "").slice(0, 5),
-          observacoes: typeof rec.observacoes === "string" ? rec.observacoes : null,
-        } satisfies BloqueioAgenda;
-      })
-      .filter(
-        (b) =>
-          b.id &&
-          Number.isFinite(b.profissionalId) &&
-          b.profissionalId > 0 &&
-          /^\d{4}-\d{2}-\d{2}$/.test(b.data) &&
-          /^\d{2}:\d{2}$/.test(b.horaInicio) &&
-          /^\d{2}:\d{2}$/.test(b.horaFim)
-      );
-  } catch {
-    return [];
-  }
-}
-
-function saveBloqueiosStorage(items: BloqueioAgenda[]) {
-  try {
-    localStorage.setItem(BLOQUEIOS_STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    // ignore
-  }
-}
-
 export function CalendarioClient(props: {
   initialProfissionais: Profissional[];
   initialPacientes: Paciente[];
   initialProfissionalId?: string;
   initialData?: string;
+  canCreateAtendimento: boolean;
 }) {
   const initialDateParsed = parseYmdToLocalDate(props.initialData ?? "");
   const initialDate = initialDateParsed ? ymdLocal(initialDateParsed) : ymdLocal(new Date());
@@ -209,17 +172,24 @@ export function CalendarioClient(props: {
     params.set("dataFim", ymdLocal(end));
 
     try {
-      const dataJson = unwrapAction(
-        await listarAtendimentosAction({
+      const [dataJson, bloqueiosJson] = await Promise.all([
+        listarAtendimentosAction({
           profissionalId: id,
           dataIni: params.get("dataIni") ?? undefined,
           dataFim: params.get("dataFim") ?? undefined,
-        })
-      );
-      setAgenda(dataJson.items);
+        }),
+        listarBloqueiosAction({
+          profissionalId: id,
+          dataIni: params.get("dataIni") ?? undefined,
+          dataFim: params.get("dataFim") ?? undefined,
+        }),
+      ]);
+      setAgenda(unwrapAction(dataJson).items);
+      setBloqueios(unwrapAction(bloqueiosJson).items);
     } catch (err) {
       setError(normalizeApiError(err));
       setAgenda([]);
+      setBloqueios([]);
     } finally {
       setLoading(false);
     }
@@ -242,41 +212,15 @@ export function CalendarioClient(props: {
       }
 
       const bloqueiosProfissional = bloqueios.filter((b) => b.profissionalId === profissionalNum);
-      const hasAgendaConflict = (dateStr: string) =>
-        agenda.some(
-          (a) =>
-            String(a.data).slice(0, 10) === dateStr &&
-            Number(a.profissionalId ?? 0) === profissionalNum &&
-            overlaps(inicio, fim, String(a.horaInicio).slice(0, 5), String(a.horaFim).slice(0, 5))
-        );
       const hasBlockConflict = (dateStr: string) =>
         bloqueiosProfissional.some(
           (b) => b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim)
         );
 
       if (bloquearHorario) {
-        const next = [...bloqueios];
-        let added = 0;
-        const pushIfValid = (dateStr: string) => {
-          if (hasAgendaConflict(dateStr)) {
-            throw new Error(`Ja existe reserva neste horario em ${dateStr}`);
-          }
-          if (next.some((b) => b.profissionalId === profissionalNum && b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim))) {
-            throw new Error(`Ja existe bloqueio neste horario em ${dateStr}`);
-          }
-          next.push({
-            id: `${profissionalNum}-${dateStr}-${inicio}-${fim}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            profissionalId: profissionalNum,
-            data: dateStr,
-            horaInicio: inicio,
-            horaFim: fim,
-            observacoes: observacoes.trim() || null,
-          });
-          added += 1;
-        };
-
+        const datas: string[] = [];
         if (reservaModo === "dia") {
-          pushIfValid(data);
+          datas.push(data);
         } else {
           const ini = parseYmdToLocalDate(periodoInicio);
           const fimDt = parseYmdToLocalDate(periodoFim);
@@ -285,16 +229,24 @@ export function CalendarioClient(props: {
           for (let dt = new Date(ini); dt <= fimDt; dt.setDate(dt.getDate() + 1)) {
             const dow = dt.getDay();
             if (!diasSemana.has(dow)) continue;
-            pushIfValid(ymdLocal(dt));
+            datas.push(ymdLocal(dt));
           }
         }
 
-        if (!added) {
+        if (!datas.length) {
           throw new Error("Nenhum bloqueio gerado para o periodo e dias selecionados");
         }
-        saveBloqueiosStorage(next);
-        setBloqueios(next);
+        unwrapAction(
+          await criarBloqueiosAction({
+            profissionalId: profissionalNum,
+            datas,
+            horaInicio: inicio,
+            horaFim: fim,
+            observacoes: observacoes.trim() || null,
+          })
+        );
         setObservacoes("");
+        await loadAgenda();
         return;
       }
 
@@ -357,12 +309,17 @@ export function CalendarioClient(props: {
     }
   }
 
-  function removerBloqueio(id: string) {
-    setBloqueios((current) => {
-      const next = current.filter((b) => b.id !== id);
-      saveBloqueiosStorage(next);
-      return next;
-    });
+  async function removerBloqueio(id: number) {
+    setSaving(true);
+    setError(null);
+    try {
+      unwrapAction(await excluirBloqueioAction(id));
+      await loadAgenda();
+    } catch (err) {
+      setError(normalizeApiError(err));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function toggleDiaSemana(dow: number) {
@@ -373,10 +330,6 @@ export function CalendarioClient(props: {
       return next;
     });
   }
-
-  useEffect(() => {
-    setBloqueios(parseBloqueiosStorage());
-  }, []);
 
   useEffect(() => {
     try {
@@ -497,7 +450,7 @@ export function CalendarioClient(props: {
                 <div key={dayStr} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="text-sm font-semibold text-[var(--marrom)]">{fmtShort(d)}</div>
-                    {profissionalId ? (
+                    {profissionalId && props.canCreateAtendimento ? (
                       <button
                         type="button"
                         className="text-xs text-[var(--laranja)] hover:underline"
@@ -548,14 +501,16 @@ export function CalendarioClient(props: {
                                   </div>
                                 ) : null}
                               </div>
-                              <button
-                                type="button"
-                                className="text-[11px] font-semibold text-amber-700 hover:underline"
-                                onClick={() => removerBloqueio(entry.item.id)}
-                                title="Desbloquear horario"
-                              >
-                                Desbloquear
-                              </button>
+                              {props.canCreateAtendimento ? (
+                                <button
+                                  type="button"
+                                  className="text-[11px] font-semibold text-amber-700 hover:underline"
+                                  onClick={() => void removerBloqueio(entry.item.id)}
+                                  title="Desbloquear horario"
+                                >
+                                  Desbloquear
+                                </button>
+                              ) : null}
                             </div>
                           </div>
                         )
@@ -570,6 +525,7 @@ export function CalendarioClient(props: {
           </div>
         </section>
 
+        {props.canCreateAtendimento ? (
         <section className="calendar-reserva-card rounded-xl border border-[#f4e0bc] bg-[#fff8ec] p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-[var(--marrom)]">Reservar horario</h2>
           <div className="mt-3 space-y-2 text-sm">
@@ -686,7 +642,7 @@ export function CalendarioClient(props: {
             </div>
             {bloquearHorario ? (
               <p className="text-xs text-amber-700">
-                Bloqueio local desta agenda (salvo neste navegador).
+                Bloqueio salvo no sistema e visivel para todos os usuarios desta agenda.
               </p>
             ) : null}
             {!bloquearHorario ? (
@@ -734,6 +690,7 @@ export function CalendarioClient(props: {
             </button>
           </div>
         </section>
+        ) : null}
       </div>
     </main>
   );

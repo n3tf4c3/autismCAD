@@ -69,7 +69,8 @@ export const accessLogs = pgTable(
   (table) => [
     index("idx_access_logs_created_at").on(table.createdAt),
     index("idx_access_logs_user_id").on(table.userId),
-    index("idx_access_logs_status_created_at").on(table.status, table.createdAt),
+    // created_at desc espelha a migration 0002 (listagem mais recente primeiro).
+    index("idx_access_logs_status_created_at").on(table.status, table.createdAt.desc()),
   ]
 );
 
@@ -226,7 +227,8 @@ export const terapeutas = pgTable(
     bairro: varchar("bairro", { length: 120 }),
     cidade: varchar("cidade", { length: 120 }),
     cep: varchar("cep", { length: 8 }),
-    especialidade: varchar("especialidade", { length: 80 }).notNull(),
+    // Default espelha a migration 0006 (compat de inserts diretos no banco).
+    especialidade: varchar("especialidade", { length: 80 }).notNull().default("Nao informado"),
     observacao: text("observacao"),
     ativo: boolean("ativo").notNull().default(true),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -306,6 +308,25 @@ export const atendimentos = pgTable(
     index("idx_atend_data_profissional").on(table.data, table.profissionalId),
     index("idx_atend_deleted_at").on(table.deletedAt),
   ]
+);
+
+export const agendaBloqueios = pgTable(
+  "agenda_bloqueios",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    profissionalId: bigint("profissional_id", { mode: "number" })
+      .notNull()
+      .references(() => terapeutas.id, { onDelete: "cascade" }),
+    data: date("data").notNull(),
+    horaInicio: time("hora_inicio").notNull(),
+    horaFim: time("hora_fim").notNull(),
+    observacoes: text("observacoes"),
+    createdByUserId: bigint("created_by_user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_agenda_bloqueios_prof_data").on(table.profissionalId, table.data)]
 );
 
 export const anamnese = pgTable(
