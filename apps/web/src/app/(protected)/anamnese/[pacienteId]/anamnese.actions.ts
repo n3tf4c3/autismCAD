@@ -6,7 +6,7 @@ import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import {
   listVersionsQuerySchema,
   saveAnamneseSchema,
-} from "@/server/modules/anamnese/anamnese.schema";
+} from "@autismcad/validators/anamnese/anamnese.schema";
 import {
   assertPacienteExists,
   excluirAnamneseCompleta,

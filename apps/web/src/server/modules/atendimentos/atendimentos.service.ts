@@ -27,7 +27,7 @@ import {
   RecorrenteInput,
   SaveAtendimentoInput,
   turnosPermitidos,
-} from "@/server/modules/atendimentos/atendimentos.schema";
+} from "@autismcad/validators/atendimentos/atendimentos.schema";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { AppError } from "@/server/shared/errors";

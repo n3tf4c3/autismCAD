@@ -9,7 +9,7 @@ import {
 import {
   criarBloqueiosSchema,
   listarBloqueiosSchema,
-} from "@/server/modules/agenda/bloqueios.schema";
+} from "@autismcad/validators/agenda/bloqueios.schema";
 import { AppError, toAppError } from "@/server/shared/errors";
 
 type ActionError = {

@@ -20,7 +20,7 @@ import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
-import { isEspecialidadeQuadroAdministrativo } from "@/lib/profissionais/especialidades";
+import { isEspecialidadeQuadroAdministrativo } from "@autismcad/validators/profissionais/especialidades";
 import {
   sanitizePlanoEnsinoPayload,
   type PlanoEnsinoBloco,
@@ -29,7 +29,7 @@ import type {
   AssiduidadeQueryInput,
   EvolutivoQueryInput,
   PlanoEnsinoQueryInput,
-} from "@/server/modules/relatorios/relatorios.schema";
+} from "@autismcad/validators/relatorios/relatorios.schema";
 
 type EvolutivoAtendimentoInternal = {
   id: number;

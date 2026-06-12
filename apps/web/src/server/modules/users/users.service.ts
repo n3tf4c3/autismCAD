@@ -26,7 +26,7 @@ import {
   CreateUserInput,
   UpdateRolePermissionsInput,
   UpdateUserInput,
-} from "@/server/modules/users/users.schema";
+} from "@autismcad/validators/users/users.schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";

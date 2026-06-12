@@ -1,5 +1,5 @@
 import { requirePermission } from "@/server/auth/auth";
-import { evolutivoQuerySchema } from "@/server/modules/relatorios/relatorios.schema";
+import { evolutivoQuerySchema } from "@autismcad/validators/relatorios/relatorios.schema";
 import { consolidateEvolutivoReport } from "@/server/modules/relatorios/relatorios.service";
 import { buildEvolutivoDocx, type EvolutivoDocxReport } from "@/server/modules/relatorios/evolutivo-docx";
 import { withErrorHandlingNoContext } from "@/server/shared/http";

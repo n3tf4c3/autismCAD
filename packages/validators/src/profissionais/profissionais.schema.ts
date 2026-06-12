@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ESPECIALIDADES_TERAPEUTA_SET } from "@/lib/profissionais/especialidades";
+import { ESPECIALIDADES_TERAPEUTA_SET } from "./especialidades";
 
 export const especialidadesPermitidas = ESPECIALIDADES_TERAPEUTA_SET;
 

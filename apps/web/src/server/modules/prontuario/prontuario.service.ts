@@ -22,7 +22,7 @@ import {
   DOC_STATUS,
   DOC_TYPES,
   SalvarDocumentoInput,
-} from "@/server/modules/prontuario/prontuario.schema";
+} from "@autismcad/validators/prontuario/prontuario.schema";
 import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import {
   obterProfissionalPorUsuario,

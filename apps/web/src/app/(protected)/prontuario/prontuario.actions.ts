@@ -19,7 +19,7 @@ import {
   atualizarEvolucaoSchema,
   criarEvolucaoSchema,
   salvarDocumentoSchema,
-} from "@/server/modules/prontuario/prontuario.schema";
+} from "@autismcad/validators/prontuario/prontuario.schema";
 import { AppError, toAppError } from "@/server/shared/errors";
 import type { UserAccess } from "@/server/auth/access";
 
