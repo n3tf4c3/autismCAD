@@ -99,18 +99,18 @@ async function acquireAtendimentoScheduleLock(executor: DbExecutor, params: {
   pacienteId: number;
   profissionalId: number;
   data: string;
-  isGrupo: boolean;
 }) {
   const pacienteLockKey = `atendimentos:paciente:${params.pacienteId}:${params.data}`;
   await executor.execute(
     sql`select pg_advisory_xact_lock(${advisoryLockHash64(pacienteLockKey)})`
   );
-  if (!params.isGrupo) {
-    const profissionalLockKey = `atendimentos:profissional:${params.profissionalId}:${params.data}`;
-    await executor.execute(
-      sql`select pg_advisory_xact_lock(${advisoryLockHash64(profissionalLockKey)})`
-    );
-  }
+  // Achado 52: o lock de profissional/data e adquirido sempre (inclusive em grupo)
+  // para serializar com a criacao de bloqueios, que usa a mesma chave. Sessoes em
+  // grupo continuam podendo coexistir; o lock apenas ordena as transacoes.
+  const profissionalLockKey = `atendimentos:profissional:${params.profissionalId}:${params.data}`;
+  await executor.execute(
+    sql`select pg_advisory_xact_lock(${advisoryLockHash64(profissionalLockKey)})`
+  );
 }
 
 // Achado 46: FKs garantem existencia fisica, mas nao que paciente/profissional
@@ -219,7 +219,6 @@ async function salvarAtendimentoDb(
     pacienteId: input.pacienteId,
     profissionalId,
     data,
-    isGrupo,
   });
 
   await assertEntidadesAtivas(executor, {

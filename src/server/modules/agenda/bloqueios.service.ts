@@ -53,7 +53,9 @@ export async function listarBloqueios(input: ListarBloqueiosInput) {
 }
 
 export async function criarBloqueios(input: CriarBloqueiosInput, createdByUserId: number) {
-  const datas = Array.from(new Set(input.datas));
+  // Achado 55: ordena as datas para que requisicoes concorrentes adquiram os
+  // advisory locks sempre na mesma ordem, evitando deadlock por ordem de entrada.
+  const datas = Array.from(new Set(input.datas)).sort();
 
   // Achado 45: checagem de conflito e insert correm na mesma transacao, com
   // advisory lock por profissional+data, evitando corrida entre validacao e gravacao
