@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
+import { isEvolucaoAccessAllowed } from "@/lib/prontuario/evolucao-access";
 import {
   atualizarEvolucao,
   criarEvolucao,
@@ -73,11 +74,13 @@ async function canAccessEvolucao(
   access?: UserAccess
 ): Promise<boolean> {
   const pacienteAccess = await assertPacienteAccess(user, pacienteId, access);
-  if ((canonicalRoleName(user.role ?? null) ?? user.role ?? null) !== "PROFISSIONAL") {
-    return true;
-  }
-  const accessProfissionalId = pacienteAccess.profissionalId;
-  return !!accessProfissionalId && accessProfissionalId === profissionalId;
+  // Achado 51: decide a restricao de profissional pelo papel efetivo (access fresco),
+  // nao pela role defasada do JWT.
+  return isEvolucaoAccessAllowed({
+    roleCanon: resolveEffectiveRoleCanon(user, access),
+    accessProfissionalId: pacienteAccess.profissionalId,
+    evolucaoProfissionalId: profissionalId,
+  });
 }
 
 export async function criarEvolucaoAction(

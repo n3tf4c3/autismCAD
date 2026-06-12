@@ -4,7 +4,8 @@ import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
+import { isEvolucaoAccessAllowed } from "@/lib/prontuario/evolucao-access";
 import { obterEvolucaoPorId } from "@/server/modules/prontuario/prontuario.service";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
@@ -13,7 +14,7 @@ import { toAppError } from "@/server/shared/errors";
 export default async function EditarEvolucaoPage(props: {
   params: Promise<{ pacienteId: string; evolucaoId: string }>;
 }) {
-  const { user } = await requirePermission("evolucoes:edit");
+  const { user, access: userAccess } = await requirePermission("evolucoes:edit");
   const { pacienteId, evolucaoId } = await props.params;
   const pid = Number(pacienteId);
   const eid = Number(evolucaoId);
@@ -44,7 +45,7 @@ export default async function EditarEvolucaoPage(props: {
 
   let access: Awaited<ReturnType<typeof assertPacienteAccess>>;
   try {
-    access = await assertPacienteAccess(user, pid);
+    access = await assertPacienteAccess(user, pid, userAccess);
   } catch (error) {
     const err = toAppError(error);
     return (
@@ -53,16 +54,18 @@ export default async function EditarEvolucaoPage(props: {
       </main>
     );
   }
-  if ((canonicalRoleName(user.role) ?? user.role) === "PROFISSIONAL") {
-    const evolucaoProfissionalId = Number(evolucao.profissionalId);
-    const accessProfissionalId = access.profissionalId;
-    if (!accessProfissionalId || accessProfissionalId !== evolucaoProfissionalId) {
-      return (
-        <main className="rounded-2xl bg-white p-6 shadow-sm">
-          <p className="text-sm text-red-600">Acesso negado.</p>
-        </main>
-      );
-    }
+  // Achado 51: usa o papel efetivo (access fresco), nao a role defasada do JWT.
+  const podeAcessar = isEvolucaoAccessAllowed({
+    roleCanon: resolveEffectiveRoleCanon(user, userAccess),
+    accessProfissionalId: access.profissionalId,
+    evolucaoProfissionalId: Number(evolucao.profissionalId),
+  });
+  if (!podeAcessar) {
+    return (
+      <main className="rounded-2xl bg-white p-6 shadow-sm">
+        <p className="text-sm text-red-600">Acesso negado.</p>
+      </main>
+    );
   }
 
   const [paciente] = await db
@@ -79,7 +82,7 @@ export default async function EditarEvolucaoPage(props: {
     );
   }
 
-  const isProfissional = (canonicalRoleName(user.role) ?? user.role) === "PROFISSIONAL";
+  const isProfissional = resolveEffectiveRoleCanon(user, userAccess) === "PROFISSIONAL";
   let profissionais: Array<{ id: number; nome: string }> = [];
   if (!isProfissional) {
     try {

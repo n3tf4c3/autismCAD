@@ -20,7 +20,7 @@ function access(overrides: Partial<UserAccess>): UserAccess {
 // 5 minutos; o papel efetivo deve vir do access.
 test("usa canonicalRole do access fresco em vez da role defasada do JWT", () => {
   const result = resolveEffectiveRoleCanon(
-    { id: 1, role: "ADMIN" },
+    { role: "ADMIN" },
     access({ role: "PROFISSIONAL", canonicalRole: "PROFISSIONAL" })
   );
   assert.equal(result, "PROFISSIONAL");
@@ -28,13 +28,13 @@ test("usa canonicalRole do access fresco em vez da role defasada do JWT", () => 
 
 test("cai para access.role quando canonicalRole e nulo", () => {
   const result = resolveEffectiveRoleCanon(
-    { id: 1, role: "ADMIN" },
+    { role: "ADMIN" },
     access({ role: "RECEPCAO", canonicalRole: null })
   );
   assert.equal(result, "RECEPCAO");
 });
 
 test("sem access, canonicaliza a role do usuario da sessao", () => {
-  const result = resolveEffectiveRoleCanon({ id: 1, role: "admin" });
+  const result = resolveEffectiveRoleCanon({ role: "admin" });
   assert.equal(result, "ADMIN");
 });
