@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermission } from "@/server/auth/access";
 import { canonicalRoleName } from "@/server/auth/permissions";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
@@ -7,9 +8,14 @@ import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.
 export default async function RelatoriosIndexPage(props: {
   searchParams?: Promise<{ q?: string }>;
 }) {
-  const { user } = await requirePermission(["relatorios_clinicos:view", "relatorios_admin:view"]);
+  const { user, access } = await requirePermission([
+    "relatorios_clinicos:view",
+    "relatorios_admin:view",
+  ]);
   const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
   const isResponsavel = roleCanon === "RESPONSAVEL";
+  // Assiduidade exige relatorios_admin:view; so mostra o link a quem pode abri-la (achado 43).
+  const canViewAssiduidade = hasPermission(access, "relatorios_admin:view");
 
   if (isResponsavel) {
     const pacientesVinculados = await getPacientesVinculadosByUserId(user.id);
@@ -106,20 +112,22 @@ export default async function RelatoriosIndexPage(props: {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-[var(--marrom)]">Indicadores gerais</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Assiduidade e presença por paciente no período selecionado.
-        </p>
-        <div className="mt-4">
-          <Link
-            href="/relatorios/assiduidade"
-            className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
-          >
-            Abrir Assiduidade
-          </Link>
-        </div>
-      </section>
+      {canViewAssiduidade ? (
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-[var(--marrom)]">Indicadores gerais</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Assiduidade e presença por paciente no período selecionado.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/relatorios/assiduidade"
+              className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+            >
+              Abrir Assiduidade
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[var(--marrom)]">Relatórios por paciente</h2>

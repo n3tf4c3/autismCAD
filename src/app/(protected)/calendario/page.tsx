@@ -1,4 +1,5 @@
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermission } from "@/server/auth/access";
 import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { CalendarioClient } from "@/app/(protected)/calendario/calendario.client";
@@ -14,7 +15,7 @@ function normalizeDateParam(value?: string): string | undefined {
 export default async function CalendarioPage(props: {
   searchParams: Promise<{ profissionalId?: string; data?: string }>;
 }) {
-  const { user } = await requirePermission("consultas:view");
+  const { user, access } = await requirePermission("consultas:view");
 
   let canCreateAtendimento = false;
   try {
@@ -23,6 +24,9 @@ export default async function CalendarioPage(props: {
   } catch {
     canCreateAtendimento = false;
   }
+
+  // Desbloquear remove bloqueio (consultas:cancel), permissao distinta de criar (achado 43).
+  const canDeleteBloqueio = hasPermission(access, "consultas:cancel");
 
   let profissionais: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
   try {
@@ -65,6 +69,7 @@ export default async function CalendarioPage(props: {
       initialProfissionalId={initialProfissionalId || undefined}
       initialData={normalizeDateParam(searchParams.data)}
       canCreateAtendimento={canCreateAtendimento}
+      canDeleteBloqueio={canDeleteBloqueio}
     />
   );
 }

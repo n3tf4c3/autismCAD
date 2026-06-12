@@ -105,6 +105,7 @@ export function CalendarioClient(props: {
   initialProfissionalId?: string;
   initialData?: string;
   canCreateAtendimento: boolean;
+  canDeleteBloqueio: boolean;
 }) {
   const initialDateParsed = parseYmdToLocalDate(props.initialData ?? "");
   const initialDate = initialDateParsed ? ymdLocal(initialDateParsed) : ymdLocal(new Date());
@@ -501,7 +502,7 @@ export function CalendarioClient(props: {
                                   </div>
                                 ) : null}
                               </div>
-                              {props.canCreateAtendimento ? (
+                              {props.canDeleteBloqueio ? (
                                 <button
                                   type="button"
                                   className="text-[11px] font-semibold text-amber-700 hover:underline"

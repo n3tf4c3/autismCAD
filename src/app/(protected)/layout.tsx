@@ -1,5 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { getAuthSession } from "@/server/auth/session";
+import { hasPermission, loadUserAccess } from "@/server/auth/access";
+import { parseSessionUserId } from "@/server/auth/user-id";
 import { SidebarClient } from "@/components/sidebar/sidebar.client";
 import { TopbarClient } from "@/components/topbar.client";
 import { ShellProvider } from "@/components/shell/shell-provider.client";
@@ -26,11 +28,32 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
   const userName = session.user.name || "Usuário";
   const initials = initialsFromName(userName);
 
+  // Navegacao montada com permissoes efetivas frescas (achado 42): so exibe links
+  // que o usuario realmente pode abrir, evitando divergencia entre UI e RBAC.
+  const access = await loadUserAccess(parseSessionUserId(session.user.id));
+  const canonicalRole = access.canonicalRole ?? access.role;
+  const isResponsavel = canonicalRole === "RESPONSAVEL";
+  const isAdminGeral = canonicalRole === "ADMIN_GERAL";
+  const nav = {
+    agenda: hasPermission(access, "consultas:view"),
+    pacientes: hasPermission(access, "pacientes:view"),
+    profissionais: hasPermission(access, "profissionais:view"),
+    consultas: hasPermission(access, "consultas:view"),
+    relatorios:
+      hasPermission(access, "relatorios_clinicos:view") ||
+      hasPermission(access, "relatorios_admin:view"),
+    controle: isAdminGeral,
+  };
+
   return (
     <ShellProvider>
       <div className="min-h-screen bg-[var(--cinza)] text-[var(--texto)]">
         <div className="min-h-screen flex">
-          <SidebarClient userRole={session.user.role} />
+          <SidebarClient
+            isResponsavel={isResponsavel}
+            isAdminGeral={isAdminGeral}
+            nav={nav}
+          />
 
           <div className="flex min-w-0 flex-1 flex-col md:ml-64">
             <TopbarClient
