@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { atendimentos, pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { EvolucaoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/evolucao/evolucao-form.client";
 import { toAppError } from "@/server/shared/errors";
@@ -20,7 +20,7 @@ export default async function NovaEvolucaoPage(props: {
   params: Promise<{ pacienteId: string }>;
   searchParams: Promise<{ atendimentoId?: string; profissionalId?: string; data?: string }>;
 }) {
-  const { user } = await requirePermission("evolucoes:create");
+  const { user, access } = await requirePermission("evolucoes:create");
   const { pacienteId } = await props.params;
   const search = await props.searchParams;
   const id = Number(pacienteId);
@@ -33,7 +33,7 @@ export default async function NovaEvolucaoPage(props: {
   }
 
   try {
-    await assertPacienteAccess(user, id);
+    await assertPacienteAccess(user, id, access);
   } catch (error) {
     const err = toAppError(error);
     return (
@@ -57,7 +57,7 @@ export default async function NovaEvolucaoPage(props: {
     );
   }
 
-  const isProfissional = (canonicalRoleName(user.role) ?? user.role) === "PROFISSIONAL";
+  const isProfissional = resolveEffectiveRoleCanon(user, access) === "PROFISSIONAL";
   let profissionais: Array<{ id: number; nome: string }> = [];
   if (!isProfissional) {
     try {

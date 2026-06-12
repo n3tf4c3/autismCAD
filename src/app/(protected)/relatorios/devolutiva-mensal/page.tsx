@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { createSignedReadUrl } from "@/server/storage/r2";
 import { DevolutivaMensalClient } from "@/app/(protected)/relatorios/devolutiva-mensal/devolutiva-mensal.client";
@@ -29,8 +29,8 @@ function firstLetter(name: string): string {
 export default async function RelatorioDevolutivaMensalPage(props: {
   searchParams: Promise<{ pacienteId?: string }>;
 }) {
-  const { user } = await requirePermission("relatorios_clinicos:view");
-  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const { user, access } = await requirePermission("relatorios_clinicos:view");
+  const roleCanon = resolveEffectiveRoleCanon(user, access);
   const isResponsavel = roleCanon === "RESPONSAVEL";
   const { pacienteId } = await props.searchParams;
   const pacienteIdSelecionado = pacienteId ? Number(pacienteId) : null;
@@ -64,7 +64,7 @@ export default async function RelatorioDevolutivaMensalPage(props: {
       );
     }
     try {
-      await assertPacienteAccess(user, Number(pacienteIdSelecionado));
+      await assertPacienteAccess(user, Number(pacienteIdSelecionado), access);
     } catch (error) {
       const err = toAppError(error);
       return (
