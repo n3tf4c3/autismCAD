@@ -4,7 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { db } from "@/db";
 import { users } from "@/server/db/schema";
-import { loginSchema } from "@/server/modules/auth/auth.schema";
+import { loginSchema } from "@autismcad/validators/auth/auth.schema";
 import {
   hashPassword,
   isLegacyPasswordHash,

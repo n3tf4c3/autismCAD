@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ESPECIALIDADES_TERAPEUTA } from "@/lib/profissionais/especialidades";
+import { ESPECIALIDADES_TERAPEUTA } from "@autismcad/validators/profissionais/especialidades";
 import { salvarDocumentoProntuarioAction } from "@/app/(protected)/prontuario/prontuario.actions";
 
 type BlocoForm = {

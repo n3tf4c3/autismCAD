@@ -6,7 +6,7 @@ import {
   createUserSchema,
   updateRolePermissionsSchema,
   updateUserSchema,
-} from "@/server/modules/users/users.schema";
+} from "@autismcad/validators/users/users.schema";
 import {
   createUser,
   deleteUser,

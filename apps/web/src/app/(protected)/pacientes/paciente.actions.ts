@@ -11,7 +11,7 @@ import { runDbTransaction } from "@/server/db/transaction";
 import {
   pacientesQuerySchema,
   savePacienteSchema,
-} from "@/lib/pacientes/pacientes.schema";
+} from "@autismcad/validators/pacientes/pacientes.schema";
 import {
   findPacienteByCpfAtivo,
   listarPacientes,

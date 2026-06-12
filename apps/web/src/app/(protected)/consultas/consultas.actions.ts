@@ -9,7 +9,7 @@ import {
   excluirDiaSchema,
   recorrenteSchema,
   saveAtendimentoSchema,
-} from "@/server/modules/atendimentos/atendimentos.schema";
+} from "@autismcad/validators/atendimentos/atendimentos.schema";
 import {
   criarRecorrentes,
   excluirDia,

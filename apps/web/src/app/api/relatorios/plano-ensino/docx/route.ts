@@ -1,5 +1,5 @@
 import { requirePermission } from "@/server/auth/auth";
-import { planoEnsinoQuerySchema } from "@/server/modules/relatorios/relatorios.schema";
+import { planoEnsinoQuerySchema } from "@autismcad/validators/relatorios/relatorios.schema";
 import { consolidatePlanoEnsinoReport } from "@/server/modules/relatorios/relatorios.service";
 import {
   buildPlanoEnsinoDocx,

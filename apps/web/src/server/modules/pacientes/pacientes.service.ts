@@ -15,7 +15,7 @@ import {
   conveniosPermitidos,
   PacientesQueryInput,
   SavePacienteInput,
-} from "@/lib/pacientes/pacientes.schema";
+} from "@autismcad/validators/pacientes/pacientes.schema";
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { AppError } from "@/server/shared/errors";

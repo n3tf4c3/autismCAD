@@ -1,4 +1,4 @@
-﻿import { idParamSchema } from "@/lib/zod/api";
+﻿import { idParamSchema } from "@autismcad/validators/zod/api";
 import { loadUserAccess } from "@/server/auth/access";
 import { requireUser } from "@/server/auth/auth";
 import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";

@@ -7,7 +7,7 @@ import {
   especialidadesPermitidas,
   SaveProfissionalInput,
   ProfissionaisQueryInput,
-} from "@/lib/profissionais/profissionais.schema";
+} from "@autismcad/validators/profissionais/profissionais.schema";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 import {
@@ -16,7 +16,7 @@ import {
   normalizeDateOnlyLoose,
   normalizeOptionalText,
 } from "@/server/shared/normalize";
-import { isEspecialidadeQuadroAdministrativo } from "@/lib/profissionais/especialidades";
+import { isEspecialidadeQuadroAdministrativo } from "@autismcad/validators/profissionais/especialidades";
 
 function normalizeCep(value?: string | null): string | null {
   if (!value) return null;

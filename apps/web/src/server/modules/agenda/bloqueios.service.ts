@@ -11,7 +11,7 @@ function advisoryLockHash64(value: string) {
 import type {
   CriarBloqueiosInput,
   ListarBloqueiosInput,
-} from "@/server/modules/agenda/bloqueios.schema";
+} from "@autismcad/validators/agenda/bloqueios.schema";
 
 function toDto(row: {
   id: number;

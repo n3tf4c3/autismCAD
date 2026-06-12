@@ -5,7 +5,7 @@ import {
   assiduidadeQuerySchema,
   evolutivoQuerySchema,
   planoEnsinoQuerySchema,
-} from "@/server/modules/relatorios/relatorios.schema";
+} from "@autismcad/validators/relatorios/relatorios.schema";
 import {
   consolidateAssiduidadeReport,
   consolidateEvolutivoReport,

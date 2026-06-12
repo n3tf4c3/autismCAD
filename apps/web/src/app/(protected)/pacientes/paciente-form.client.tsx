@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { savePacienteSchema } from "@/lib/pacientes/pacientes.schema";
+import { savePacienteSchema } from "@autismcad/validators/pacientes/pacientes.schema";
 import {
   commitArquivoPacienteAction,
   obterArquivoPacienteReadUrlAction,

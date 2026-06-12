@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { ESPECIALIDADES_PROFISSIONAL } from "@/lib/profissionais/especialidades";
-import { saveProfissionalSchema } from "@/lib/profissionais/profissionais.schema";
+import { ESPECIALIDADES_PROFISSIONAL } from "@autismcad/validators/profissionais/especialidades";
+import { saveProfissionalSchema } from "@autismcad/validators/profissionais/profissionais.schema";
 import { salvarProfissionalAction } from "@/app/(protected)/profissionais/profissional.actions";
 
 type ProfissionalFormInitial = {
