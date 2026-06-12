@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
-import { ADMIN_ROLES, canonicalRoleName } from "@/server/auth/permissions";
+import { ADMIN_ROLES } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const userId = user.id;
   const access = await loadUserAccess(userId);
-  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const roleCanon = resolveEffectiveRoleCanon(user, access);
   if (roleCanon === "RESPONSAVEL") {
     redirect("/relatorios");
   }

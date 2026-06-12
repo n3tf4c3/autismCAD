@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { hasPermission } from "@/server/auth/access";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 
@@ -12,7 +12,7 @@ export default async function RelatoriosIndexPage(props: {
     "relatorios_clinicos:view",
     "relatorios_admin:view",
   ]);
-  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const roleCanon = resolveEffectiveRoleCanon(user, access);
   const isResponsavel = roleCanon === "RESPONSAVEL";
   // Assiduidade exige relatorios_admin:view; so mostra o link a quem pode abri-la (achado 43).
   const canViewAssiduidade = hasPermission(access, "relatorios_admin:view");

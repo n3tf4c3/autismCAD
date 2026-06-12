@@ -3,7 +3,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { pacientes } from "@/server/db/schema";
 import { requirePermission } from "@/server/auth/auth";
-import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
+import { hasPermissionKey } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { toAppError } from "@/server/shared/errors";
@@ -13,7 +14,7 @@ export default async function PlanoEnsinoImpressaoPage(props: {
   searchParams: Promise<{ pacienteId?: string }>;
 }) {
   const { user, access } = await requirePermission("relatorios_clinicos:view");
-  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const roleCanon = resolveEffectiveRoleCanon(user, access);
   const isResponsavel = roleCanon === "RESPONSAVEL";
   const canExportDocx = hasPermissionKey(access.permissions, "relatorios_clinicos:export");
   const { pacienteId } = await props.searchParams;

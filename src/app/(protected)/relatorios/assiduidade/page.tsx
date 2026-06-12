@@ -1,12 +1,12 @@
 ﻿import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { AssiduidadeClient } from "@/app/(protected)/relatorios/assiduidade/assiduidade.client";
 
 export default async function RelatorioAssiduidadePage() {
-  const { user } = await requirePermission("relatorios_admin:view");
-  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const { user, access } = await requirePermission("relatorios_admin:view");
+  const roleCanon = resolveEffectiveRoleCanon(user, access);
   const canChooseProfissional = roleCanon !== "PROFISSIONAL";
   let profissionais: Array<{ id: number; nome: string }> = [];
 

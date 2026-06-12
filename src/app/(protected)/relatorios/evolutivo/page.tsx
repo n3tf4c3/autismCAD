@@ -1,7 +1,8 @@
 ﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/server/auth/auth";
-import { canonicalRoleName, hasPermissionKey } from "@/server/auth/permissions";
+import { hasPermissionKey } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { EvolutivoReportClient } from "@/app/(protected)/relatorios/evolutivo/report.client";
 
@@ -9,7 +10,7 @@ export default async function RelatorioEvolutivoPage(props: {
   searchParams: Promise<{ pacienteId?: string }>;
 }) {
   const { user, access } = await requirePermission("relatorios_clinicos:view");
-  const roleCanon = canonicalRoleName(user.role ?? null) ?? user.role ?? null;
+  const roleCanon = resolveEffectiveRoleCanon(user, access);
   const isResponsavel = roleCanon === "RESPONSAVEL";
 
   if (isResponsavel) {
