@@ -4,7 +4,12 @@
       "Bash(npm run typecheck)",
       "Bash(npm run lint)",
       "Bash(npm test)",
-      "Bash(npm run test)"
+      "Bash(npm run test)",
+      "Bash(npm audit)",
+      "Bash(git check-ignore *)",
+      "Bash(npm view *)",
+      "Bash(npm ls*)",
+      "Bash(git grep *)"
     ]
   }
 }
