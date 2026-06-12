@@ -652,5 +652,9 @@ export async function obterTimelineProntuario(pacienteId: number) {
 
   const items = [...mappedDocs, ...mappedEvols];
   items.sort((a, b) => b.sortTs - a.sortTs);
-  return items.map(({ sortTs, ...item }) => item);
+  return items.map((entry) => {
+    const { sortTs, ...item } = entry;
+    void sortTs;
+    return item;
+  });
 }
