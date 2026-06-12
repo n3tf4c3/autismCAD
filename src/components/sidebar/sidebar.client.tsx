@@ -5,7 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useShell } from "@/components/shell/shell-provider.client";
-import { canonicalRoleName } from "@/server/auth/permissions";
+
+export type SidebarNav = {
+  agenda: boolean;
+  pacientes: boolean;
+  profissionais: boolean;
+  consultas: boolean;
+  relatorios: boolean;
+  controle: boolean;
+};
 
 type NavItem = {
   key: string;
@@ -70,12 +78,14 @@ function SidebarBgArt(props?: { className?: string }) {
   );
 }
 
-export function SidebarClient(props: { userRole?: string | null }) {
+export function SidebarClient(props: {
+  isResponsavel: boolean;
+  isAdminGeral: boolean;
+  nav: SidebarNav;
+}) {
   const pathname = usePathname();
   const shell = useShell();
-  const roleCanon = canonicalRoleName(props.userRole) ?? props.userRole ?? null;
-  const isAdminGeral = roleCanon === "ADMIN_GERAL";
-  const isResponsavel = roleCanon === "RESPONSAVEL";
+  const { isAdminGeral, isResponsavel, nav } = props;
 
   const logoutItem: NavItem = {
     key: "logout",
@@ -110,55 +120,79 @@ export function SidebarClient(props: { userRole?: string | null }) {
           kind: "link",
           activeWhen: (p) => isActivePrefix("/", p),
         },
-        {
-          key: "calendario",
-          label: "Agenda",
-          icon: "\u{1F4C5}",
-          href: "/calendario",
-          kind: "link",
-          activeWhen: (p) => isActivePrefix("/calendario", p),
-        },
-        {
-          key: "pacientes",
-          label: "Pacientes",
-          icon: "\u{1F466}",
-          href: "/pacientes",
-          kind: "link",
-          activeWhen: (p) => isActivePrefix("/pacientes", p),
-        },
-        {
-          key: "profissionais",
-          label: "Profissionais",
-          icon: "\u{1F9D1}\u200D\u2695\uFE0F",
-          href: "/profissionais",
-          kind: "link",
-          activeWhen: (p) => isActivePrefix("/profissionais", p),
-        },
-        {
-          key: "consultas",
-          label: "Consultas",
-          icon: "\u{1F50E}",
-          href: "/consultas",
-          kind: "link",
-          activeWhen: (p) => isActivePrefix("/consultas", p),
-        },
-        {
-          key: "relatorios",
-          label: "Relatórios",
-          icon: "\u{1F4CA}",
-          href: "/relatorios",
-          kind: "link",
-          activeWhen: (p) => isActivePrefix("/relatorios", p),
-        },
+        ...(nav.agenda
+          ? [
+              {
+                key: "calendario",
+                label: "Agenda",
+                icon: "\u{1F4C5}",
+                href: "/calendario",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/calendario", p),
+              } satisfies NavItem,
+            ]
+          : []),
+        ...(nav.pacientes
+          ? [
+              {
+                key: "pacientes",
+                label: "Pacientes",
+                icon: "\u{1F466}",
+                href: "/pacientes",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/pacientes", p),
+              } satisfies NavItem,
+            ]
+          : []),
+        ...(nav.profissionais
+          ? [
+              {
+                key: "profissionais",
+                label: "Profissionais",
+                icon: "\u{1F9D1}\u200D\u2695\uFE0F",
+                href: "/profissionais",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/profissionais", p),
+              } satisfies NavItem,
+            ]
+          : []),
+        ...(nav.consultas
+          ? [
+              {
+                key: "consultas",
+                label: "Consultas",
+                icon: "\u{1F50E}",
+                href: "/consultas",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/consultas", p),
+              } satisfies NavItem,
+            ]
+          : []),
+        ...(nav.relatorios
+          ? [
+              {
+                key: "relatorios",
+                label: "Relatórios",
+                icon: "\u{1F4CA}",
+                href: "/relatorios",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/relatorios", p),
+              } satisfies NavItem,
+            ]
+          : []),
         { key: "sep1", label: "-", icon: "", kind: "separator" },
-        {
-          key: "configuracoes",
-          label: "Controle",
-          icon: "\u2699",
-          href: "/configuracoes",
-          kind: "link",
-          activeWhen: (p) => isActivePrefix("/configuracoes", p),
-        },
+        ...(nav.controle
+          ? [
+              {
+                key: "configuracoes",
+                label: "Controle",
+                icon: "\u2699",
+                href: "/configuracoes",
+                kind: "link",
+                activeWhen: (p: string) => isActivePrefix("/configuracoes", p),
+              } satisfies NavItem,
+            ]
+          : []),
         ...(isAdminGeral
           ? [
               {

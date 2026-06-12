@@ -83,6 +83,12 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
   };
 }
 
+export function hasPermission(access: UserAccess, permissionKey: string): boolean {
+  const roleForCheck = access.canonicalRole ?? access.role;
+  if (roleForCheck && ADMIN_ROLES.has(roleForCheck)) return true;
+  return hasPermissionKey(access.permissions, permissionKey);
+}
+
 export function assertHasPermission(
   access: UserAccess,
   permissionKeys: string[]
