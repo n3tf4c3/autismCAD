@@ -16,12 +16,12 @@ function parseQuery(url: string) {
 }
 
 export const GET = withErrorHandlingNoContext(async (request: Request) => {
-  const { user } = await requirePermission("relatorios_clinicos:export");
+  const { user, access } = await requirePermission("relatorios_clinicos:export");
   const parsed = parseQuery(request.url);
   if (!parsed.success) {
     return Response.json({ error: "Filtro invalido" }, { status: 400 });
   }
-  const report = await consolidateEvolutivoReport({ query: parsed.data, user });
+  const report = await consolidateEvolutivoReport({ query: parsed.data, user, access });
   const bytes = await buildEvolutivoPdf(report as unknown as EvolutivoReport);
   const body = Buffer.from(bytes);
 
