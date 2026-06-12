@@ -321,6 +321,53 @@ test("excluirDiaAtendimentosAction valida acesso do paciente antes de excluir", 
   });
 });
 
+test("excluirDiaAtendimentosAction forca escopo do profissional efetivo quando profissionalId e omitido", async () => {
+  state.requirePermissionUser = { id: 555, role: "profissional" };
+  state.assertPacienteAccessProfissionalId = 5;
+  const payload = {
+    pacienteId: 17,
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    turno: "Matutino",
+    periodoInicio: "2026-04-01",
+    periodoFim: "2026-04-30",
+    diaSemana: 1,
+  };
+
+  const result = await actions.excluirDiaAtendimentosAction(payload);
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.excluirDia.length, 1);
+  assert.deepEqual(calls.excluirDia[0], {
+    input: { ...payload, profissionalId: 5 },
+    deletedByUserId: 555,
+  });
+});
+
+test("excluirDiaAtendimentosAction impede profissional de excluir em lote atendimentos de outro profissional", async () => {
+  state.requirePermissionUser = { id: 555, role: "profissional" };
+  state.assertPacienteAccessProfissionalId = 5;
+  const payload = {
+    pacienteId: 17,
+    profissionalId: 9,
+    horaInicio: "08:00",
+    horaFim: "09:00",
+    turno: "Matutino",
+    periodoInicio: "2026-04-01",
+    periodoFim: "2026-04-30",
+    diaSemana: 1,
+  };
+
+  const result = await actions.excluirDiaAtendimentosAction(payload);
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.excluirDia.length, 1);
+  assert.deepEqual(calls.excluirDia[0], {
+    input: { ...payload, profissionalId: 5 },
+    deletedByUserId: 555,
+  });
+});
+
 test("salvarAtendimentoAction bloqueia profissional de editar atendimento de outro profissional", async () => {
   state.assertPacienteAccessProfissionalId = 6;
   state.getAtendimentoByIdResult = atendimentoExistente({ id: 33, profissionalId: 5 });
