@@ -59,7 +59,10 @@ export type ConsultasActionsDeps<
     profissionalId?: number | null;
   },
   TRecorrentesResult = unknown,
-  TExcluirDiaInput extends { pacienteId: number } = { pacienteId: number },
+  TExcluirDiaInput extends { pacienteId: number; profissionalId?: number | null } = {
+    pacienteId: number;
+    profissionalId?: number | null;
+  },
   TSaveAtendimentoInput extends { pacienteId: number; profissionalId?: number | null } = {
     pacienteId: number;
     profissionalId?: number | null;
@@ -138,7 +141,10 @@ export function buildConsultasActions<
     profissionalId?: number | null;
   },
   TRecorrentesResult = unknown,
-  TExcluirDiaInput extends { pacienteId: number } = { pacienteId: number },
+  TExcluirDiaInput extends { pacienteId: number; profissionalId?: number | null } = {
+    pacienteId: number;
+    profissionalId?: number | null;
+  },
   TSaveAtendimentoInput extends { pacienteId: number; profissionalId?: number | null } = {
     pacienteId: number;
     profissionalId?: number | null;
@@ -282,8 +288,14 @@ export function buildConsultasActions<
       try {
         const { user, access } = await deps.requirePermission("consultas:cancel");
         const parsed = deps.excluirDiaSchema.parse(input);
-        await deps.assertPacienteAccess(user, parsed.pacienteId, access);
-        const result = await deps.excluirDia(parsed, Number(user.id));
+        const acesso = await deps.assertPacienteAccess(user, parsed.pacienteId, access);
+        // Achado 56: para papel efetivo PROFISSIONAL, forca o escopo da exclusao em lote
+        // ao proprio profissional, impedindo remover atendimentos de outro profissional.
+        const escopo =
+          acesso.profissionalId != null
+            ? ({ ...parsed, profissionalId: acesso.profissionalId } as TExcluirDiaInput)
+            : parsed;
+        const result = await deps.excluirDia(escopo, Number(user.id));
         return { ok: true, data: { removidos: result.removidos } };
       } catch (error) {
         return actionErrorResult(error, deps.toAppError);

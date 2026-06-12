@@ -29,6 +29,7 @@ import {
   profissionalAtendePaciente,
 } from "@/server/modules/profissionais/profissionais.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
+import { resolveEvolucaoProfissionalId } from "@/lib/prontuario/evolucao-access";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import type { UserAccess } from "@/server/auth/access";
 
@@ -269,6 +270,28 @@ export async function salvarDocumento(
   if (documentoId && Number.isFinite(documentoId) && documentoId > 0) {
     const updated = await runDbTransaction(
       async (tx) => {
+        // Achado 58: documento finalizado e imutavel; bloqueia sobrescrita pelo
+        // fluxo de salvamento. Reabertura exige fluxo/permissao dedicada.
+        const [atual] = await tx
+          .select({ status: prontuarioDocumentos.status })
+          .from(prontuarioDocumentos)
+          .where(
+            and(
+              eq(prontuarioDocumentos.id, documentoId),
+              eq(prontuarioDocumentos.pacienteId, pacienteId),
+              eq(prontuarioDocumentos.tipo, tipo),
+              isNull(prontuarioDocumentos.deletedAt)
+            )
+          )
+          .limit(1);
+        if (!atual) return null;
+        if (atual.status === "Finalizado") {
+          throw new AppError(
+            "Documento finalizado nao pode ser alterado",
+            409,
+            "CONFLICT"
+          );
+        }
         const [row] = await tx
           .update(prontuarioDocumentos)
           .set({
@@ -367,7 +390,10 @@ export async function listarEvolucoesPorPaciente(pacienteId: number) {
 export async function criarEvolucao(
   pacienteId: number,
   input: CriarEvolucaoInput,
-  user?: { id: number | string; role?: string | null } | null
+  user?: { id: number | string; role?: string | null } | null,
+  // Achado 57: contexto de autorizacao EFETIVO (access fresco). Quando ausente,
+  // recai sobre a role do JWT — mantido apenas para compatibilidade de chamadas legadas.
+  auth?: { roleCanon: string | null; profissionalId: number | null }
 ) {
   const dataVal = toIsoDate(input.data ?? ymdNowInClinicTz());
   const payload = sanitizeEvolucaoPayload(input.payload ?? {}).payload;
@@ -377,21 +403,31 @@ export async function criarEvolucao(
 
   const profissionalRaw = input.profissionalId ?? null;
   let profissionalId = profissionalRaw ? Number(profissionalRaw) : null;
-  const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
-  if (roleCanon === "PROFISSIONAL") {
+  const roleCanon = auth?.roleCanon ?? canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
+  // Profissional vinculado vem do access fresco; o lookup por usuario e fallback
+  // defensivo para chamadas sem `auth`.
+  let ownProfissionalId = auth?.profissionalId ?? null;
+  if (roleCanon === "PROFISSIONAL" && ownProfissionalId == null) {
     const userId = toPositiveUserIdOrNull(user?.id ?? null);
     if (!userId) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
     const profissional = await obterProfissionalPorUsuario(userId);
     if (!profissional) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
-    if (profissionalRaw != null && Number(profissionalRaw) !== Number(profissional.id)) {
-      throw new AppError(
-        "Nao e permitido atribuir evolucao a outro profissional",
-        403,
-        "FORBIDDEN"
-      );
-    }
-    profissionalId = profissional.id;
-  } else if (!profissionalId && atendimentoId) {
+    ownProfissionalId = profissional.id;
+  }
+  const resolvido = resolveEvolucaoProfissionalId({
+    roleCanon,
+    ownProfissionalId,
+    inputProfissionalId: profissionalId,
+  });
+  if (resolvido.forbidden) {
+    throw new AppError(
+      "Nao e permitido atribuir evolucao a outro profissional",
+      403,
+      "FORBIDDEN"
+    );
+  }
+  profissionalId = resolvido.profissionalId;
+  if (roleCanon !== "PROFISSIONAL" && !profissionalId && atendimentoId) {
     profissionalId = await obterProfissionalIdDoAtendimento(pacienteId, atendimentoId);
   }
   if (!profissionalId) {

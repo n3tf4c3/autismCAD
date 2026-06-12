@@ -90,10 +90,15 @@ export async function criarEvolucaoAction(
   try {
     const parsedPacienteId = parsePositiveInt(pacienteId, "Paciente", "INVALID_PACIENTE");
     const { user, access } = await requirePermission("evolucoes:create");
-    await assertPacienteAccess(user, parsedPacienteId, access);
+    const acesso = await assertPacienteAccess(user, parsedPacienteId, access);
     assertCamelCaseEvolucaoInput(input);
     const parsedInput = criarEvolucaoSchema.parse(input ?? {});
-    const saved = await criarEvolucao(parsedPacienteId, parsedInput, user);
+    // Achado 57: decide a restricao de profissional pelo papel EFETIVO (access fresco),
+    // nunca pela role defasada do JWT.
+    const saved = await criarEvolucao(parsedPacienteId, parsedInput, user, {
+      roleCanon: resolveEffectiveRoleCanon(user, access),
+      profissionalId: acesso.profissionalId,
+    });
     revalidatePath(`/prontuario/${parsedPacienteId}`);
     revalidatePath(`/prontuario/${parsedPacienteId}/evolucao/nova`);
     return { ok: true, data: saved };

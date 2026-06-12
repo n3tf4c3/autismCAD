@@ -13,3 +13,28 @@ export function isEvolucaoAccessAllowed(params: {
     params.accessProfissionalId === params.evolucaoProfissionalId
   );
 }
+
+// Regra de atribuicao de uma evolucao (achado 57): um PROFISSIONAL so pode atribuir
+// a evolucao ao proprio profissionalId (do access fresco). Os demais papeis usam o
+// profissionalId informado. `forbidden` sinaliza tentativa de atribuir a outro
+// profissional ou PROFISSIONAL sem vinculo. O `roleCanon`/`ownProfissionalId` devem
+// vir do papel EFETIVO, nunca da role defasada do JWT.
+export function resolveEvolucaoProfissionalId(params: {
+  roleCanon: string | null;
+  ownProfissionalId: number | null;
+  inputProfissionalId: number | null;
+}): { profissionalId: number | null; forbidden: boolean } {
+  if (params.roleCanon !== "PROFISSIONAL") {
+    return { profissionalId: params.inputProfissionalId, forbidden: false };
+  }
+  if (params.ownProfissionalId == null) {
+    return { profissionalId: null, forbidden: true };
+  }
+  if (
+    params.inputProfissionalId != null &&
+    Number(params.inputProfissionalId) !== Number(params.ownProfissionalId)
+  ) {
+    return { profissionalId: null, forbidden: true };
+  }
+  return { profissionalId: params.ownProfissionalId, forbidden: false };
+}
