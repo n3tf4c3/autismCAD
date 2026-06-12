@@ -280,6 +280,25 @@ export async function obterPacienteDetalhe(id: number): Promise<PacienteDetalhe 
   };
 }
 
+// Campos de arquivo so aceitam: vazio, o valor ja persistido (inalterado) ou
+// chave R2 sob o prefixo final do paciente. Alteracoes de arquivo acontecem
+// exclusivamente via commitArquivoPacienteAction, que valida e promove a chave.
+function validarChaveArquivoPaciente(
+  valor: string | null,
+  atual: string | null,
+  pacienteId: number,
+  kind: "foto" | "laudo" | "documento"
+): string | null {
+  if (!valor) return null;
+  if (atual && valor === atual) return atual;
+  if (valor.startsWith(`pacientes/${pacienteId}/${kind}/`)) return valor;
+  throw new AppError(
+    `Arquivo de ${kind} invalido. Envie o arquivo pelo formulario do paciente.`,
+    400,
+    "INVALID_FILE_KEY"
+  );
+}
+
 export async function salvarPaciente(input: SavePacienteInput, id?: number | null) {
   const nome = input.nome.trim();
   const cpf = normalizeCpf(input.cpf);
@@ -301,6 +320,19 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
       let pacienteId = id ?? null;
 
       if (pacienteId) {
+        const [atual] = await tx
+          .select({
+            foto: pacientes.foto,
+            laudo: pacientes.laudo,
+            documento: pacientes.documento,
+          })
+          .from(pacientes)
+          .where(and(eq(pacientes.id, pacienteId), isNull(pacientes.deletedAt)))
+          .limit(1);
+        if (!atual) {
+          throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+        }
+
         const [updated] = await tx
           .update(pacientes)
           .set({
@@ -316,9 +348,24 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
             nomePai: normalizeOptionalText(input.nomePai),
             sexo: normalizeOptionalText(input.sexo),
             dataInicio: normalizeDateOnlyLoose(input.dataInicio),
-            foto: normalizeOptionalText(input.fotoAtual),
-            laudo: normalizeOptionalText(input.laudoAtual),
-            documento: normalizeOptionalText(input.documentoAtual),
+            foto: validarChaveArquivoPaciente(
+              normalizeOptionalText(input.fotoAtual),
+              atual.foto,
+              pacienteId,
+              "foto"
+            ),
+            laudo: validarChaveArquivoPaciente(
+              normalizeOptionalText(input.laudoAtual),
+              atual.laudo,
+              pacienteId,
+              "laudo"
+            ),
+            documento: validarChaveArquivoPaciente(
+              normalizeOptionalText(input.documentoAtual),
+              atual.documento,
+              pacienteId,
+              "documento"
+            ),
             ativo,
             updatedAt: sql`now()`,
           })
@@ -348,9 +395,11 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
             nomePai: normalizeOptionalText(input.nomePai),
             sexo: normalizeOptionalText(input.sexo),
             dataInicio: normalizeDateOnlyLoose(input.dataInicio),
-            foto: normalizeOptionalText(input.fotoAtual),
-            laudo: normalizeOptionalText(input.laudoAtual),
-            documento: normalizeOptionalText(input.documentoAtual),
+            // Na criacao nao ha chave final possivel: arquivos entram depois,
+            // via commitArquivoPacienteAction.
+            foto: null,
+            laudo: null,
+            documento: null,
             ativo,
           })
           .returning({ id: pacientes.id });
