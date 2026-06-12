@@ -31,6 +31,37 @@ const envSchema = z.object({
   R2_TEMP_UPLOAD_RETENTION_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   R2_TEMP_UPLOAD_CLEANUP_BATCH_SIZE: z.coerce.number().int().min(1).max(1000).default(500),
   ACCESS_LOG_RETENTION_DAYS: z.coerce.number().int().min(7).max(365).default(30).catch(30),
+}).superRefine((data, ctx) => {
+  // Achado 49: em producao, R2 (uploads/cleanup) e CRON_SECRET passam a ser
+  // obrigatorios para falhar rapido no boot, e nao no primeiro uso operacional.
+  // A fase de build do Next roda com NODE_ENV=production, entao e ignorada aqui.
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+  if (data.NODE_ENV !== "production" || isBuildPhase) return;
+
+  const requiredR2 = ["R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const;
+  for (const key of requiredR2) {
+    if (!data[key]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [key],
+        message: `${key} e obrigatorio em producao.`,
+      });
+    }
+  }
+  if (!data.R2_ENDPOINT && !data.R2_ACCOUNT_ID) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["R2_ENDPOINT"],
+      message: "R2_ENDPOINT ou R2_ACCOUNT_ID e obrigatorio em producao.",
+    });
+  }
+  if (!data.CRON_SECRET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["CRON_SECRET"],
+      message: "CRON_SECRET e obrigatorio em producao.",
+    });
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);

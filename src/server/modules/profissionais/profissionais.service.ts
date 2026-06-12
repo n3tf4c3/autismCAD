@@ -7,7 +7,7 @@ import {
   especialidadesPermitidas,
   SaveProfissionalInput,
   ProfissionaisQueryInput,
-} from "@/server/modules/profissionais/profissionais.schema";
+} from "@/lib/profissionais/profissionais.schema";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 import {

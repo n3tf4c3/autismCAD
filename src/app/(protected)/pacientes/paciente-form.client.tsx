@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { savePacienteSchema } from "@/server/modules/pacientes/pacientes.schema";
+import { savePacienteSchema } from "@/lib/pacientes/pacientes.schema";
 import {
   commitArquivoPacienteAction,
   obterArquivoPacienteReadUrlAction,

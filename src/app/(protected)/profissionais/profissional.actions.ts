@@ -7,7 +7,7 @@ import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import {
   saveProfissionalSchema,
   profissionaisQuerySchema,
-} from "@/server/modules/profissionais/profissionais.schema";
+} from "@/lib/profissionais/profissionais.schema";
 import {
   deleteProfissional,
   listarProfissionais,
