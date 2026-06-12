@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { formatDateBr, toLocalDateKey } from "@/lib/date-only";
+import { formatDateBr, toLocalDateKey } from "@autismcad/shared/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import {
   excluirDocumentoProntuarioAction,

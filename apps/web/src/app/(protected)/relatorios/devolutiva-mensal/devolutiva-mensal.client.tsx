@@ -7,7 +7,7 @@ import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
-import { formatDateBr } from "@/lib/date-only";
+import { formatDateBr } from "@autismcad/shared/date-only";
 import {
   gerarRelatorioEvolutivoAction,
 } from "@/app/(protected)/relatorios/relatorios.actions";
