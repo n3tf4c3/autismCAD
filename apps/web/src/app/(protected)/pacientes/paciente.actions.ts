@@ -6,7 +6,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { pacientes } from "@/server/db/schema";
+import { pacientes } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   pacientesQuerySchema,

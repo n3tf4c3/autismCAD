@@ -9,7 +9,7 @@ import {
   prontuarioDocumentos,
   terapeutas as profissionaisTabela,
   users,
-} from "@/server/db/schema";
+} from "@autismcad/db/schema";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import type { UserAccess } from "@/server/auth/access";
 import type { AuthenticatedUser } from "@/server/auth/auth";

@@ -22,7 +22,7 @@ import type {
   EvolucaoPayloadJson,
   ProntuarioDocumentoPayloadJson,
   UserPacienteVinculosAuditPayload,
-} from "@/server/db/jsonb-types";
+} from "./jsonb-types";
 
 export const users = pgTable(
   "users",

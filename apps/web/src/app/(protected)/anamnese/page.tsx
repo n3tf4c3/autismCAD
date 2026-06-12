@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { db } from "@/db";
 import { requirePermission } from "@/server/auth/auth";
-import { pacientes } from "@/server/db/schema";
+import { pacientes } from "@autismcad/db/schema";
 import { asc, isNull } from "drizzle-orm";
 
 export default async function AnamneseIndexPage() {

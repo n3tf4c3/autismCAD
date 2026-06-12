@@ -3,7 +3,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { sanitizeAnamnesePayload } from "@/lib/anamnese/sanitize-anamnese-payload";
 import { runDbTransaction } from "@/server/db/transaction";
-import { anamnese, anamneseVersions, pacientes } from "@/server/db/schema";
+import { anamnese, anamneseVersions, pacientes } from "@autismcad/db/schema";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 

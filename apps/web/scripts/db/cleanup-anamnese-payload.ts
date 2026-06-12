@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { anamnese, anamneseVersions } from "../../src/server/db/schema";
+import { anamnese, anamneseVersions } from "@autismcad/db/schema";
 import { sanitizeAnamnesePayload } from "../../src/lib/anamnese/sanitize-anamnese-payload";
 
 config({ path: ".env.local" });

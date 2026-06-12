@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { permissions, rolePermissions, users } from "@/server/db/schema";
+import { permissions, rolePermissions, users } from "@autismcad/db/schema";
 import {
   ADMIN_ROLES,
   canonicalRoleName,

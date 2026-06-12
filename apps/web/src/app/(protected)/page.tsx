@@ -6,7 +6,7 @@ import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
-import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@autismcad/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";

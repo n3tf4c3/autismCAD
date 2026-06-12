@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/server/db/schema";
+import { users } from "@autismcad/db/schema";
 import { AppError } from "@/server/shared/errors";
 import { getAuthSession } from "@/server/auth/session";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";

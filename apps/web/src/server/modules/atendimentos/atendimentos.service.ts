@@ -17,7 +17,7 @@ import {
   evolucoes,
   pacientes,
   terapeutas as profissionaisTabela,
-} from "@/server/db/schema";
+} from "@autismcad/db/schema";
 import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import {

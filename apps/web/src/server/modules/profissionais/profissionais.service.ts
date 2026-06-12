@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@/server/db/schema";
+import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   especialidadesPermitidas,

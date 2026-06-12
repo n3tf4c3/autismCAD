@@ -9,11 +9,6 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/tests/**/*.test.ts",
-    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
-    "db:check": "drizzle-kit check --config drizzle.config.ts",
-    "db:push": "drizzle-kit push --config drizzle.config.ts",
-    "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "db:seed:admin": "tsx scripts/db/seed-superadmin.ts",
     "db:audit:legacy-passwords": "tsx scripts/db/audit-legacy-password-hashes.ts",
     "db:cleanup:evolucao": "tsx scripts/db/cleanup-evolucao-payload.ts",
@@ -21,6 +16,7 @@
     "db:cleanup:plano-ensino": "tsx scripts/db/cleanup-plano-ensino-payload.ts"
   },
   "dependencies": {
+    "@autismcad/db": "*",
     "@autismcad/shared": "*",
     "@autismcad/validators": "*",
     "@aws-sdk/client-s3": "^3.988.0",
@@ -46,7 +42,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "^16.2.9",
     "tailwindcss": "^4",

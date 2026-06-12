@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
-import { agendaBloqueios, atendimentos, terapeutas } from "@/server/db/schema";
+import { agendaBloqueios, atendimentos, terapeutas } from "@autismcad/db/schema";
 import { AppError } from "@/server/shared/errors";
 
 function advisoryLockHash64(value: string) {

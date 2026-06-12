@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { db } from "@/db";
-import { users } from "@/server/db/schema";
+import { users } from "@autismcad/db/schema";
 import { loginSchema } from "@autismcad/validators/auth/auth.schema";
 import {
   hashPassword,
