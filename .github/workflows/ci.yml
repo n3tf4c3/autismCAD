@@ -34,8 +34,8 @@ jobs:
 
       - name: Guardrails
         run: |
-          if grep -RIn --include='*.ts' --include='*.tsx' "as never" src; then
-            echo "Found forbidden 'as never' cast in src/"
+          if grep -RIn --include='*.ts' --include='*.tsx' "as never" apps/web/src; then
+            echo "Found forbidden 'as never' cast in apps/web/src/"
             exit 1
           fi
 
@@ -43,7 +43,7 @@ jobs:
         run: npm run typecheck
 
       - name: Drizzle Check
-        run: npm run db:check
+        run: npm run db:check -w @autismcad/web
 
       - name: Build
         run: npm run build
