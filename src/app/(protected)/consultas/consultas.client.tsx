@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   excluirAtendimentoAction,
@@ -80,6 +80,8 @@ export function ConsultasClient(props: {
   const [pacientes] = useState<Paciente[]>(() => props.initialPacientes);
   const [items, setItems] = useState<Atendimento[]>([]);
   const [loading, setLoading] = useState(false);
+  // Achado 54: descarta respostas antigas de listagem que cheguem fora de ordem.
+  const atendimentosReqRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
 
   const [pacienteId, setPacienteId] = useState<string>("");
@@ -112,6 +114,7 @@ export function ConsultasClient(props: {
     dataIni?: string;
     dataFim?: string;
   }) {
+    const reqId = ++atendimentosReqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -123,13 +126,15 @@ export function ConsultasClient(props: {
         dataFim: (overrides?.dataFim ?? dataFim) || undefined,
       };
       const result = await listarAtendimentosAction(filters);
+      if (reqId !== atendimentosReqRef.current) return;
       if (!result.ok) throw new Error(result.error || "Erro ao listar atendimentos");
       setItems(result.data.items);
     } catch (err) {
+      if (reqId !== atendimentosReqRef.current) return;
       setError(normalizeApiError(err));
       setItems([]);
     } finally {
-      setLoading(false);
+      if (reqId === atendimentosReqRef.current) setLoading(false);
     }
   }
 
