@@ -16,6 +16,14 @@ export default async function CalendarioPage(props: {
 }) {
   const { user } = await requirePermission("consultas:view");
 
+  let canCreateAtendimento = false;
+  try {
+    await requirePermission("consultas:create");
+    canCreateAtendimento = true;
+  } catch {
+    canCreateAtendimento = false;
+  }
+
   let profissionais: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
   try {
     await requirePermission("profissionais:view");
@@ -56,6 +64,7 @@ export default async function CalendarioPage(props: {
       initialPacientes={pacientes}
       initialProfissionalId={initialProfissionalId || undefined}
       initialData={normalizeDateParam(searchParams.data)}
+      canCreateAtendimento={canCreateAtendimento}
     />
   );
 }

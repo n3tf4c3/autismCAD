@@ -12,6 +12,7 @@ import {
 import { db } from "@/db";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
+  agendaBloqueios,
   atendimentos,
   evolucoes,
   pacientes,
@@ -139,32 +140,24 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
     .limit(1);
   if (conflitoPaciente) return "paciente" as const;
 
-  // Sessao em grupo permite sobreposicao para o mesmo profissional.
-  // A restricao mantida e apenas nao duplicar horario do mesmo paciente.
-  if (params.isGrupo) {
-    return null;
-  }
-
-  // Regra simetrica: sessoes em grupo convivem com individuais, entao a
-  // checagem de conflito do profissional considera apenas sessoes individuais.
-  const whereProfissional = [
-    eq(atendimentos.profissionalId, params.profissionalId),
-    eq(atendimentos.data, params.data),
-    eq(atendimentos.isGrupo, false),
-    isNull(atendimentos.deletedAt),
-    sql`${params.horaFim}::time > ${atendimentos.horaInicio} AND ${params.horaInicio}::time < ${atendimentos.horaFim}`,
-  ];
-  if (params.ignoreId) {
-    whereProfissional.push(sql`${atendimentos.id} <> ${params.ignoreId}`);
-  }
-
-  const [conflitoProfissional] = await executor
-    .select({ id: atendimentos.id })
-    .from(atendimentos)
-    .where(and(...whereProfissional))
+  // Horario bloqueado torna o profissional indisponivel para qualquer sessao
+  // (individual ou grupo).
+  const [conflitoBloqueio] = await executor
+    .select({ id: agendaBloqueios.id })
+    .from(agendaBloqueios)
+    .where(
+      and(
+        eq(agendaBloqueios.profissionalId, params.profissionalId),
+        eq(agendaBloqueios.data, params.data),
+        sql`${params.horaFim}::time > ${agendaBloqueios.horaInicio} AND ${params.horaInicio}::time < ${agendaBloqueios.horaFim}`
+      )
+    )
     .limit(1);
-  if (conflitoProfissional) return "profissional" as const;
+  if (conflitoBloqueio) return "bloqueio" as const;
 
+  // Regra de negocio: o profissional PODE atender dois pacientes no mesmo
+  // horario (sessoes simultaneas, em grupo ou individuais). Os unicos
+  // conflitos sao horario duplicado do mesmo paciente e horario bloqueado.
   return null;
 }
 
@@ -204,8 +197,8 @@ async function salvarAtendimentoDb(
   if (conflito === "paciente") {
     throw new AppError("Conflito de horario para este paciente", 409, "SCHEDULE_CONFLICT");
   }
-  if (conflito === "profissional") {
-    throw new AppError("Conflito de horario para este profissional", 409, "SCHEDULE_CONFLICT");
+  if (conflito === "bloqueio") {
+    throw new AppError("Horario bloqueado na agenda do profissional", 409, "SCHEDULE_CONFLICT");
   }
 
   // `realizado` is derived from `presenca` by business rule and DB constraint.
