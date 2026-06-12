@@ -21,6 +21,7 @@
     "db:cleanup:plano-ensino": "tsx scripts/db/cleanup-plano-ensino-payload.ts"
   },
   "dependencies": {
+    "@autismcad/shared": "*",
     "@aws-sdk/client-s3": "^3.988.0",
     "@aws-sdk/s3-request-presigner": "^3.988.0",
     "@hookform/resolvers": "^5.2.2",

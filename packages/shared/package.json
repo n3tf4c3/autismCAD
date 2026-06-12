@@ -1,0 +1,14 @@
+{
+  "name": "@autismcad/shared",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./date-only": "./src/date-only.ts",
+    "./datetime": "./src/datetime.ts",
+    "./normalize": "./src/normalize.ts",
+    "./errors": "./src/errors.ts"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}

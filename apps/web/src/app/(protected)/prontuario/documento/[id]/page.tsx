@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { formatDateBr } from "@/lib/date-only";
+import { formatDateBr } from "@autismcad/shared/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { DocumentoActionsClient } from "@/app/(protected)/prontuario/documento/[id]/documento-actions.client";
 import { requirePermission } from "@/server/auth/auth";

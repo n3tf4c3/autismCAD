@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
-import { formatDateBr } from "@/lib/date-only";
+import { formatDateBr } from "@autismcad/shared/date-only";
 import {
   gerarRelatorioEvolutivoAction,
 } from "@/app/(protected)/relatorios/relatorios.actions";
