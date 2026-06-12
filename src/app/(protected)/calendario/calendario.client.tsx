@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   criarAtendimentoAction,
   criarAtendimentosRecorrentesAction,
@@ -116,6 +116,9 @@ export function CalendarioClient(props: {
   );
   const [agenda, setAgenda] = useState<Atendimento[]>([]);
   const [bloqueios, setBloqueios] = useState<BloqueioAgenda[]>([]);
+  // Achado 54: contador de requisicao para descartar respostas antigas que
+  // cheguem fora de ordem (troca rapida de profissional/semana, refresh por foco).
+  const agendaReqRef = useRef(0);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -154,9 +157,11 @@ export function CalendarioClient(props: {
   const pacientes = props.initialPacientes;
 
   async function loadAgenda() {
+    const reqId = ++agendaReqRef.current;
     const id = profissionalId ? Number(profissionalId) : 0;
     if (!id) {
       setAgenda([]);
+      setBloqueios([]);
       return;
     }
 
@@ -185,14 +190,16 @@ export function CalendarioClient(props: {
           dataFim: params.get("dataFim") ?? undefined,
         }),
       ]);
+      if (reqId !== agendaReqRef.current) return;
       setAgenda(unwrapAction(dataJson).items);
       setBloqueios(unwrapAction(bloqueiosJson).items);
     } catch (err) {
+      if (reqId !== agendaReqRef.current) return;
       setError(normalizeApiError(err));
       setAgenda([]);
       setBloqueios([]);
     } finally {
-      setLoading(false);
+      if (reqId === agendaReqRef.current) setLoading(false);
     }
   }
 
