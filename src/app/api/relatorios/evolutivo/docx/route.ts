@@ -17,13 +17,13 @@ function parseQuery(url: string) {
 }
 
 export const GET = withErrorHandlingNoContext(async (request: Request) => {
-  const { user } = await requirePermission("relatorios_clinicos:export");
+  const { user, access } = await requirePermission("relatorios_clinicos:export");
   const parsed = parseQuery(request.url);
   if (!parsed.success) {
     return Response.json({ error: "Filtro invalido" }, { status: 400 });
   }
 
-  const report = await consolidateEvolutivoReport({ query: parsed.data, user });
+  const report = await consolidateEvolutivoReport({ query: parsed.data, user, access });
   const body = await buildEvolutivoDocx(report as unknown as EvolutivoDocxReport);
 
   return new Response(new Uint8Array(body), {

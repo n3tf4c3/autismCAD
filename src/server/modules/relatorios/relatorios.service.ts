@@ -10,7 +10,7 @@ import {
   terapeutas as profissionaisTabela,
   users,
 } from "@/server/db/schema";
-import { canonicalRoleName } from "@/server/auth/permissions";
+import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import type { UserAccess } from "@/server/auth/access";
 import type { AuthenticatedUser } from "@/server/auth/auth";
 import { AppError } from "@/server/shared/errors";
@@ -211,7 +211,7 @@ export async function consolidateEvolutivoReport(params: {
 
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
-  const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
+  const roleCanon = resolveEffectiveRoleCanon(params.user, params.access);
 
   // Enforce paciente access (admins ok; profissionais must be linked)
   await assertPacienteAccess(params.user, pacienteId, params.access);
@@ -627,6 +627,15 @@ export async function consolidatePlanoEnsinoReport(params: {
 
   await assertPacienteAccess(params.user, pacienteId, params.access);
 
+  // Mesmo escopo por profissional do relatorio evolutivo (achado 41): quando o
+  // solicitante e PROFISSIONAL, restringe planos/evolucoes ao que ele produziu.
+  const roleCanon = resolveEffectiveRoleCanon(params.user, params.access);
+  const profissionalFiltro = await resolveProfissionalFiltro({
+    roleCanon,
+    userId: params.user.id,
+    profissionalId: null,
+  });
+
   const [paciente] = await db
     .select({
       id: pacientes.id,
@@ -639,6 +648,15 @@ export async function consolidatePlanoEnsinoReport(params: {
     .limit(1);
 
   if (!paciente) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+
+  const whereDoc = [
+    eq(prontuarioDocumentos.pacienteId, pacienteId),
+    eq(prontuarioDocumentos.tipo, "PLANO_ENSINO"),
+    isNull(prontuarioDocumentos.deletedAt),
+  ];
+  if (profissionalFiltro) {
+    whereDoc.push(eq(prontuarioDocumentos.createdByUserId, params.user.id));
+  }
 
   const rawRows = await db
     .select({
@@ -654,13 +672,7 @@ export async function consolidatePlanoEnsinoReport(params: {
     })
     .from(prontuarioDocumentos)
     .leftJoin(users, eq(users.id, prontuarioDocumentos.createdByUserId))
-    .where(
-      and(
-        eq(prontuarioDocumentos.pacienteId, pacienteId),
-        eq(prontuarioDocumentos.tipo, "PLANO_ENSINO"),
-        isNull(prontuarioDocumentos.deletedAt)
-      )
-    )
+    .where(and(...whereDoc))
     .orderBy(desc(prontuarioDocumentos.version), desc(prontuarioDocumentos.createdAt));
 
   const planos = rawRows
@@ -693,6 +705,16 @@ export async function consolidatePlanoEnsinoReport(params: {
       })
     );
 
+  const whereEvolucao = [
+    eq(evolucoes.pacienteId, pacienteId),
+    isNull(evolucoes.deletedAt),
+    gte(evolucoes.data, from),
+    lte(evolucoes.data, to),
+  ];
+  if (profissionalFiltro) {
+    whereEvolucao.push(eq(evolucoes.profissionalId, profissionalFiltro));
+  }
+
   const evolucoesPlanoRows = await db
     .select({
       id: evolucoes.id,
@@ -700,14 +722,7 @@ export async function consolidatePlanoEnsinoReport(params: {
       payload: evolucoes.payload,
     })
     .from(evolucoes)
-    .where(
-      and(
-        eq(evolucoes.pacienteId, pacienteId),
-        isNull(evolucoes.deletedAt),
-        gte(evolucoes.data, from),
-        lte(evolucoes.data, to)
-      )
-    )
+    .where(and(...whereEvolucao))
     .orderBy(asc(evolucoes.data), asc(evolucoes.id));
 
   const desempenhoEnsino = evolucoesPlanoRows.flatMap((row) => {
@@ -765,7 +780,7 @@ export async function consolidateAssiduidadeReport(params: {
   user: AuthenticatedUser;
   access?: UserAccess;
 }) {
-  const roleCanon = canonicalRoleName(params.user.role ?? null) ?? params.user.role ?? null;
+  const roleCanon = resolveEffectiveRoleCanon(params.user, params.access);
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
