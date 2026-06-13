@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
-import { ADMIN_ROLES } from "@/server/auth/permissions";
+import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@autismcad/db/schema";
 import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.service";
@@ -43,6 +43,9 @@ export default async function DashboardPage() {
   const accessRole = access.canonicalRole ?? access.role;
   const isAdmin = accessRole ? ADMIN_ROLES.has(accessRole) : false;
   const isProfissional = accessRole === "PROFISSIONAL";
+  // Achado 59: aniversariantes de profissionais expoem dados pessoais; so para quem
+  // pode visualizar profissionais.
+  const canViewProfissionais = isAdmin || hasPermissionKey(access.permissions, "profissionais:view");
 
   let profissionalId: number | null = null;
   if (!isAdmin && isProfissional) {
@@ -100,23 +103,28 @@ export default async function DashboardPage() {
         )
       )
       .orderBy(asc(sql`extract(day from ${pacientes.dataNascimento})`), asc(pacientes.nome)),
-    db
-      .select({
-        id: profissionaisTabela.id,
-        nome: profissionaisTabela.nome,
-        dataNascimento: profissionaisTabela.dataNascimento,
-        dia: sql<number>`extract(day from ${profissionaisTabela.dataNascimento})::int`,
-        destaque: profissionaisTabela.especialidade,
-      })
-      .from(profissionaisTabela)
-      .where(
-        and(
-          isNull(profissionaisTabela.deletedAt),
-          eq(profissionaisTabela.ativo, true),
-          sql`extract(month from ${profissionaisTabela.dataNascimento}) = ${birthdayMonth}`
-        )
-      )
-      .orderBy(asc(sql`extract(day from ${profissionaisTabela.dataNascimento})`), asc(profissionaisTabela.nome)),
+    canViewProfissionais
+      ? db
+          .select({
+            id: profissionaisTabela.id,
+            nome: profissionaisTabela.nome,
+            dataNascimento: profissionaisTabela.dataNascimento,
+            dia: sql<number>`extract(day from ${profissionaisTabela.dataNascimento})::int`,
+            destaque: profissionaisTabela.especialidade,
+          })
+          .from(profissionaisTabela)
+          .where(
+            and(
+              isNull(profissionaisTabela.deletedAt),
+              eq(profissionaisTabela.ativo, true),
+              sql`extract(month from ${profissionaisTabela.dataNascimento}) = ${birthdayMonth}`
+            )
+          )
+          .orderBy(
+            asc(sql`extract(day from ${profissionaisTabela.dataNascimento})`),
+            asc(profissionaisTabela.nome)
+          )
+      : Promise.resolve([]),
   ]);
 
   const { pendentes, monthAtendimentos } = agenda;
