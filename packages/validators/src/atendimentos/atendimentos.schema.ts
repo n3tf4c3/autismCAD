@@ -10,6 +10,13 @@ export const presencasPermitidas = new Set([
 const optionalId = z.coerce.number().int().positive().optional().nullable();
 const requiredId = z.coerce.number().int().positive();
 
+// Achado 65: alinhar a validacao de horario ao que o service normaliza (HH:MM ou
+// HH:MM:SS, hora com dois digitos), evitando que "9:00" passe aqui e falhe depois.
+const horaField = z
+  .string()
+  .trim()
+  .regex(/^\d{2}:\d{2}(:\d{2})?$/, "Horario invalido. Use HH:MM ou HH:MM:SS");
+
 const optionalBooleanLike = z
   .union([z.boolean(), z.number(), z.string()])
   .optional()
@@ -56,8 +63,8 @@ export const saveAtendimentoSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),
   profissionalId: requiredId,
   data: z.string().trim().min(10).max(10),
-  horaInicio: z.string().trim().min(4).max(8),
-  horaFim: z.string().trim().min(4).max(8),
+  horaInicio: horaField,
+  horaFim: horaField,
   isGrupo: optionalBooleanLike,
   turno: z.string().trim().optional(),
   periodoInicio: z.string().trim().optional().nullable(),
@@ -70,8 +77,8 @@ export const saveAtendimentoSchema = z.object({
 export const recorrenteSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),
   profissionalId: requiredId,
-  horaInicio: z.string().trim().min(4).max(8),
-  horaFim: z.string().trim().min(4).max(8),
+  horaInicio: horaField,
+  horaFim: horaField,
   isGrupo: optionalBooleanLike,
   turno: z.string().trim().optional(),
   periodoInicio: z.string().trim().min(10).max(10),
@@ -85,8 +92,8 @@ export const recorrenteSchema = z.object({
 export const excluirDiaSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),
   profissionalId: optionalId,
-  horaInicio: z.string().trim().min(4).max(8),
-  horaFim: z.string().trim().min(4).max(8),
+  horaInicio: horaField,
+  horaFim: horaField,
   turno: z.string().trim().optional(),
   periodoInicio: z.string().trim().min(10).max(10),
   periodoFim: z.string().trim().min(10).max(10),

@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { prontuarioDocumentos } from "@autismcad/db/schema";
+import { sanitizePlanoEnsinoPayload } from "@autismcad/shared/plano-ensino";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -19,50 +20,6 @@ function hasFlag(flag: string): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function normalizeOptionalText(value: unknown): string | null {
-  const parsed = String(value ?? "").trim();
-  return parsed || null;
-}
-
-function normalizeDateOnlyLoose(value: unknown): string | null {
-  const parsed = String(value ?? "").trim();
-  if (!parsed) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(parsed)) return parsed;
-  const date = new Date(parsed);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
-}
-
-function sanitizePlanoEnsinoPayload(input: unknown): Record<string, unknown> {
-  const rec = isRecord(input) ? input : {};
-  const rawBlocos = Array.isArray(rec.blocos) ? rec.blocos : Array.isArray(rec.itens) ? rec.itens : [];
-  const blocos = rawBlocos
-    .map((value) => {
-      if (!isRecord(value)) return null;
-      const bloco = {
-        habilidade: normalizeOptionalText(value.habilidade),
-        ensino: normalizeOptionalText(value.ensino),
-        objetivoEnsino: normalizeOptionalText(value.objetivoEnsino ?? value.objetivo_ensino),
-        recursos: normalizeOptionalText(value.recursos),
-        procedimento: normalizeOptionalText(value.procedimento),
-        suportes: normalizeOptionalText(value.suportes),
-        alvo: normalizeOptionalText(value.alvo ?? value.target),
-        objetivoEspecifico: normalizeOptionalText(value.objetivoEspecifico ?? value.objetivo_especifico),
-        criterioSucesso: normalizeOptionalText(value.criterioSucesso ?? value.criterio_sucesso),
-      };
-      if (!Object.values(bloco).some(Boolean)) return null;
-      return bloco;
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
-
-  return {
-    especialidade: normalizeOptionalText(rec.especialidade),
-    dataInicio: normalizeDateOnlyLoose(rec.dataInicio ?? rec.data_inicio),
-    dataFinal: normalizeDateOnlyLoose(rec.dataFinal ?? rec.data_final),
-    blocos,
-  };
 }
 
 function normalizeLegacyPlanoEnsinoTypos(input: unknown): {
@@ -114,6 +71,8 @@ async function main() {
   if (!databaseUrl) throw new Error("DATABASE_URL nao configurado.");
 
   const apply = hasFlag("--apply");
+  // Achado 63: usar o mesmo timezone da aplicacao no saneamento de datas.
+  const timeZone = readEnv("APP_TIMEZONE") ?? "America/Sao_Paulo";
   const sql = neon(databaseUrl);
   const db = drizzle({ client: sql });
 
@@ -139,7 +98,7 @@ async function main() {
   for (const row of rows) {
     const originalPayload = row.payload ?? {};
     const legacy = normalizeLegacyPlanoEnsinoTypos(originalPayload);
-    const sanitized = sanitizePlanoEnsinoPayload(legacy.payload);
+    const sanitized = sanitizePlanoEnsinoPayload(legacy.payload, timeZone);
     const changed = legacy.changed || JSON.stringify(originalPayload) !== JSON.stringify(sanitized);
     if (!changed) continue;
 

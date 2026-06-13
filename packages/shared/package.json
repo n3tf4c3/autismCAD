@@ -6,7 +6,11 @@
     "./date-only": "./src/date-only.ts",
     "./datetime": "./src/datetime.ts",
     "./normalize": "./src/normalize.ts",
-    "./errors": "./src/errors.ts"
+    "./errors": "./src/errors.ts",
+    "./plano-ensino": "./src/plano-ensino.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "zod": "^4.3.6"
