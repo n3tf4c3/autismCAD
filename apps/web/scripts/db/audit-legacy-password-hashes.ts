@@ -1,11 +1,8 @@
-import { config } from "dotenv";
+import "./_load-env";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { users } from "@autismcad/db/schema";
-
-config({ path: ".env.local" });
-config({ path: ".env" });
 
 const LEGACY_SHA_REGEX = /^[a-f0-9]{64}$/i;
 

@@ -1,12 +1,9 @@
-import { config } from "dotenv";
+import "./_load-env";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { anamnese, anamneseVersions } from "@autismcad/db/schema";
 import { sanitizeAnamnesePayload } from "../../src/lib/anamnese/sanitize-anamnese-payload";
-
-config({ path: ".env.local" });
-config({ path: ".env" });
 
 function readEnv(key: string): string | undefined {
   const value = process.env[key];

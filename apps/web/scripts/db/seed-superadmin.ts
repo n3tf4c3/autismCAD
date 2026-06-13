@@ -1,4 +1,4 @@
-import { config } from "dotenv";
+import "./_load-env";
 import { hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
@@ -10,9 +10,6 @@ import {
   roles,
   users,
 } from "@autismcad/db/schema";
-
-config({ path: ".env.local" });
-config({ path: ".env" });
 
 function readEnv(key: string): string | undefined {
   const value = process.env[key];
