@@ -47,7 +47,11 @@ export const users = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("uk_users_email").on(table.email),
+    // Achado 61: unico parcial por registros ativos, igual a pacientes/terapeutas,
+    // permitindo reuso do e-mail apos exclusao logica.
+    uniqueIndex("uk_users_email_ativo")
+      .on(table.email)
+      .where(sql`${table.deletedAt} is null`),
     index("idx_users_deleted_at").on(table.deletedAt),
   ]
 );
@@ -303,6 +307,16 @@ export const atendimentos = pgTable(
       "ck_atendimentos_realizado_presenca",
       sql`${table.realizado} = (${table.presenca} = 'Presente')`
     ),
+    // Achado 66: restringe dominios criticos aos valores usados pela aplicacao.
+    check("ck_atendimentos_turno", sql`${table.turno} in ('Matutino', 'Vespertino')`),
+    check(
+      "ck_atendimentos_presenca",
+      sql`${table.presenca} in ('Presente', 'Ausente', 'Nao informado')`
+    ),
+    check(
+      "ck_atendimentos_status_repasse",
+      sql`${table.statusRepasse} in ('Pendente', 'Concluido')`
+    ),
     index("idx_atend_paciente").on(table.pacienteId),
     index("idx_atend_profissional").on(table.profissionalId),
     index("idx_atend_data_profissional").on(table.data, table.profissionalId),
@@ -361,6 +375,8 @@ export const anamneseVersions = pgTable(
   (table) => [
     uniqueIndex("uk_anamnese_versions_paciente_version").on(table.pacienteId, table.version),
     index("idx_anamnese_versions_paciente_created").on(table.pacienteId, table.createdAt),
+    // Achado 66: status restrito ao dominio da aplicacao.
+    check("ck_anamnese_versions_status", sql`${table.status} in ('Rascunho', 'Finalizada')`),
   ]
 );
 
@@ -399,6 +415,8 @@ export const prontuarioDocumentos = pgTable(
     index("idx_prontuario_documentos_created_at").on(table.createdAt),
     index("idx_prontuario_documentos_updated_at").on(table.updatedAt),
     index("idx_prontuario_documentos_deleted_at").on(table.deletedAt),
+    // Achado 66: status restrito ao dominio da aplicacao.
+    check("ck_prontuario_documentos_status", sql`${table.status} in ('Rascunho', 'Finalizado')`),
   ]
 );
 
