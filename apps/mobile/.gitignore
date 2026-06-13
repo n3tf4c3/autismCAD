@@ -4,6 +4,10 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Native projects gerados pelo `expo prebuild` (CNG) — regeneraveis, nao versionar
+/android
+/ios
+
 # Native
 *.orig.*
 *.jks
