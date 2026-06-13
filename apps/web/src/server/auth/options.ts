@@ -10,7 +10,10 @@ import {
   isLegacyPasswordHash,
   verifyPassword,
 } from "@/server/auth/password";
-import { recordLoginAttemptAccess } from "@/server/modules/access-logs/access-logs.service";
+import {
+  isLoginRateLimited,
+  recordLoginAttemptAccess,
+} from "@/server/modules/access-logs/access-logs.service";
 
 function normalizeAttemptEmail(credentials: Record<string, unknown> | undefined): string | null {
   const raw = credentials?.email;
@@ -87,6 +90,17 @@ export const authOptions: NextAuthOptions = {
         if (!parsed.success) {
           await safeRecordLoginAttempt({
             userEmail: attemptEmail,
+            status: "FALHA",
+            headers: req?.headers,
+          });
+          return null;
+        }
+
+        // Achado 60: bloqueia brute force/credential stuffing antes da busca do
+        // usuario e do bcrypt. Resposta uniforme (null), igual a senha invalida.
+        if (await isLoginRateLimited({ userEmail: parsed.data.email, headers: req?.headers })) {
+          await safeRecordLoginAttempt({
+            userEmail: parsed.data.email,
             status: "FALHA",
             headers: req?.headers,
           });

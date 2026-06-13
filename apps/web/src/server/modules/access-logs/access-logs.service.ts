@@ -1,10 +1,14 @@
 import "server-only";
-import { desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { accessLogs, users } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import { AppError } from "@/server/shared/errors";
 import { env } from "@/lib/env";
+import {
+  DEFAULT_LOGIN_RATE_LIMIT,
+  exceedsLoginRateLimit,
+} from "@/lib/auth/login-rate-limit";
 
 export const ACCESS_LOG_RETENTION_DAYS = env.ACCESS_LOG_RETENTION_DAYS;
 const ACCESS_LOG_RETENTION_MS = ACCESS_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -157,6 +161,46 @@ export async function recordLoginAttemptAccess(params: {
     },
     { operation: "accessLogs.recordLoginAttemptAccess", mode: "allow-fallback" }
   );
+}
+
+// Achado 60: avalia se o login deve ser bloqueado por excesso de falhas recentes,
+// usando access_logs como armazenamento compartilhado (serverless-safe). Fail-open:
+// em erro de consulta, nao bloqueia, priorizando disponibilidade (igual ao logging).
+export async function isLoginRateLimited(params: {
+  userEmail?: string | null;
+  headers?: Record<string, unknown>;
+}): Promise<boolean> {
+  try {
+    const meta = extractLoginRequestMeta(params.headers);
+    const email = normalizeAccessLogEmail(params.userEmail);
+    const ip = meta.ipOrigem;
+    const cutoff = new Date(Date.now() - DEFAULT_LOGIN_RATE_LIMIT.windowMinutes * 60 * 1000);
+
+    const [row] = await db
+      .select({
+        emailFailures: sql<number>`count(*) filter (where ${accessLogs.userEmail} = ${email})`,
+        ipFailures: sql<number>`count(*) filter (where ${accessLogs.ipOrigem} = ${ip ?? ""})`,
+      })
+      .from(accessLogs)
+      .where(
+        and(
+          eq(accessLogs.status, "FALHA"),
+          gt(accessLogs.createdAt, cutoff),
+          ip
+            ? or(eq(accessLogs.userEmail, email), eq(accessLogs.ipOrigem, ip))
+            : eq(accessLogs.userEmail, email)
+        )
+      );
+
+    return exceedsLoginRateLimit({
+      emailFailures: Number(row?.emailFailures ?? 0),
+      ipFailures: Number(row?.ipFailures ?? 0),
+      hasIp: !!ip,
+    });
+  } catch (error) {
+    console.error("Falha ao avaliar rate limit de login", error);
+    return false;
+  }
 }
 
 export async function listRecentAccessLogs(limit = 200) {
