@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "AutismCAD",
+    "slug": "autismcad",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "autismcad",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.autismcad.app"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.autismcad.app"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "extra": {
+      "apiBaseUrl": "http://10.0.2.2:3000"
+    }
+  }
+}
