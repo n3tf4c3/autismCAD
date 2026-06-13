@@ -1,12 +1,9 @@
-import { config } from "dotenv";
+import "./_load-env";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { prontuarioDocumentos } from "@autismcad/db/schema";
 import { sanitizePlanoEnsinoPayload } from "@autismcad/shared/plano-ensino";
-
-config({ path: ".env.local" });
-config({ path: ".env" });
 
 function readEnv(key: string): string | undefined {
   const value = process.env[key];
