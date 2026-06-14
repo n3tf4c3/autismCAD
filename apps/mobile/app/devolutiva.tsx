@@ -56,7 +56,7 @@ function fmtHour(value?: string | null): string {
 }
 
 export default function Devolutiva() {
-  const { authFetch } = useAuth();
+  const { user, loading: authLoading, authFetch } = useAuth();
   const params = useLocalSearchParams<{ pacienteId?: string; pacienteNome?: string }>();
   const pacienteId = Number(params.pacienteId ?? 0);
 
@@ -102,9 +102,15 @@ export default function Devolutiva() {
     }
   }, [authFetch, pacienteId, periodo.from, periodo.to]);
 
+  // So carrega depois que a auth hidratou os tokens (evita 401 espurio no cold-start).
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     load();
-  }, [load]);
+  }, [authLoading, user, load]);
 
   function step(dir: -1 | 1) {
     setAnchor((d) => (mode === "diario" ? addDays(d, dir) : addMonths(d, dir)));
