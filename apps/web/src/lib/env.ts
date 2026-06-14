@@ -11,11 +11,11 @@ const envSchema = z.object({
   NEXTAUTH_URL: z.string().url().optional(),
   NEXTAUTH_SECRET: z.string().min(32).optional(),
   AUTH_SECRET: z.string().min(32).optional(),
-  DATABASE_URL: z
-    .string()
-    .url()
-    .default("postgresql://postgres:postgres@localhost:5432/autismcad"),
+  DATABASE_URL: z.string().url().optional(),
   DATABASE_URL_UNPOOLED: z.string().url().optional(),
+  POSTGRES_URL: z.string().url().optional(),
+  POSTGRES_PRISMA_URL: z.string().url().optional(),
+  POSTGRES_URL_NON_POOLING: z.string().url().optional(),
   BCRYPT_COST: z.coerce.number().int().min(8).max(15).default(12),
 
   R2_ACCOUNT_ID: z.string().optional(),
@@ -37,6 +37,14 @@ const envSchema = z.object({
   // A fase de build do Next roda com NODE_ENV=production, entao e ignorada aqui.
   const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
   if (data.NODE_ENV !== "production" || isBuildPhase) return;
+
+  if (!data.DATABASE_URL && !data.POSTGRES_PRISMA_URL && !data.POSTGRES_URL) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["DATABASE_URL"],
+      message: "DATABASE_URL, POSTGRES_PRISMA_URL ou POSTGRES_URL e obrigatorio em producao.",
+    });
+  }
 
   const requiredR2 = ["R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const;
   for (const key of requiredR2) {
@@ -71,6 +79,14 @@ if (!parsed.success) {
 
 const authSecret = parsed.data.AUTH_SECRET ?? parsed.data.NEXTAUTH_SECRET ?? DEV_AUTH_SECRET;
 
+const databaseUrl =
+  parsed.data.DATABASE_URL ??
+  parsed.data.POSTGRES_PRISMA_URL ??
+  parsed.data.POSTGRES_URL ??
+  "postgresql://postgres:postgres@localhost:5432/autismcad";
+
+const databaseUrlUnpooled = parsed.data.DATABASE_URL_UNPOOLED ?? parsed.data.POSTGRES_URL_NON_POOLING;
+
 const requireDbTransactions =
   parsed.data.REQUIRE_DB_TRANSACTIONS ?? (parsed.data.NODE_ENV === "production" ? 1 : 0);
 
@@ -87,5 +103,7 @@ export const env = {
     }
     return authSecret;
   },
+  DATABASE_URL: databaseUrl,
+  DATABASE_URL_UNPOOLED: databaseUrlUnpooled,
   REQUIRE_DB_TRANSACTIONS: requireDbTransactions,
 };
