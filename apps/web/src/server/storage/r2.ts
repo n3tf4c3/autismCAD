@@ -82,6 +82,11 @@ export function getR2Client(): S3Client {
     region: env.R2_REGION,
     endpoint: resolveEndpoint(),
     forcePathStyle: true, // Cloudflare R2 works reliably with path-style URLs.
+    // R2 nao suporta o checksum padrao (x-amz-checksum-crc32) que o AWS SDK v3 passou a
+    // exigir por padrao (>= 3.729). Sem isto, a URL pre-assinada de PUT inclui o checksum
+    // e o upload direto do browser quebra. WHEN_REQUIRED so envia quando a operacao exige.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: env.R2_ACCESS_KEY_ID!,
       secretAccessKey: env.R2_SECRET_ACCESS_KEY!,
