@@ -3,7 +3,12 @@ import { Pressable, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import type { EvolutivoReport } from "@/api/types";
-import { Button, Card, H1, H2, Label, Muted, OptionRow, Screen, theme } from "@/ui";
+import {
+  buildComportamentoResumo,
+  buildDesempenhoResumo,
+  type SkillRow,
+} from "@/domain/devolutiva";
+import { Button, Card, Field, H1, H2, Label, Muted, OptionRow, Screen, theme } from "@/ui";
 
 type Mode = "diario" | "mensal";
 
@@ -32,6 +37,23 @@ function fmtDateBr(s: string): string {
   const [y, m, day] = s.split("-");
   return `${day}/${m}/${y}`;
 }
+// Aceita dd/mm/aaaa (ou com - .) e retorna a data, ou null se invalida.
+function parseBrDate(input: string): Date | null {
+  const m = input.trim().match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+  return d;
+}
+function fmtHour(value?: string | null): string {
+  if (!value) return "-";
+  const raw = String(value);
+  return /^\d{2}:\d{2}/.test(raw) ? raw.slice(0, 5) : raw;
+}
 
 export default function Devolutiva() {
   const { authFetch } = useAuth();
@@ -41,9 +63,15 @@ export default function Devolutiva() {
   // Espelha a web: Diario = um dia (from=to); Mensal = mes inteiro (1o..ultimo dia).
   const [mode, setMode] = useState<Mode>("diario");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const [dayInput, setDayInput] = useState(() => fmtDateBr(ymd(new Date())));
   const [report, setReport] = useState<EvolutivoReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Mantem o campo de texto em sincronia quando o dia muda pelas setas.
+  useEffect(() => {
+    setDayInput(fmtDateBr(ymd(anchor)));
+  }, [anchor]);
 
   const periodo = useMemo(() => {
     if (mode === "diario") {
@@ -82,7 +110,20 @@ export default function Devolutiva() {
     setAnchor((d) => (mode === "diario" ? addDays(d, dir) : addMonths(d, dir)));
   }
 
+  function consultarDia() {
+    const parsed = parseBrDate(dayInput);
+    if (!parsed) {
+      setError("Data invalida. Use o formato dd/mm/aaaa.");
+      return;
+    }
+    setError(null);
+    setAnchor(parsed); // dispara load() via periodo
+  }
+
   const ind = report?.indicadores;
+  const desempenho = useMemo(() => buildDesempenhoResumo(report?.evolucoes), [report]);
+  const comportamento = useMemo(() => buildComportamentoResumo(report?.evolucoes), [report]);
+  const atendimentos = report?.atendimentos ?? [];
   const semDados = !loading && !!report && (ind?.totalAtendimentos ?? 0) === 0;
 
   return (
@@ -90,7 +131,7 @@ export default function Devolutiva() {
       <H1>Devolutiva</H1>
       <Muted>{params.pacienteNome ?? report?.paciente?.nome ?? `Paciente #${pacienteId}`}</Muted>
 
-      {/* Seletor de devolutiva: modo + periodo (como na web) */}
+      {/* Seletor: modo + navegacao + (no diario) campo de dia digitavel */}
       <Card>
         <OptionRow options={MODE_OPTIONS} value={mode} onChange={setMode} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -104,6 +145,24 @@ export default function Devolutiva() {
             <Text style={navArrowStyle}>{"▶"}</Text>
           </Pressable>
         </View>
+        {mode === "diario" ? (
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="Dia (dd/mm/aaaa)"
+                value={dayInput}
+                onChangeText={setDayInput}
+                onSubmitEditing={consultarDia}
+                placeholder="dd/mm/aaaa"
+                keyboardType="numbers-and-punctuation"
+                autoCapitalize="none"
+              />
+            </View>
+            <View style={{ minWidth: 110 }}>
+              <Button title="Consultar dia" onPress={consultarDia} loading={loading} />
+            </View>
+          </View>
+        ) : null}
       </Card>
 
       {error ? <Text style={{ color: theme.danger }}>{error}</Text> : null}
@@ -122,40 +181,117 @@ export default function Devolutiva() {
         </Card>
       ) : null}
 
-      {report?.resumoAutomatico?.texto ? (
+      {/* Resumo rapido: Independente / Com ajuda / Nao fez */}
+      {report ? (
         <Card>
-          <Label>Resumo</Label>
-          <Text style={{ color: theme.text, fontSize: 13 }}>{report.resumoAutomatico.texto}</Text>
+          <Label>Resumo rapido</Label>
+          <Muted>{desempenho.total} meta(s) avaliada(s) no periodo.</Muted>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {desempenho.rows.map((row) => (
+              <SummaryCard
+                key={row.key}
+                label={row.label}
+                value={row.value}
+                pct={row.pct}
+                tone={row.key === "independente" ? "ok" : row.key === "ajuda" ? "warn" : "danger"}
+              />
+            ))}
+          </View>
+        </Card>
+      ) : null}
+
+      {/* Habilidades trabalhadas */}
+      {desempenho.rowsBySkill.length > 0 ? (
+        <View style={{ gap: 8 }}>
+          <H2>Habilidades trabalhadas</H2>
+          {desempenho.rowsBySkill.map((skill) => (
+            <Card key={skill.key}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.text, fontWeight: "600", flex: 1 }}>{skill.label}</Text>
+                <Text style={{ color: theme.muted, fontSize: 12 }}>{skill.total} registro(s)</Text>
+              </View>
+              <StackedBar skill={skill} />
+              <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+                <Legend color={theme.ok} text={`Independente ${skill.independente} (${skill.pctIndependente}%)`} />
+                <Legend color={theme.accent} text={`Com ajuda ${skill.ajuda} (${skill.pctAjuda}%)`} />
+                <Legend color={theme.danger} text={`Nao fez ${skill.nao_fez} (${skill.pctNaoFez}%)`} />
+              </View>
+            </Card>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Grafico de comportamento */}
+      {comportamento.total > 0 ? (
+        <Card>
+          <Label>Grafico de comportamento</Label>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <SummaryCard
+              label="Negativos"
+              value={comportamento.totalNegativo}
+              pct={comportamento.pctNegativo}
+              tone="danger"
+            />
+            <SummaryCard
+              label="Positivos"
+              value={comportamento.totalPositivo}
+              pct={comportamento.pctPositivo}
+              tone="ok"
+            />
+            <SummaryCard
+              label="Resultado"
+              value={`${comportamento.resultado.positivo}/${comportamento.resultado.parcial}/${comportamento.resultado.negativo}`}
+              tone="warn"
+            />
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: theme.muted, fontSize: 12, fontWeight: "600" }}>Top comportamentos negativos</Text>
+            {comportamento.rowsNegativo.length ? (
+              comportamento.rowsNegativo.map((r) => (
+                <BehaviorRow key={r.key} label={r.label} value={r.value} pct={r.pct} color={theme.danger} />
+              ))
+            ) : (
+              <Muted>Sem itens negativos registrados.</Muted>
+            )}
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: theme.muted, fontSize: 12, fontWeight: "600" }}>Top comportamentos positivos</Text>
+            {comportamento.rowsPositivo.length ? (
+              comportamento.rowsPositivo.map((r) => (
+                <BehaviorRow key={r.key} label={r.label} value={r.value} pct={r.pct} color={theme.ok} />
+              ))
+            ) : (
+              <Muted>Sem itens positivos registrados.</Muted>
+            )}
+          </View>
         </Card>
       ) : null}
 
       {report?.destaques?.ultimasObservacoes && report.destaques.ultimasObservacoes.length > 0 ? (
         <View style={{ gap: 8 }}>
-          <H2>Ultimas observacoes</H2>
+          <H2>Devolutivas do profissional</H2>
           {report.destaques.ultimasObservacoes.map((o, i) => (
             <Card key={i}>
-              <Muted>{o.data} · {o.profissional_nome ?? ""}</Muted>
+              <Muted>{fmtDateBr(o.data.slice(0, 10))} · {o.profissional_nome ?? ""}</Muted>
               <Text style={{ color: theme.text, fontSize: 13 }}>{o.texto}</Text>
             </Card>
           ))}
         </View>
       ) : null}
 
-      {report?.evolucoes && report.evolucoes.length > 0 ? (
+      {/* Atendimentos do dia/periodo */}
+      {atendimentos.length > 0 ? (
         <View style={{ gap: 8 }}>
-          <H2>Evolucoes</H2>
-          {report.evolucoes.map((e) => (
-            <Card key={e.id}>
-              <Muted>{e.data} · {e.profissional_nome ?? ""}</Muted>
-              {e.payload?.titulo ? (
-                <Text style={{ color: theme.text, fontWeight: "600" }}>{e.payload.titulo}</Text>
-              ) : null}
-              {e.payload?.descricao ? (
-                <Text style={{ color: theme.text, fontSize: 13 }}>{e.payload.descricao}</Text>
-              ) : null}
-              {e.payload?.conduta ? (
-                <Text style={{ color: theme.muted, fontSize: 12 }}>Conduta: {e.payload.conduta}</Text>
-              ) : null}
+          <H2>Atendimentos ({atendimentos.length})</H2>
+          {atendimentos.map((a) => (
+            <Card key={a.id}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.text, fontWeight: "600" }}>
+                  {fmtHour(a.hora_inicio)} - {fmtHour(a.hora_fim)}
+                </Text>
+                <Text style={{ color: theme.muted, fontSize: 12 }}>{a.presenca}</Text>
+              </View>
+              <Muted>{a.profissional_nome ?? "Profissional"} · {a.duracao_min || "-"} min</Muted>
             </Card>
           ))}
         </View>
@@ -176,11 +312,80 @@ const navBtnStyle = {
 
 const navArrowStyle = { color: theme.accent, fontSize: 16, fontWeight: "700" } as const;
 
+const TONE_COLOR = { ok: theme.ok, warn: theme.accent, danger: theme.danger } as const;
+
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <View>
       <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "700" }}>{value}</Text>
       <Text style={{ color: theme.muted, fontSize: 12 }}>{label}</Text>
+    </View>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  pct,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  pct?: number;
+  tone: keyof typeof TONE_COLOR;
+}) {
+  const color = TONE_COLOR[tone];
+  return (
+    <View
+      style={{
+        flex: 1,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 10,
+        padding: 10,
+        gap: 2,
+      }}
+    >
+      <Text style={{ color: theme.muted, fontSize: 11, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color, fontSize: 18, fontWeight: "700" }}>{value}</Text>
+      {pct != null ? <Text style={{ color: theme.muted, fontSize: 11 }}>{pct}%</Text> : null}
+    </View>
+  );
+}
+
+function StackedBar({ skill }: { skill: SkillRow }) {
+  return (
+    <View style={{ flexDirection: "row", height: 8, borderRadius: 999, overflow: "hidden", backgroundColor: theme.border }}>
+      {skill.pctIndependente > 0 ? (
+        <View style={{ width: `${skill.pctIndependente}%`, backgroundColor: theme.ok }} />
+      ) : null}
+      {skill.pctAjuda > 0 ? <View style={{ width: `${skill.pctAjuda}%`, backgroundColor: theme.accent }} /> : null}
+      {skill.pctNaoFez > 0 ? <View style={{ width: `${skill.pctNaoFez}%`, backgroundColor: theme.danger }} /> : null}
+    </View>
+  );
+}
+
+function Legend({ color, text }: { color: string; text: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+      <Text style={{ color: theme.muted, fontSize: 11 }}>{text}</Text>
+    </View>
+  );
+}
+
+function BehaviorRow({ label, value, pct, color }: { label: string; value: number; pct: number; color: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <Text style={{ color: theme.text, fontSize: 13 }}>{label}</Text>
+        <Text style={{ color: theme.muted, fontSize: 12 }}>
+          {value} ({pct}%)
+        </Text>
+      </View>
+      <View style={{ height: 6, borderRadius: 999, overflow: "hidden", backgroundColor: theme.border }}>
+        <View style={{ width: `${pct}%`, height: "100%", backgroundColor: color }} />
+      </View>
     </View>
   );
 }
