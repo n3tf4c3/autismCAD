@@ -19,6 +19,15 @@ export type Paciente = {
   foto?: string | null;
 };
 
+// Payload JSONB da evolucao: campos exibidos diretamente + chaves usadas pelas agregacoes
+// (itensDesempenho/itens, comportamentos) via index signature.
+export type EvolucaoPayload = {
+  titulo?: string;
+  conduta?: string;
+  descricao?: string;
+  [key: string]: unknown;
+};
+
 // Espelha o retorno de consolidateEvolutivoReport (relatorios.service.ts).
 export type EvolutivoReport = {
   paciente: { id: number; nome: string };
@@ -37,14 +46,19 @@ export type EvolutivoReport = {
     }[];
   };
   resumoAutomatico?: { texto?: string };
+  atendimentos?: {
+    id: number;
+    data: string;
+    hora_inicio?: string | null;
+    hora_fim?: string | null;
+    profissional_nome?: string | null;
+    presenca: string;
+    duracao_min: number;
+  }[];
   evolucoes?: {
     id: number;
     data: string;
     profissional_nome?: string | null;
-    payload?: {
-      titulo?: string;
-      conduta?: string;
-      descricao?: string;
-    } | null;
+    payload?: EvolucaoPayload | null;
   }[];
 };
