@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
-import { roleCanon, useAuth } from "@/auth/AuthContext";
+import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/api/client";
 import { Button, ErrorText, Field, H1, Muted, Screen } from "@/ui";
 

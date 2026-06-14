@@ -30,14 +30,14 @@ export type EvolutivoReport = {
     taxaPresencaPercent?: number;
   };
   destaques?: {
-    ultimasObservacoes?: Array<{
+    ultimasObservacoes?: {
       data: string;
       profissional_nome?: string | null;
       texto: string;
-    }>;
+    }[];
   };
   resumoAutomatico?: { texto?: string };
-  evolucoes?: Array<{
+  evolucoes?: {
     id: number;
     data: string;
     profissional_nome?: string | null;
@@ -46,5 +46,5 @@ export type EvolutivoReport = {
       conduta?: string;
       descricao?: string;
     } | null;
-  }>;
+  }[];
 };

@@ -118,7 +118,7 @@ export function OptionRow<T extends string>({
   value,
   onChange,
 }: {
-  options: ReadonlyArray<{ value: T; label: string }>;
+  options: readonly { value: T; label: string }[];
   value: T | "";
   onChange: (v: T) => void;
 }) {
