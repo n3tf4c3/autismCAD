@@ -130,7 +130,7 @@ export function buildEvolucaoPayload(state: EvolucaoFormState): Record<string, u
         reforcador: reforcador || null,
       };
     })
-    .filter(Boolean) as Array<Record<string, unknown>>;
+    .filter(Boolean) as Record<string, unknown>[];
 
   const metas = itensDesempenho
     .map((i) => String(i.opcao || i.habilidade || "").trim())

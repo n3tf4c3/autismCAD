@@ -248,7 +248,7 @@ function BehaviorPicker({
 }: {
   titulo: string;
   tipo: "negativo" | "positivo";
-  options: ReadonlyArray<{ value: string; label: string }>;
+  options: readonly { value: string; label: string }[];
   selected: BehaviorItem[];
   onAdd: (tipo: "negativo" | "positivo", value: string, label: string) => void;
   onQty: (tipo: "negativo" | "positivo", value: string, qty: number) => void;
