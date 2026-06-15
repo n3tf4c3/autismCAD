@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CURRENT_PRIVACY_POLICY_VERSION } from "@autismcad/shared/policy";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade — Girassóis+",
@@ -7,9 +8,9 @@ export const metadata: Metadata = {
     "Como a Clínica Girassóis coleta, usa, compartilha e protege os dados pessoais no aplicativo Girassóis+ e na plataforma web.",
 };
 
-// Versão da política. Ao alterar o conteúdo, suba a versão e a data — o app usa isso
-// para exigir reconsentimento (ver plano de lançamento, bloco LGPD).
-const POLICY_VERSION = "1.0";
+// Versão vigente vem de @autismcad/shared/policy — ao subir lá, o app exige
+// reconsentimento (ver plano de lançamento, bloco LGPD). Atualize a data junto.
+const POLICY_VERSION = CURRENT_PRIVACY_POLICY_VERSION;
 const POLICY_DATE = "15 de junho de 2026";
 // TODO(clínica): confirmar razão social, CNPJ, endereço e e-mail do encarregado (DPO).
 const CONTROLLER = "Clínica Girassóis";

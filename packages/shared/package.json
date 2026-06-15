@@ -7,7 +7,8 @@
     "./datetime": "./src/datetime.ts",
     "./normalize": "./src/normalize.ts",
     "./errors": "./src/errors.ts",
-    "./plano-ensino": "./src/plano-ensino.ts"
+    "./plano-ensino": "./src/plano-ensino.ts",
+    "./policy": "./src/policy.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

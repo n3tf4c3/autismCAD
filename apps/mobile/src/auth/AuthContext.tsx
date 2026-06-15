@@ -14,6 +14,7 @@ export type AuthUser = {
   nome: string;
   email: string;
   role: string;
+  consentRequired?: boolean;
 };
 
 type LoginResponse = {
@@ -34,6 +35,8 @@ type AuthState = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  // marca o consentimento como aceito localmente (após o POST /consentimento dar certo).
+  markConsentAccepted: () => Promise<void>;
   // fetch autenticado com refresh automatico em 401 (uma tentativa).
   authFetch: <T>(path: string, options?: ApiRequest) => Promise<T>;
 };
@@ -110,6 +113,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [persist]
   );
 
+  const markConsentAccepted = useCallback(async () => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, consentRequired: false };
+      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const authFetch = useCallback(
     async <T,>(path: string, options: ApiRequest = {}): Promise<T> => {
       try {
@@ -137,8 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<AuthState>(
-    () => ({ user, loading, login, logout, authFetch }),
-    [user, loading, login, logout, authFetch]
+    () => ({ user, loading, login, logout, markConsentAccepted, authFetch }),
+    [user, loading, login, logout, markConsentAccepted, authFetch]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

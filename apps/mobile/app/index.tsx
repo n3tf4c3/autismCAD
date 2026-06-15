@@ -15,6 +15,10 @@ export default function Index() {
       router.replace("/login");
       return;
     }
+    if (user.consentRequired) {
+      router.replace("/consentimento");
+      return;
+    }
     const role = roleCanon(user.role);
     if (role === "RESPONSAVEL") router.replace("/pacientes");
     else router.replace("/agenda");
