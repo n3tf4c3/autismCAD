@@ -3,7 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import type { Atendimento } from "@/api/types";
-import { Button, Card, Field, H1, Muted, Screen, theme } from "@/ui";
+import { Avatar, Button, Card, DayStrip, Field, Muted, Screen, StatusChip, Sunflower, theme } from "@/ui";
 
 function ymd(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -31,6 +31,12 @@ function parseBrDate(input: string): Date | null {
   if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
   return d;
 }
+function presencaTone(presenca?: string | null): "ok" | "accent" {
+  return /presen|confirm/i.test(presenca ?? "") ? "ok" : "accent";
+}
+function presencaLabel(presenca?: string | null): string {
+  return /presen|confirm/i.test(presenca ?? "") ? "Confirmado" : "Pendente";
+}
 
 export default function Agenda() {
   const { user, loading: authLoading, authFetch, logout } = useAuth();
@@ -43,6 +49,13 @@ export default function Agenda() {
 
   const selectedDay = useMemo(() => ymd(anchor), [anchor]);
   const isToday = selectedDay === ymd(new Date());
+  // Tira de 5 dias centrada na data selecionada (anda dia a dia ao tocar nas pontas).
+  const stripDays = useMemo(() => [-2, -1, 0, 1, 2].map((n) => addDays(anchor, n)), [anchor]);
+  const greeting = useMemo(
+    () => anchor.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short" }),
+    [anchor]
+  );
+  const firstName = (user?.nome ?? "").trim().split(/\s+/)[0] ?? "";
 
   // Mantem o campo de texto em sincronia quando o dia muda pelas setas.
   useEffect(() => {
@@ -75,10 +88,6 @@ export default function Agenda() {
     load();
   }, [authLoading, user, load]);
 
-  function step(dir: -1 | 1) {
-    setAnchor((d) => addDays(d, dir));
-  }
-
   function consultarDia() {
     const parsed = parseBrDate(dayInput);
     if (!parsed) {
@@ -91,50 +100,55 @@ export default function Agenda() {
 
   return (
     <Screen>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <H1>Agenda</H1>
-        <Button title="Sair" variant="ghost" onPress={logout} />
+      {/* Header: saudacao + nome + avatar do profissional */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: theme.muted, fontSize: 13, textTransform: "capitalize" }}>{greeting}</Text>
+          <Text style={{ color: theme.text, fontSize: 22, fontWeight: "800" }}>Olá, {firstName}</Text>
+        </View>
+        <Avatar name={user?.nome} size={46} />
       </View>
-      <Muted>{user?.nome}</Muted>
 
-      {/* Seletor de dia: setas + campo dd/mm/aaaa */}
-      <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Pressable onPress={() => step(-1)} hitSlop={12} style={navBtnStyle}>
-            <Text style={navArrowStyle}>{"◀"}</Text>
-          </Pressable>
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}>
-            {fmtDateBr(selectedDay)}
-            {isToday ? "  (hoje)" : ""}
-          </Text>
-          <Pressable onPress={() => step(1)} hitSlop={12} style={navBtnStyle}>
-            <Text style={navArrowStyle}>{"▶"}</Text>
-          </Pressable>
+      <DayStrip days={stripDays} selected={anchor} onSelect={setAnchor} />
+
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text style={{ color: theme.text, fontSize: 17, fontWeight: "700" }}>
+          {isToday ? "Atendimentos de hoje" : "Atendimentos do dia"}
+        </Text>
+        <Text style={{ color: theme.accent, fontSize: 17, fontWeight: "800" }}>{items.length}</Text>
+      </View>
+
+      {/* Campo de data avancado (saltar para qualquer dia) */}
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="Ir para (dd/mm/aaaa)"
+            value={dayInput}
+            onChangeText={setDayInput}
+            onSubmitEditing={consultarDia}
+            placeholder="dd/mm/aaaa"
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+          />
         </View>
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Field
-              label="Dia (dd/mm/aaaa)"
-              value={dayInput}
-              onChangeText={setDayInput}
-              onSubmitEditing={consultarDia}
-              placeholder="dd/mm/aaaa"
-              keyboardType="numbers-and-punctuation"
-              autoCapitalize="none"
-            />
-          </View>
-          <View style={{ minWidth: 100 }}>
-            <Button title="Consultar" onPress={consultarDia} loading={loading} />
-          </View>
+        <View style={{ minWidth: 100 }}>
+          <Button title="Consultar" onPress={consultarDia} loading={loading} />
         </View>
-        {!isToday ? (
-          <Button title="Voltar para hoje" variant="ghost" onPress={() => setAnchor(new Date())} />
-        ) : null}
-      </Card>
+      </View>
+      {!isToday ? (
+        <Button title="Voltar para hoje" variant="ghost" onPress={() => setAnchor(new Date())} />
+      ) : null}
 
       {error ? <Text style={{ color: theme.danger }}>{error}</Text> : null}
+
       {!loading && items.length === 0 ? (
-        <Muted>Nenhum atendimento para {isToday ? "hoje" : "este dia"}.</Muted>
+        <View style={{ alignItems: "center", gap: 8, paddingVertical: 28 }}>
+          <View style={styles_emptyHalo}>
+            <Sunflower size={40} />
+          </View>
+          <Text style={{ color: theme.text, fontSize: 16, fontWeight: "700" }}>Nenhum atendimento</Text>
+          <Muted>Não há atendimentos para {isToday ? "hoje" : "este dia"}.</Muted>
+        </View>
       ) : null}
 
       <View style={{ gap: 10 }}>
@@ -153,29 +167,41 @@ export default function Agenda() {
             }
           >
             <Card>
-              <Text style={{ color: theme.text, fontWeight: "600", fontSize: 15 }}>
-                {a.pacienteNome ?? `Paciente #${a.pacienteId ?? "?"}`}
-              </Text>
-              <Muted>
-                {(a.horaInicio ?? "--")}{a.horaFim ? ` - ${a.horaFim}` : ""} · {a.profissionalNome ?? ""}
-              </Muted>
-              <Text style={{ color: theme.accent, fontSize: 13 }}>Registrar evolucao →</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={{ minWidth: 56 }}>
+                  <Text style={{ color: theme.accent, fontSize: 16, fontWeight: "800" }}>{a.horaInicio ?? "--"}</Text>
+                  {a.horaFim ? <Text style={{ color: theme.muted, fontSize: 12 }}>{a.horaFim}</Text> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.text, fontWeight: "700", fontSize: 15 }}>
+                    {a.pacienteNome ?? `Paciente #${a.pacienteId ?? "?"}`}
+                  </Text>
+                  {a.profissionalNome ? <Muted>{a.profissionalNome}</Muted> : null}
+                </View>
+                <StatusChip label={presencaLabel(a.presenca)} tone={presencaTone(a.presenca)} />
+              </View>
             </Card>
           </Pressable>
         ))}
       </View>
 
-      <Button title="Atualizar" variant="ghost" onPress={load} loading={loading} />
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Button title="Atualizar" variant="ghost" onPress={load} loading={loading} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button title="Sair" variant="ghost" onPress={logout} />
+        </View>
+      </View>
     </Screen>
   );
 }
 
-const navBtnStyle = {
-  paddingHorizontal: 14,
-  paddingVertical: 6,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: theme.border,
+const styles_emptyHalo = {
+  width: 84,
+  height: 84,
+  borderRadius: 42,
+  backgroundColor: "rgba(245,160,90,0.12)",
+  alignItems: "center",
+  justifyContent: "center",
 } as const;
-
-const navArrowStyle = { color: theme.accent, fontSize: 16, fontWeight: "700" } as const;

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/api/client";
-import { Button, ErrorText, Field, H1, Muted, Screen } from "@/ui";
+import { BrandHero, Button, ErrorText, Field, Muted, Screen, theme } from "@/ui";
 
 export default function Login() {
   const { login } = useAuth();
@@ -30,10 +30,12 @@ export default function Login() {
 
   return (
     <Screen>
-      <View style={{ height: 40 }} />
-      <H1>AutismCAD</H1>
-      <Muted>Acesse com seu e-mail e senha.</Muted>
       <View style={{ height: 12 }} />
+      <BrandHero title="Girassóis+" tagline="Cuidado e desenvolvimento" />
+      <View style={{ height: 8 }} />
+      <Text style={{ color: theme.accent, fontSize: 24, fontWeight: "800" }}>Bem-vindo(a)</Text>
+      <Muted>Entre com suas credenciais.</Muted>
+      <View style={{ height: 4 }} />
       <Field
         label="E-mail"
         value={email}
@@ -51,6 +53,17 @@ export default function Login() {
       />
       <ErrorText>{error}</ErrorText>
       <Button title="Entrar" onPress={onSubmit} loading={busy} disabled={!email || !password} />
+      <Pressable
+        onPress={() =>
+          Alert.alert(
+            "Esqueci minha senha",
+            "Para redefinir sua senha, fale com a administração da clínica."
+          )
+        }
+        style={{ alignSelf: "center", paddingVertical: 8 }}
+      >
+        <Text style={{ color: theme.muted, fontSize: 13 }}>Esqueci minha senha</Text>
+      </Pressable>
     </Screen>
   );
 }
