@@ -8,7 +8,20 @@ import {
   buildDesempenhoResumo,
   type SkillRow,
 } from "@/domain/devolutiva";
-import { Button, Card, Field, H1, H2, Label, Muted, OptionRow, Screen, theme } from "@/ui";
+import {
+  Avatar,
+  Button,
+  Card,
+  Field,
+  H2,
+  IndicatorCard,
+  Label,
+  Muted,
+  Screen,
+  SegmentedToggle,
+  theme,
+  WeeklyBars,
+} from "@/ui";
 
 type Mode = "diario" | "mensal";
 
@@ -131,15 +144,33 @@ export default function Devolutiva() {
   const comportamento = useMemo(() => buildComportamentoResumo(report?.evolucoes), [report]);
   const atendimentos = report?.atendimentos ?? [];
   const semDados = !loading && !!report && (ind?.totalAtendimentos ?? 0) === 0;
+  const pacienteNome = params.pacienteNome ?? report?.paciente?.nome ?? `Paciente #${pacienteId}`;
+  const metaIndep = desempenho.rows.find((r) => r.key === "independente")?.value ?? 0;
+  const metaValor = desempenho.total > 0 ? `${metaIndep}/${desempenho.total}` : "—";
+  // Atendimentos por semana do mes (4 barras) — derivado dos dados reais, sem tocar no dominio.
+  const weeklyData = useMemo(() => {
+    const weeks = [0, 0, 0, 0];
+    for (const a of report?.atendimentos ?? []) {
+      const day = Number(String(a.data ?? "").slice(8, 10));
+      if (!day) continue;
+      weeks[Math.min(3, Math.floor((day - 1) / 7))] += 1;
+    }
+    return weeks;
+  }, [report]);
 
   return (
     <Screen>
-      <H1>Devolutiva</H1>
-      <Muted>{params.pacienteNome ?? report?.paciente?.nome ?? `Paciente #${pacienteId}`}</Muted>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Avatar name={pacienteNome} size={72} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: theme.text, fontSize: 22, fontWeight: "800" }}>{pacienteNome}</Text>
+          <Muted>Acompanhamento terapêutico</Muted>
+        </View>
+      </View>
 
       {/* Seletor: modo + navegacao + (no diario) campo de dia digitavel */}
       <Card>
-        <OptionRow options={MODE_OPTIONS} value={mode} onChange={setMode} />
+        <SegmentedToggle options={MODE_OPTIONS} value={mode} onChange={setMode} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={() => step(-1)} hitSlop={12} style={navBtnStyle}>
             <Text style={navArrowStyle}>{"◀"}</Text>
@@ -176,14 +207,17 @@ export default function Devolutiva() {
       {semDados ? <Muted>Sem registros neste {mode === "diario" ? "dia" : "mes"}.</Muted> : null}
 
       {ind ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <IndicatorCard label="Sessões" value={ind.totalAtendimentos ?? 0} />
+          <IndicatorCard label="Presença" value={`${ind.taxaPresencaPercent ?? 0}%`} tone="ok" />
+          <IndicatorCard label="Metas" value={metaValor} tone="accent" />
+        </View>
+      ) : null}
+
+      {mode === "mensal" && atendimentos.length > 0 ? (
         <Card>
-          <Label>Indicadores</Label>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-            <Stat label="Atendimentos" value={ind.totalAtendimentos ?? 0} />
-            <Stat label="Presentes" value={ind.presentes ?? 0} />
-            <Stat label="Ausentes" value={ind.ausentes ?? 0} />
-            <Stat label="Presenca" value={`${ind.taxaPresencaPercent ?? 0}%`} />
-          </View>
+          <Label>Engajamento por semana</Label>
+          <WeeklyBars data={weeklyData} labels={["S1", "S2", "S3", "S4"]} />
         </Card>
       ) : null}
 
@@ -319,15 +353,6 @@ const navBtnStyle = {
 const navArrowStyle = { color: theme.accent, fontSize: 16, fontWeight: "700" } as const;
 
 const TONE_COLOR = { ok: theme.ok, warn: theme.accent, danger: theme.danger } as const;
-
-function Stat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <View>
-      <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "700" }}>{value}</Text>
-      <Text style={{ color: theme.muted, fontSize: 12 }}>{label}</Text>
-    </View>
-  );
-}
 
 function SummaryCard({
   label,

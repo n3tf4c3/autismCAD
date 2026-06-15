@@ -109,7 +109,12 @@ export default function EvolucaoForm() {
 
   return (
     <Screen>
-      <H1>Nova evolucao</H1>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Text style={{ color: theme.accent, fontSize: 30, fontWeight: "800", lineHeight: 32 }}>‹</Text>
+        </Pressable>
+        <H1>Nova evolução</H1>
+      </View>
       <Muted>
         {params.pacienteNome ? params.pacienteNome : `Paciente #${pacienteId}`}
         {atendimentoId ? ` · atendimento #${atendimentoId}` : ""}
