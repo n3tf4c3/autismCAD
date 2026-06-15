@@ -36,6 +36,10 @@ export const users = pgTable(
       .default("profissional")
       .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
+    // Consentimento LGPD: versão da Política de Privacidade aceita + quando. Nulo = nunca
+    // aceitou (precisa consentir). Reconsentimento quando a versão vigente muda.
+    politicaVersaoAceita: varchar("politica_versao_aceita", { length: 16 }),
+    politicaAceitaEm: timestamp("politica_aceita_em", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(
       (): AnyPgColumn => users.id,

@@ -2,6 +2,7 @@
 import { getAuthSession } from "@/server/auth/session";
 import { hasPermission, loadUserAccess } from "@/server/auth/access";
 import { parseSessionUserId } from "@/server/auth/user-id";
+import { isPolicyConsentRequired } from "@/server/modules/consent/consent.service";
 import { SidebarClient } from "@/components/sidebar/sidebar.client";
 import { TopbarClient } from "@/components/topbar.client";
 import { ShellProvider } from "@/components/shell/shell-provider.client";
@@ -25,12 +26,20 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const userId = parseSessionUserId(session.user.id);
+
+  // Gate de consentimento LGPD: quem não aceitou a versão vigente da política vai para a
+  // tela de consentimento antes de acessar qualquer área protegida.
+  if (await isPolicyConsentRequired(userId)) {
+    redirect("/consentimento");
+  }
+
   const userName = session.user.name || "Usuário";
   const initials = initialsFromName(userName);
 
   // Navegacao montada com permissoes efetivas frescas (achado 42): so exibe links
   // que o usuario realmente pode abrir, evitando divergencia entre UI e RBAC.
-  const access = await loadUserAccess(parseSessionUserId(session.user.id));
+  const access = await loadUserAccess(userId);
   const canonicalRole = access.canonicalRole ?? access.role;
   const isResponsavel = canonicalRole === "RESPONSAVEL";
   const isAdminGeral = canonicalRole === "ADMIN_GERAL";

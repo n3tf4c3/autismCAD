@@ -15,6 +15,13 @@
       "when": 1781309745402,
       "tag": "0001_pretty_aqueduct",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781565530619,
+      "tag": "0002_true_mindworm",
+      "breakpoints": true
     }
   ]
 }
