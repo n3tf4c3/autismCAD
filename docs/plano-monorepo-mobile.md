@@ -2,6 +2,19 @@
 
 Data: 2026-06-11
 
+## Status em 2026-06-16
+
+Este documento e historico e descreve o plano original. O estado atual ja implementa o monorepo e o MVP mobile:
+
+- `apps/web`: app Next.js atual.
+- `apps/mobile`: app Expo com telas de login, agenda, evolucao, pacientes, devolutiva e consentimento.
+- `packages/db`: schema Drizzle, migrations e comandos `db:*`.
+- `packages/validators`: contratos Zod compartilhados.
+- `packages/shared`: utilidades puras compartilhadas.
+- API mobile versionada em `apps/web/src/app/api/v1/*`, com auth Bearer por login/refresh.
+
+As secoes abaixo devem ser lidas como registro de decisao, nao como checklist pendente.
+
 ## 1. Diagnóstico do estado atual
 
 O projeto é um app único Next.js 16 (App Router) com:

@@ -12,7 +12,7 @@ por migrations versionadas:
 npm run db:migrate
 ```
 
-A baseline `src/server/db/migrations/0000_baseline.sql` cria tabelas, índices, FKs,
+A baseline `packages/db/src/migrations/0000_baseline.sql` cria tabelas, índices, FKs,
 **funções** (`jsonb_is_positive_int_array`, `set_updated_at`) e **triggers**
 (`trg_*_set_updated_at`). O schema Drizzle referencia essas funções em `check`
 constraints. `npm run db:check` valida a consistência das migrations.
@@ -32,3 +32,11 @@ manual** das migrations (funções/triggers). Usá-lo em um ambiente persistente
 
 Regra: **nunca** rodar `db:push` apontando para um banco que não possa ser
 descartado e recriado por `db:migrate`. Para qualquer banco real, use `db:migrate`.
+
+## Localizacao atual no monorepo
+
+- Schema Drizzle: `packages/db/src/schema.ts`.
+- Migrations: `packages/db/src/migrations/`.
+- Config Drizzle: `packages/db/drizzle.config.ts`.
+- Variaveis de ambiente carregadas pelo Drizzle: `apps/web/.env.local` e `apps/web/.env`.
+- Scripts da raiz delegam para `@autismcad/db`; tambem e possivel rodar com `-w @autismcad/db`.
