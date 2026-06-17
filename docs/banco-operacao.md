@@ -31,14 +31,8 @@ A `0005` (achado 104) adiciona FK composta `evolucoes (atendimento_id, paciente_
 profissional_id) -> atendimentos`. Falha se houver evolucao cujo paciente/profissional
 nao coincida com o atendimento referenciado. Precheck (read-only, exija zero linhas):
 
-```sql
-SELECT e.id, e.atendimento_id,
-       e.paciente_id AS evo_paciente, a.paciente_id AS atend_paciente,
-       e.profissional_id AS evo_prof, a.profissional_id AS atend_prof
-FROM evolucoes e
-JOIN atendimentos a ON a.id = e.atendimento_id
-WHERE e.atendimento_id IS NOT NULL
-  AND (e.paciente_id <> a.paciente_id OR e.profissional_id <> a.profissional_id);
+```bash
+npx tsx apps/web/scripts/db/precheck-0005-evolucao-atendimento.ts
 ```
 
 ## `db:push` é proibido fora de sandbox descartável
