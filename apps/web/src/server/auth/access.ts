@@ -14,6 +14,8 @@ export type UserAccess = {
   role: string | null;
   canonicalRole: string | null;
   permissions: Set<string>;
+  // Achado 103: versao de credencial vigente, comparada com o claim 'ver' dos tokens mobile.
+  tokenVersion: number;
   user: {
     id: number;
     nome: string;
@@ -28,6 +30,7 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
       role: null,
       canonicalRole: null,
       permissions: new Set<string>(),
+      tokenVersion: 0,
       user: null,
     };
   }
@@ -38,6 +41,7 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
       nome: users.nome,
       email: users.email,
       role: users.role,
+      tokenVersion: users.tokenVersion,
     })
     .from(users)
     .where(and(eq(users.id, userId), eq(users.ativo, true), isNull(users.deletedAt)))
@@ -49,6 +53,7 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
       role: null,
       canonicalRole: null,
       permissions: new Set<string>(),
+      tokenVersion: 0,
       user: null,
     };
   }
@@ -75,6 +80,7 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
     role: user.role,
     canonicalRole,
     permissions: permissionsSet,
+    tokenVersion: user.tokenVersion,
     user: {
       id: user.id,
       nome: user.nome,

@@ -309,7 +309,10 @@ export async function updateUser(
     email: input.email.trim(),
     role: storedRoleSlug,
     updatedAt: sql`now()`,
-    ...(senha ? { senhaHash: await hashPassword(senha) } : {}),
+    // Achado 103: trocar a senha revoga os tokens Bearer mobile emitidos antes.
+    ...(senha
+      ? { senhaHash: await hashPassword(senha), tokenVersion: sql`${users.tokenVersion} + 1` }
+      : {}),
   };
 
   let removedPacienteIdsForAudit: number[] = [];

@@ -18,6 +18,7 @@ export type VerifiedUser = {
   nome: string;
   email: string;
   role: string;
+  tokenVersion: number;
 };
 
 function normalizeAttemptEmail(raw: unknown): string | null {
@@ -71,6 +72,7 @@ export async function verifyCredentials(
       senhaHash: users.senhaHash,
       role: users.role,
       ativo: users.ativo,
+      tokenVersion: users.tokenVersion,
     })
     .from(users)
     .where(
@@ -118,5 +120,11 @@ export async function verifyCredentials(
     headers,
   });
 
-  return { id: user.id, nome: user.nome, email: user.email, role: user.role };
+  return {
+    id: user.id,
+    nome: user.nome,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  };
 }
