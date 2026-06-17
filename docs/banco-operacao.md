@@ -27,11 +27,26 @@ a regra, podendo deixar aplicacao parcial (statements rodam em sequencia). Antes
 npx tsx apps/web/scripts/db/precheck-0003-constraints.ts
 ```
 
+A `0005` (achado 104) adiciona FK composta `evolucoes (atendimento_id, paciente_id,
+profissional_id) -> atendimentos`. Falha se houver evolucao cujo paciente/profissional
+nao coincida com o atendimento referenciado. Precheck (read-only, exija zero linhas):
+
+```sql
+SELECT e.id, e.atendimento_id,
+       e.paciente_id AS evo_paciente, a.paciente_id AS atend_paciente,
+       e.profissional_id AS evo_prof, a.profissional_id AS atend_prof
+FROM evolucoes e
+JOIN atendimentos a ON a.id = e.atendimento_id
+WHERE e.atendimento_id IS NOT NULL
+  AND (e.paciente_id <> a.paciente_id OR e.profissional_id <> a.profissional_id);
+```
+
 ## `db:push` é proibido fora de sandbox descartável
 
 ```bash
-# PERMITIDO apenas em banco local descartável de desenvolvimento.
-npm run db:push
+# Desabilitado por padrao (achado 105). PERMITIDO apenas em banco local descartavel,
+# com opt-in explicito:
+DB_PUSH_SANDBOX=1 npm run db:push
 ```
 
 `db:push` sincroniza o schema do Drizzle direto no banco, **sem aplicar a DDL
@@ -40,7 +55,8 @@ manual** das migrations (funções/triggers). Usá-lo em um ambiente persistente
 - criar um banco sem as funções/triggers exigidas pelos checks, ou falhar nos checks;
 - gerar drift em relação ao que `db:migrate` produz.
 
-Regra: **nunca** rodar `db:push` apontando para um banco que não possa ser
+Por isso o script **falha fechado**: sem `DB_PUSH_SANDBOX=1` ele aborta antes de tocar
+o banco. Regra: **nunca** rodar `db:push` apontando para um banco que não possa ser
 descartado e recriado por `db:migrate`. Para qualquer banco real, use `db:migrate`.
 
 ## Scripts de cleanup de payload (achados 89, 98)
