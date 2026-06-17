@@ -36,7 +36,7 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 118 | Criacao de paciente antes de uploads deixa cadastro parcial | Baixa/Media (potencial) | ABERTO |
 | 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | ABERTO |
 | 120 | Campos de versao aceitam zero/negativo em inserts diretos | Baixa (potencial) | RESOLVIDO |
-| 121 | `access_logs.status` sem dominio fechado | Baixa | ABERTO |
+| 121 | `access_logs.status` sem dominio fechado | Baixa | RESOLVIDO |
 
 ## Historico resolvido (achados 1-101)
 
