@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
+import type { PacientesListResponse } from "@autismcad/validators/api/v1";
 import type { Paciente } from "@/api/types";
 import { Avatar, Button, Card, Muted, Screen, theme } from "@/ui";
 
@@ -24,7 +25,7 @@ function PacientesContent() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await authFetch<{ items: Paciente[] }>("/api/v1/pacientes");
+      const res = await authFetch<PacientesListResponse>("/api/v1/pacientes");
       setItems(res.items ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar pacientes.");

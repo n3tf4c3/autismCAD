@@ -1,5 +1,6 @@
 import { requireApiPermission } from "@/server/auth/api-auth";
 import { pacientesQuerySchema } from "@autismcad/validators/pacientes/pacientes.schema";
+import type { PacientesListResponse } from "@autismcad/validators/api/v1";
 import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 import { withErrorHandlingNoContext } from "@/server/shared/http";
 
@@ -22,5 +23,5 @@ export const GET = withErrorHandlingNoContext(async (request: Request) => {
   });
 
   const items = await listarPacientesPorUsuario(Number(user.id), parsed);
-  return Response.json({ items });
+  return Response.json({ items } satisfies PacientesListResponse);
 });
