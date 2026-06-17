@@ -77,7 +77,7 @@ export const accessLogs = pgTable(
   (table) => [
     index("idx_access_logs_created_at").on(table.createdAt),
     index("idx_access_logs_user_id").on(table.userId),
-    // created_at desc espelha a migration 0002 (listagem mais recente primeiro).
+    // created_at desc espelha a baseline (0000_baseline; listagem mais recente primeiro).
     index("idx_access_logs_status_created_at").on(table.status, table.createdAt.desc()),
   ]
 );
@@ -235,7 +235,7 @@ export const terapeutas = pgTable(
     bairro: varchar("bairro", { length: 120 }),
     cidade: varchar("cidade", { length: 120 }),
     cep: varchar("cep", { length: 8 }),
-    // Default espelha a migration 0006 (compat de inserts diretos no banco).
+    // Default espelha a baseline (0000_baseline; compat de inserts diretos no banco).
     especialidade: varchar("especialidade", { length: 80 }).notNull().default("Nao informado"),
     observacao: text("observacao"),
     ativo: boolean("ativo").notNull().default(true),

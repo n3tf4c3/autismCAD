@@ -17,7 +17,11 @@
     "db:migrate": "npm run db:migrate -w @autismcad/db",
     "db:check": "npm run db:check -w @autismcad/db",
     "db:push": "npm run db:push -w @autismcad/db",
-    "db:studio": "npm run db:studio -w @autismcad/db"
+    "db:studio": "npm run db:studio -w @autismcad/db",
+    "db:seed:admin": "npm run db:seed:admin -w @autismcad/web",
+    "db:cleanup:evolucao": "npm run db:cleanup:evolucao -w @autismcad/web",
+    "db:cleanup:anamnese": "npm run db:cleanup:anamnese -w @autismcad/web",
+    "db:cleanup:plano-ensino": "npm run db:cleanup:plano-ensino -w @autismcad/web"
   },
   "devDependencies": {
     "turbo": "^2"
