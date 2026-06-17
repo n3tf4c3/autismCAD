@@ -371,7 +371,9 @@ export const anamnese = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege historico clinico de hard-delete acidental do paciente
+      // (fluxo normal usa soft-delete; purga deliberada deve remover os filhos por rotina).
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     payload: jsonb("payload").$type<AnamnesePayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -388,7 +390,8 @@ export const anamneseVersions = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege o historico clinico de hard-delete acidental do paciente.
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
     payload: jsonb("payload").$type<AnamneseVersionPayloadJson>().notNull(),
@@ -399,6 +402,8 @@ export const anamneseVersions = pgTable(
     index("idx_anamnese_versions_paciente_created").on(table.pacienteId, table.createdAt),
     // Achado 66: status restrito ao dominio da aplicacao.
     check("ck_anamnese_versions_status", sql`${table.status} in ('Rascunho', 'Finalizada')`),
+    // Achado 120: versao sempre positiva (inserts diretos nao podem criar historico invalido).
+    check("ck_anamnese_versions_version_pos", sql`${table.version} > 0`),
   ]
 );
 
@@ -408,7 +413,8 @@ export const prontuarioDocumentos = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege o historico clinico de hard-delete acidental do paciente.
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     tipo: varchar("tipo", { length: 40 }).notNull(),
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
@@ -444,6 +450,8 @@ export const prontuarioDocumentos = pgTable(
       "ck_prontuario_documentos_tipo",
       sql`${table.tipo} in ('ANAMNESE', 'PLANO_TERAPEUTICO', 'PLANO_ENSINO', 'RELATORIO_MULTIPROFISSIONAL', 'OUTRO')`
     ),
+    // Achado 120: versao sempre positiva.
+    check("ck_prontuario_documentos_version_pos", sql`${table.version} > 0`),
   ]
 );
 
@@ -453,7 +461,8 @@ export const evolucoes = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege o historico clinico de hard-delete acidental do paciente.
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     profissionalId: bigint("profissional_id", { mode: "number" })
       .notNull()
       .references(() => terapeutas.id, { onDelete: "restrict" }),
