@@ -17,6 +17,16 @@ A baseline `packages/db/src/migrations/0000_baseline.sql` cria tabelas, índices
 (`trg_*_set_updated_at`). O schema Drizzle referencia essas funções em `check`
 constraints. `npm run db:check` valida a consistência das migrations.
 
+### Precheck antes de migrations com CHECK constraints
+
+Migrations que adicionam `CHECK` (ex.: `0003`) **falham se ja houver dados que violem**
+a regra, podendo deixar aplicacao parcial (statements rodam em sequencia). Antes de
+`db:migrate` em um ambiente com dados, rode o precheck (read-only) e exija zero:
+
+```bash
+npx tsx apps/web/scripts/db/precheck-0003-constraints.ts
+```
+
 ## `db:push` é proibido fora de sandbox descartável
 
 ```bash
