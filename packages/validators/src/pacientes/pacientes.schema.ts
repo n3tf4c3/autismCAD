@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isCalendarDate } from "../common/datetime";
 
 export const conveniosPermitidos = new Set([
   "Particular",
@@ -9,8 +10,14 @@ export const conveniosPermitidos = new Set([
 
 // max(120) alinhado com varchar(120) das colunas nome_mae/nome_pai.
 const nullableTrimmed = z.string().trim().max(120).optional().nullable();
+// Achado 88: alem do formato AAAA-MM-DD, exigir data de calendario real.
 const requiredDate = (message: string) =>
-  z.string().trim().min(1, message).regex(/^\d{4}-\d{2}-\d{2}$/, message);
+  z
+    .string()
+    .trim()
+    .min(1, message)
+    .regex(/^\d{4}-\d{2}-\d{2}$/, message)
+    .refine(isCalendarDate, message);
 
 export const pacientesQuerySchema = z.object({
   id: z.coerce.number().int().positive().optional(),

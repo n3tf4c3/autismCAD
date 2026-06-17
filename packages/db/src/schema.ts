@@ -321,6 +321,8 @@ export const atendimentos = pgTable(
       "ck_atendimentos_status_repasse",
       sql`${table.statusRepasse} in ('Pendente', 'Concluido')`
     ),
+    // Achado 86/100: garante ordem de horario no banco, alem dos validators.
+    check("ck_atendimentos_hora_ordem", sql`${table.horaFim} > ${table.horaInicio}`),
     index("idx_atend_paciente").on(table.pacienteId),
     index("idx_atend_profissional").on(table.profissionalId),
     index("idx_atend_data_profissional").on(table.data, table.profissionalId),
@@ -344,7 +346,11 @@ export const agendaBloqueios = pgTable(
     }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("idx_agenda_bloqueios_prof_data").on(table.profissionalId, table.data)]
+  (table) => [
+    index("idx_agenda_bloqueios_prof_data").on(table.profissionalId, table.data),
+    // Achado 86/100: garante ordem de horario no banco, alem dos validators.
+    check("ck_agenda_bloqueios_hora_ordem", sql`${table.horaFim} > ${table.horaInicio}`),
+  ]
 );
 
 export const anamnese = pgTable(
@@ -421,6 +427,11 @@ export const prontuarioDocumentos = pgTable(
     index("idx_prontuario_documentos_deleted_at").on(table.deletedAt),
     // Achado 66: status restrito ao dominio da aplicacao.
     check("ck_prontuario_documentos_status", sql`${table.status} in ('Rascunho', 'Finalizado')`),
+    // Achado 87/100: dominio fechado de tipo, espelhando DOC_TYPES do validator.
+    check(
+      "ck_prontuario_documentos_tipo",
+      sql`${table.tipo} in ('ANAMNESE', 'PLANO_TERAPEUTICO', 'PLANO_ENSINO', 'RELATORIO_MULTIPROFISSIONAL', 'OUTRO')`
+    ),
   ]
 );
 
