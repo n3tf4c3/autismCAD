@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
+import { useClinicToday } from "@/hooks/useClinicToday";
 import type { Atendimento } from "@/api/types";
 import { Avatar, Button, Card, DayStrip, Field, Muted, Screen, StatusChip, Sunflower, theme } from "@/ui";
 
@@ -32,6 +33,12 @@ function parseBrDate(input: string): Date | null {
   if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
   return d;
 }
+// YYYY-MM-DD -> Date local (sem deslocamento de fuso).
+function parseYmdLocal(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
 function presencaTone(presenca?: string | null): "ok" | "accent" {
   return /presen|confirm/i.test(presenca ?? "") ? "ok" : "accent";
 }
@@ -55,6 +62,17 @@ function AgendaContent() {
   const [items, setItems] = useState<Atendimento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Achado 77: ao carregar, ajusta o dia padrao para o "hoje" da clinica (fuso do
+  // servidor) caso o usuario ainda nao tenha mudado o dia. So roda uma vez.
+  const clinicToday = useClinicToday();
+  const didSnapToClinicToday = useRef(false);
+  useEffect(() => {
+    if (!clinicToday || didSnapToClinicToday.current) return;
+    didSnapToClinicToday.current = true;
+    const parsed = parseYmdLocal(clinicToday);
+    if (parsed) setAnchor((prev) => (ymd(prev) === ymd(new Date()) ? parsed : prev));
+  }, [clinicToday]);
 
   const selectedDay = useMemo(() => ymd(anchor), [anchor]);
   const isToday = selectedDay === ymd(new Date());
