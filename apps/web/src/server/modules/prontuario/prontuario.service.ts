@@ -142,6 +142,21 @@ async function obterProfissionalIdDoAtendimento(
   return row.profissionalId == null ? null : Number(row.profissionalId);
 }
 
+// Achado 71: data do atendimento vinculado, para a evolucao herdar a data da sessao
+// (independente do relogio do aparelho que enviou o POST).
+async function obterDataDoAtendimento(
+  pacienteId: number,
+  atendimentoId: number
+): Promise<string | null> {
+  const [row] = await db
+    .select({ pacienteId: atendimentos.pacienteId, data: atendimentos.data })
+    .from(atendimentos)
+    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)))
+    .limit(1);
+  if (!row || Number(row.pacienteId) !== Number(pacienteId)) return null;
+  return row.data ? String(row.data).slice(0, 10) : null;
+}
+
 async function assertProfissionalPacienteValido(
   pacienteId: number,
   profissionalId: number,
@@ -414,11 +429,20 @@ export async function criarEvolucao(
   // recai sobre a role do JWT — mantido apenas para compatibilidade de chamadas legadas.
   auth?: { roleCanon: string | null; profissionalId: number | null }
 ) {
-  const dataVal = toIsoDate(input.data ?? ymdNowInClinicTz());
   const payload = sanitizeEvolucaoPayload(input.payload ?? {}).payload;
 
   const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
+
+  // Achado 71: sem `data` no input (caso do mobile), a evolucao vinculada a um
+  // atendimento herda a data dele; so cai para a data atual da clinica quando nao ha
+  // atendimento nem data informada.
+  const dataInformada = input.data
+    ? toIsoDate(input.data)
+    : atendimentoId
+      ? await obterDataDoAtendimento(pacienteId, atendimentoId)
+      : null;
+  const dataVal = dataInformada ?? toIsoDate(ymdNowInClinicTz());
 
   const profissionalRaw = input.profissionalId ?? null;
   let profissionalId = profissionalRaw ? Number(profissionalRaw) : null;

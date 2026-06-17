@@ -36,15 +36,17 @@ descartado e recriado por `db:migrate`. Para qualquer banco real, use `db:migrat
 ## Scripts de cleanup de payload (achados 89, 98)
 
 Saneiam JSONB legado (`evolucoes`, `anamnese`/`anamnese_versions`, `prontuario_documentos`
-do tipo `PLANO_ENSINO`). Expostos em `apps/web/package.json`:
+do tipo `PLANO_ENSINO`). Expostos na raiz do monorepo e em `apps/web/package.json`
+(achado 90):
 
 ```bash
 # 1) SEMPRE rode primeiro em dry-run (nao escreve nada) e revise o relatorio JSON.
-npm run db:cleanup:evolucao -w @autismcad/web
-npm run db:cleanup:anamnese -w @autismcad/web
-npm run db:cleanup:plano-ensino -w @autismcad/web
+npm run db:cleanup:evolucao
+npm run db:cleanup:anamnese
+npm run db:cleanup:plano-ensino
 
-# 2) Para aplicar, adicione --apply. Contra banco REMOTO exige confirmacao explicita:
+# 2) Para aplicar, adicione --apply. Contra banco REMOTO exige confirmacao explicita.
+#    Use a forma com -w para o encaminhamento de flags ser inequivoco:
 npm run db:cleanup:evolucao -w @autismcad/web -- --apply --yes-prod
 # ou: CLEANUP_CONFIRM=1 npm run db:cleanup:evolucao -w @autismcad/web -- --apply
 ```
