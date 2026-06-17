@@ -43,6 +43,13 @@
       "when": 1781722187886,
       "tag": "0005_famous_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781724710166,
+      "tag": "0006_slim_romulus",
+      "breakpoints": true
     }
   ]
 }
