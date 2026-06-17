@@ -21,8 +21,8 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 103 | Refresh tokens mobile stateless e nao revogaveis | Alta | ABERTO |
 | 104 | Integridade evolucoes/atendimentos sem mesmo paciente/profissional | Alta (potencial) | ABERTO |
 | 105 | `db:push`/bootstrap nao cobre funcoes/triggers manuais | Alta (potencial) | ABERTO |
-| 106 | API mobile com CORS coringa por padrao em producao | Media | ABERTO |
-| 107 | `drizzle.config.ts` com fallback silencioso para banco local | Media | ABERTO |
+| 106 | API mobile com CORS coringa por padrao em producao | Media | RESOLVIDO |
+| 107 | `drizzle.config.ts` com fallback silencioso para banco local | Media | RESOLVIDO |
 | 108 | Listagens/relatorios sem paginacao ou limite server-side | Media (potencial) | ABERTO |
 | 109 | Datas `YYYY-MM-DD` invalidas passam em contratos/normalizadores | Media | ABERTO |
 | 110 | Filtros de periodo de atendimentos como string simples | Media | ABERTO |
