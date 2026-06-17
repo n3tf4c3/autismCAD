@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isCalendarDate } from "../common/datetime";
 
 export const DOC_TYPES = [
   "ANAMNESE",
@@ -121,7 +122,12 @@ export const evolucaoPayloadSchema = z
   .passthrough();
 
 export const criarEvolucaoSchema = z.object({
-  data: z.string().trim().optional(),
+  // Achado 109: quando informada, a data deve ser de calendario real (ou vazio = usa hoje).
+  data: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || isCalendarDate(value), "Data invalida. Use AAAA-MM-DD valido")
+    .optional(),
   atendimentoId: z.coerce.number().int().positive().optional().nullable(),
   profissionalId: evolucaoProfissionalIdSchema,
   payload: evolucaoPayloadSchema.optional().default({}),
