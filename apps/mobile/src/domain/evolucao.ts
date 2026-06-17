@@ -90,7 +90,10 @@ function toIntOrNull(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const n = Number(trimmed);
-  return Number.isFinite(n) ? Math.trunc(n) : null;
+  // Achado 96: contagens nao podem ser negativas; valor invalido vira null.
+  if (!Number.isFinite(n)) return null;
+  const truncated = Math.trunc(n);
+  return truncated < 0 ? null : truncated;
 }
 
 export type EvolucaoFormState = {
