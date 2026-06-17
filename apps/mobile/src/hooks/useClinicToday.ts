@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  clinicTimeResponseSchema,
-  type ClinicTimeResponse,
-} from "@autismcad/validators/api/v1";
+import type { ClinicTimeResponse } from "@autismcad/validators/api/v1";
+import { clinicTimeResponseSchema } from "@/api/v1-schemas";
 import { useAuth } from "@/auth/AuthContext";
 
 // Achado 77: busca a data "hoje" da clinica (fuso do servidor) uma vez. Enquanto nao

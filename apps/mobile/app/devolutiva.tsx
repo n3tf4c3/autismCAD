@@ -4,10 +4,8 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
 import { useClinicToday } from "@/hooks/useClinicToday";
-import {
-  evolutivoReportResponseSchema,
-  type EvolutivoReportResponse,
-} from "@autismcad/validators/api/v1";
+import type { EvolutivoReportResponse } from "@autismcad/validators/api/v1";
+import { evolutivoReportResponseSchema } from "@/api/v1-schemas";
 import type { EvolutivoReport } from "@/api/types";
 import {
   buildComportamentoResumo,
