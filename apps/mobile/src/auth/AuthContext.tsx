@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import * as SecureStore from "expo-secure-store";
@@ -125,42 +126,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Achado 112: serializa a renovacao. Chamadas concorrentes que recebem 401 aguardam
+  // a MESMA promise de refresh, em vez de cada uma chamar /auth/refresh — evita
+  // renovacoes simultaneas e logout indevido (relevante se houver rotacao de token).
+  const refreshInFlight = useRef<Promise<RefreshResponse> | null>(null);
+
+  const runRefresh = useCallback(
+    (currentRefreshToken: string): Promise<RefreshResponse> => {
+      if (!refreshInFlight.current) {
+        refreshInFlight.current = (async () => {
+          try {
+            const refreshed = await apiRequest<RefreshResponse>("/api/v1/auth/refresh", {
+              method: "POST",
+              body: { refreshToken: currentRefreshToken },
+            });
+            await persist(refreshed);
+            // Achado 74: atualiza a role persistida com o papel efetivo do refresh,
+            // preservando o consentRequired gerido pelo fluxo de consentimento.
+            if (refreshed.user) {
+              const fresh = refreshed.user;
+              setUser((prev) => {
+                const next = prev
+                  ? { ...prev, ...fresh }
+                  : { ...fresh, consentRequired: false };
+                void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+                return next;
+              });
+            }
+            return refreshed;
+          } finally {
+            refreshInFlight.current = null;
+          }
+        })();
+      }
+      return refreshInFlight.current;
+    },
+    [persist]
+  );
+
   const authFetch = useCallback(
     async <T,>(path: string, options: ApiRequest = {}): Promise<T> => {
       try {
         return await apiRequest<T>(path, { ...options, token: accessToken });
       } catch (error) {
         if (error instanceof ApiError && error.status === 401 && refreshToken) {
-          // tenta renovar uma vez
           let refreshed: RefreshResponse;
           try {
-            refreshed = await apiRequest<RefreshResponse>("/api/v1/auth/refresh", {
-              method: "POST",
-              body: { refreshToken },
-            });
+            refreshed = await runRefresh(refreshToken);
           } catch {
             await logout();
             throw error;
-          }
-          await persist(refreshed);
-          // Achado 74: atualiza a role persistida com o papel efetivo do refresh,
-          // preservando o consentRequired gerido pelo fluxo de consentimento.
-          if (refreshed.user) {
-            const fresh = refreshed.user;
-            setUser((prev) => {
-              const next = prev
-                ? { ...prev, ...fresh }
-                : { ...fresh, consentRequired: false };
-              void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
-              return next;
-            });
           }
           return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
         }
         throw error;
       }
     },
-    [accessToken, refreshToken, persist, logout]
+    [accessToken, refreshToken, runRefresh, logout]
   );
 
   const value = useMemo<AuthState>(
