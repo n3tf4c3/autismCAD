@@ -22,7 +22,11 @@ export const POST = withErrorHandlingNoContext(async (request: Request) => {
     );
   }
 
-  const tokens = await issueTokenPair({ sub: String(user.id), role: user.role });
+  const tokens = await issueTokenPair({
+    sub: String(user.id),
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  });
   const consentRequired = await isPolicyConsentRequired(user.id);
   return Response.json({
     ...tokens,

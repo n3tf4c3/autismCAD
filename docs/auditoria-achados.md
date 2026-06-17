@@ -18,7 +18,7 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
 | 102 | Ultimo `admin-geral` pode ser excluido | Alta | RESOLVIDO |
-| 103 | Refresh tokens mobile stateless e nao revogaveis | Alta | ABERTO |
+| 103 | Refresh tokens mobile stateless e nao revogaveis | Alta | RESOLVIDO |
 | 104 | Integridade evolucoes/atendimentos sem mesmo paciente/profissional | Alta (potencial) | ABERTO |
 | 105 | `db:push`/bootstrap nao cobre funcoes/triggers manuais | Alta (potencial) | ABERTO |
 | 106 | API mobile com CORS coringa por padrao em producao | Media | RESOLVIDO |

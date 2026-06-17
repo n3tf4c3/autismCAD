@@ -6,6 +6,7 @@ import {
 } from "@/server/auth/access";
 import type { AuthenticatedUser } from "@/server/auth/auth";
 import { verifyAccessToken } from "@/server/auth/api-token";
+import { isMobileTokenRevoked } from "@/server/auth/token-version";
 import { AppError } from "@/server/shared/errors";
 
 export function bearerToken(request: Request): string | null {
@@ -26,10 +27,15 @@ export async function requireApiUser(
   const token = bearerToken(request);
   if (!token) throw new AppError("Nao autenticado", 401, "UNAUTHORIZED");
 
-  const sub = await verifyAccessToken(token);
+  const { sub, tokenVersion } = await verifyAccessToken(token);
   const access = await loadUserAccess(Number(sub));
   if (!access.exists || !access.user) {
     throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
+  }
+
+  // Achado 103: access token emitido antes da ultima troca de senha foi revogado.
+  if (isMobileTokenRevoked({ tokenVersion, currentVersion: access.tokenVersion })) {
+    throw new AppError("Sessao expirada, faca login novamente", 401, "TOKEN_REVOKED");
   }
 
   const user: AuthenticatedUser = {

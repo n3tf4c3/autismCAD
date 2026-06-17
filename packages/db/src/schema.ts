@@ -36,6 +36,9 @@ export const users = pgTable(
       .default("profissional")
       .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
+    // Achado 103: versão de credencial dos tokens Bearer mobile. Incrementada na troca de
+    // senha para invalidar access/refresh tokens emitidos antes (revogação sem store).
+    tokenVersion: integer("token_version").notNull().default(0),
     // Consentimento LGPD: versão da Política de Privacidade aceita + quando. Nulo = nunca
     // aceitou (precisa consentir). Reconsentimento quando a versão vigente muda.
     politicaVersaoAceita: varchar("politica_versao_aceita", { length: 16 }),
