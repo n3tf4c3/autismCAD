@@ -26,6 +26,15 @@ const dataField = z
   .trim()
   .refine(isCalendarDate, "Data invalida. Use AAAA-MM-DD valido");
 
+// Achado 110: filtros de query e periodos de atendimento avulso tambem validam data de
+// calendario real (ou vazio), em vez de aceitar string livre. Vazio = sem filtro/periodo.
+const optionalDataField = z
+  .string()
+  .trim()
+  .refine((value) => value === "" || isCalendarDate(value), "Data invalida. Use AAAA-MM-DD valido")
+  .optional();
+const optionalNullableDataField = optionalDataField.nullable();
+
 const optionalBooleanLike = z
   .union([z.boolean(), z.number(), z.string()])
   .optional()
@@ -64,8 +73,8 @@ function exigirHoraFimMaior(
 export const atendimentosQuerySchema = z.object({
   pacienteId: z.coerce.number().int().positive().optional(),
   profissionalId: optionalId,
-  dataIni: z.string().trim().optional(),
-  dataFim: z.string().trim().optional(),
+  dataIni: optionalDataField,
+  dataFim: optionalDataField,
 });
 
 export const saveAtendimentoSchema = z.object({
@@ -76,8 +85,8 @@ export const saveAtendimentoSchema = z.object({
   horaFim: horaField,
   isGrupo: optionalBooleanLike,
   turno: z.string().trim().optional(),
-  periodoInicio: z.string().trim().optional().nullable(),
-  periodoFim: z.string().trim().optional().nullable(),
+  periodoInicio: optionalNullableDataField,
+  periodoFim: optionalNullableDataField,
   presenca: z.string().trim().optional(),
   motivo: z.string().trim().optional().nullable(),
   observacoes: z.string().trim().optional().nullable(),
