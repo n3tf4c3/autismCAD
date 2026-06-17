@@ -4,7 +4,10 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
 import { useClinicToday } from "@/hooks/useClinicToday";
-import type { EvolutivoReportResponse } from "@autismcad/validators/api/v1";
+import {
+  evolutivoReportResponseSchema,
+  type EvolutivoReportResponse,
+} from "@autismcad/validators/api/v1";
 import type { EvolutivoReport } from "@/api/types";
 import {
   buildComportamentoResumo,
@@ -134,6 +137,7 @@ function DevolutivaContent() {
     try {
       const res = await authFetch<EvolutivoReportResponse>("/api/v1/relatorios/evolutivo", {
         query: { pacienteId, from: periodo.from, to: periodo.to },
+        schema: evolutivoReportResponseSchema,
       });
       setReport(res.report);
     } catch (e) {

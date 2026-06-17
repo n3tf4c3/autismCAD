@@ -1,6 +1,7 @@
 // Contrato das respostas da API v1 consumidas pelo app mobile (achado 79).
 // Fonte unica de verdade: o mobile importa estes tipos e as rotas web sao verificadas
 // contra eles (`satisfies`), prevenindo drift entre servidor e cliente.
+import { z } from "zod";
 
 // Item de atendimento (camelCase) exposto por GET /api/v1/atendimentos.
 export type Atendimento = {
@@ -71,3 +72,50 @@ export type AtendimentosListResponse = { items: Atendimento[] };
 export type PacientesListResponse = { items: Paciente[] };
 export type EvolutivoReportResponse = { report: EvolutivoReport };
 export type ClinicTimeResponse = { today: string };
+
+// Achado 111: schemas Zod das respostas v1 para validacao em runtime no mobile (evita
+// `as T` cego: resposta HTML de proxy, payload parcial ou drift quebram com erro claro).
+// `.passthrough()` preserva campos extras/dinamicos (ex.: payload de evolucao) sem descartar.
+const atendimentoSchema = z
+  .object({
+    id: z.number(),
+    data: z.string(),
+    horaInicio: z.string().nullish(),
+    horaFim: z.string().nullish(),
+    pacienteId: z.number().nullish(),
+    pacienteNome: z.string().nullish(),
+    profissionalId: z.number().nullish(),
+    profissionalNome: z.string().nullish(),
+    presenca: z.string().nullish(),
+  })
+  .passthrough();
+
+const pacienteSchema = z
+  .object({
+    id: z.number(),
+    nome: z.string(),
+    foto: z.string().nullish(),
+  })
+  .passthrough();
+
+export const atendimentosListResponseSchema = z
+  .object({ items: z.array(atendimentoSchema) })
+  .passthrough();
+
+export const pacientesListResponseSchema = z
+  .object({ items: z.array(pacienteSchema) })
+  .passthrough();
+
+export const clinicTimeResponseSchema = z.object({ today: z.string() }).passthrough();
+
+// Envelope critico do relatorio: garante report.paciente; o restante (indicadores,
+// atendimentos, evolucoes com payload dinamico) passa intacto via passthrough.
+export const evolutivoReportResponseSchema = z
+  .object({
+    report: z
+      .object({
+        paciente: z.object({ id: z.number(), nome: z.string() }).passthrough(),
+      })
+      .passthrough(),
+  })
+  .passthrough();

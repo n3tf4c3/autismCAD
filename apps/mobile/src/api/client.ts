@@ -19,6 +19,8 @@ export type ApiRequest = {
   // Achado 113: timeout padrao (ms) e cancelamento opcional por chamada.
   timeoutMs?: number;
   signal?: AbortSignal;
+  // Achado 111: valida a resposta em runtime (schema Zod). Em formato inesperado, lanca ApiError.
+  schema?: { parse: (data: unknown) => unknown };
 };
 
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -39,7 +41,8 @@ export async function apiRequest<T = unknown>(
   path: string,
   options: ApiRequest = {}
 ): Promise<T> {
-  const { method = "GET", body, token, query, timeoutMs = DEFAULT_TIMEOUT_MS, signal } = options;
+  const { method = "GET", body, token, query, timeoutMs = DEFAULT_TIMEOUT_MS, signal, schema } =
+    options;
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -92,6 +95,15 @@ export async function apiRequest<T = unknown>(
         ? String((data as { code: unknown }).code)
         : undefined;
     throw new ApiError(message, response.status, code);
+  }
+
+  // Achado 111: valida o envelope/payload critico em runtime quando um schema e fornecido.
+  if (schema) {
+    try {
+      return schema.parse(data) as T;
+    } catch {
+      throw new ApiError("Resposta da API em formato inesperado.", 0, "BAD_RESPONSE");
+    }
   }
 
   return data as T;

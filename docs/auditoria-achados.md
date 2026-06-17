@@ -26,7 +26,7 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 108 | Listagens/relatorios sem paginacao ou limite server-side | Media (potencial) | RESOLVIDO |
 | 109 | Datas `YYYY-MM-DD` invalidas passam em contratos/normalizadores | Media | RESOLVIDO |
 | 110 | Filtros de periodo de atendimentos como string simples | Media | RESOLVIDO |
-| 111 | Mobile usa `as T` sem validacao runtime das respostas | Media | ABERTO |
+| 111 | Mobile usa `as T` sem validacao runtime das respostas | Media | RESOLVIDO |
 | 112 | Refresh concorrente no mobile nao serializado | Media (potencial) | RESOLVIDO |
 | 113 | Mobile sem timeout/abort nas chamadas API | Media | RESOLVIDO |
 | 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | RESOLVIDO |
