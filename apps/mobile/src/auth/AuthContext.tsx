@@ -28,6 +28,9 @@ type RefreshResponse = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  // Achado 74: papel/usuario EFETIVO devolvido pelo refresh para manter a role
+  // persistida (usada no roteamento) atualizada sem novo login.
+  user?: Pick<AuthUser, "id" | "nome" | "email" | "role"> | null;
 };
 
 type AuthState = {
@@ -140,6 +143,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw error;
           }
           await persist(refreshed);
+          // Achado 74: atualiza a role persistida com o papel efetivo do refresh,
+          // preservando o consentRequired gerido pelo fluxo de consentimento.
+          if (refreshed.user) {
+            const fresh = refreshed.user;
+            setUser((prev) => {
+              const next = prev
+                ? { ...prev, ...fresh }
+                : { ...fresh, consentRequired: false };
+              void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+              return next;
+            });
+          }
           return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
         }
         throw error;

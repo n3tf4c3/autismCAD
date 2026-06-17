@@ -29,5 +29,17 @@ export const POST = withErrorHandlingNoContext(async (request: Request) => {
   }
 
   const tokens = await issueTokenPair({ sub, role: access.role ?? "profissional" });
-  return Response.json(tokens);
+  // Achado 74: devolve o papel/usuario EFETIVO (access fresco do banco) para o cliente
+  // mobile atualizar a role persistida usada no roteamento, sem exigir novo login.
+  return Response.json({
+    ...tokens,
+    user: access.user
+      ? {
+          id: access.user.id,
+          nome: access.user.nome,
+          email: access.user.email,
+          role: access.role ?? "profissional",
+        }
+      : null,
+  });
 });
