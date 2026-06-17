@@ -1,6 +1,6 @@
 import "./_load-env";
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import {
@@ -168,10 +168,15 @@ async function main() {
       .onConflictDoNothing();
   }
 
+  // Achado 75: so casa o usuario ATIVO (nao soft-deletado). O unique parcial
+  // uk_users_email_ativo permite um registro deletado com o mesmo e-mail; sem o
+  // filtro isNull, o update poderia "reativar" (ativo=true) um usuario deletado,
+  // criando um superadmin com deletedAt preenchido. Sem registro ativo, segue para
+  // o INSERT de um superadmin novo (o unique parcial nao conflita com o deletado).
   const [existing] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(and(eq(users.email, email), isNull(users.deletedAt)))
     .limit(1);
 
   if (existing) {

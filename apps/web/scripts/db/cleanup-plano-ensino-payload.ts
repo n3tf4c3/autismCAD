@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { prontuarioDocumentos } from "@autismcad/db/schema";
 import { sanitizePlanoEnsinoPayload } from "@autismcad/shared/plano-ensino";
+import { assertApplyConfirmed } from "./_cleanup-safety";
 
 function readEnv(key: string): string | undefined {
   const value = process.env[key];
@@ -68,6 +69,7 @@ async function main() {
   if (!databaseUrl) throw new Error("DATABASE_URL nao configurado.");
 
   const apply = hasFlag("--apply");
+  assertApplyConfirmed(apply, databaseUrl);
   // Achado 63: usar o mesmo timezone da aplicacao no saneamento de datas.
   const timeZone = readEnv("APP_TIMEZONE") ?? "America/Sao_Paulo";
   const sql = neon(databaseUrl);
