@@ -46,7 +46,11 @@ function unwrapAction<T>(
 export function PacientesPageClient(props: {
   initialItems: Paciente[];
   initialProfissionais: Profissional[];
+  canCreatePaciente: boolean;
+  canViewProntuario: boolean;
+  canCreateConsulta: boolean;
 }) {
+  const { canCreatePaciente, canViewProntuario, canCreateConsulta } = props;
   const [items, setItems] = useState<Paciente[]>(() => props.initialItems);
   const [profissionais] = useState<Profissional[]>(() => props.initialProfissionais);
   const [loading, setLoading] = useState(false);
@@ -183,12 +187,14 @@ export function PacientesPageClient(props: {
           <p className="text-sm text-gray-600">Consultar, cadastrar e gerenciar pacientes.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/pacientes/novo"
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
-          >
-            Novo paciente
-          </Link>
+          {canCreatePaciente ? (
+            <Link
+              href="/pacientes/novo"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+            >
+              Novo paciente
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => void loadPacientes({ nome, cpf })}
@@ -270,16 +276,20 @@ export function PacientesPageClient(props: {
                     <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/pacientes/${item.id}`}>
                       Ver
                     </Link>
-                    <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/prontuario/${item.id}`}>
-                      Prontuário
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => abrirConsulta(item)}
-                      className="text-sm font-semibold text-[var(--laranja)] hover:underline"
-                    >
-                      Agendar por periodo
-                    </button>
+                    {canViewProntuario ? (
+                      <Link className="text-sm font-semibold text-[var(--laranja)]" href={`/prontuario/${item.id}`}>
+                        Prontuário
+                      </Link>
+                    ) : null}
+                    {canCreateConsulta ? (
+                      <button
+                        type="button"
+                        onClick={() => abrirConsulta(item)}
+                        className="text-sm font-semibold text-[var(--laranja)] hover:underline"
+                      >
+                        Agendar por periodo
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
