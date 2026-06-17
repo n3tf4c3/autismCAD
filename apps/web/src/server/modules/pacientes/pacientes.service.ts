@@ -35,6 +35,9 @@ import {
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 
+// Achado 108: teto defensivo de linhas na listagem (busca por nome/cpf cobre o uso normal).
+const LISTAGEM_MAX_PACIENTES = 1000;
+
 export type PacienteDetalhe = {
   id: number;
   nome: string;
@@ -149,7 +152,9 @@ export async function listarPacientes(
     })
     .from(pacientes)
     .where(and(...where))
-    .orderBy(asc(pacientes.nome));
+    .orderBy(asc(pacientes.nome))
+    // Achado 108: teto defensivo contra respostas ilimitadas (a listagem tem busca por nome/cpf).
+    .limit(LISTAGEM_MAX_PACIENTES);
 
   if (!rows.length) return [];
 
