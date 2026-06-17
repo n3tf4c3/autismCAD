@@ -96,6 +96,32 @@ function toIntOrNull(value: string): number | null {
   return truncated < 0 ? null : truncated;
 }
 
+// Achado 114: bloqueia o submit em vez de descartar/alterar contagens silenciosamente.
+// Vazio = sem contagem (permitido). Caso contrario exige inteiro >= 0 e acertos <= tentativas.
+function isCountStringValid(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed === "" || /^\d+$/.test(trimmed);
+}
+
+export function validateEvolucaoCounts(rows: MetaRow[]): string | null {
+  for (let i = 0; i < rows.length; i += 1) {
+    const linha = i + 1;
+    const { tentativas, acertos } = rows[i];
+    if (!isCountStringValid(tentativas)) {
+      return `Linha ${linha}: tentativas deve ser um numero inteiro maior ou igual a 0.`;
+    }
+    if (!isCountStringValid(acertos)) {
+      return `Linha ${linha}: acertos deve ser um numero inteiro maior ou igual a 0.`;
+    }
+    const tent = tentativas.trim() ? Number(tentativas.trim()) : null;
+    const ac = acertos.trim() ? Number(acertos.trim()) : null;
+    if (tent != null && ac != null && ac > tent) {
+      return `Linha ${linha}: acertos (${ac}) nao pode ser maior que tentativas (${tent}).`;
+    }
+  }
+  return null;
+}
+
 export type EvolucaoFormState = {
   titulo: string;
   conduta: string;

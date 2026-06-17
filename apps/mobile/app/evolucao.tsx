@@ -11,6 +11,7 @@ import {
   RESULTADO_OPTIONS,
   TITULO_SESSAO_OPTIONS,
   buildEvolucaoPayload,
+  validateEvolucaoCounts,
   emptyMetaRow,
   type BehaviorItem,
   type MetaRow,
@@ -90,6 +91,13 @@ function EvolucaoFormContent() {
     setError(null);
     if (!pacienteId) {
       setError("Paciente nao identificado.");
+      return;
+    }
+    // Achado 114: bloqueia contagens invalidas (decimal/negativo/nao-numerico, acertos > tentativas)
+    // em vez de descarta-las silenciosamente ao montar o payload.
+    const countsError = validateEvolucaoCounts(metaRows);
+    if (countsError) {
+      setError(countsError);
       return;
     }
     setBusy(true);

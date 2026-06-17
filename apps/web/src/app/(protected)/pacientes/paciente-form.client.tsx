@@ -301,7 +301,17 @@ export function PacienteFormClient(props: {
         if (!id) throw new Error("Resposta inválida: id ausente");
 
         if (fotoFile || laudoFile || documentoFile) {
-          await uploadIfSelected(id);
+          try {
+            await uploadIfSelected(id);
+          } catch {
+            // Achado 118: o paciente ja foi salvo; diferenciar de "falha ao salvar" e levar
+            // o usuario ao paciente para reenviar os anexos, evitando reenvio que duplicaria.
+            setMsg(
+              "Paciente salvo, mas houve falha ao enviar os anexos. Abra o paciente e reenvie os arquivos."
+            );
+            setTimeout(() => router.push(`/pacientes/${id}`), 1500);
+            return;
+          }
         }
 
         setMsg("Paciente salvo com sucesso.");

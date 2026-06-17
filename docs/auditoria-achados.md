@@ -29,11 +29,11 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 111 | Mobile usa `as T` sem validacao runtime das respostas | Media | ABERTO |
 | 112 | Refresh concorrente no mobile nao serializado | Media (potencial) | RESOLVIDO |
 | 113 | Mobile sem timeout/abort nas chamadas API | Media | RESOLVIDO |
-| 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | ABERTO |
+| 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | RESOLVIDO |
 | 115 | FKs `ON DELETE cascade` em dados clinicos vs soft-delete | Media (potencial) | RESOLVIDO |
 | 116 | Vinculos ativos apos soft-delete de usuario/paciente | Media (potencial) | RESOLVIDO |
 | 117 | `prontuario_documentos` com unique global bloqueia recriacao | Baixa/Media (potencial) | ABERTO (aceito) |
-| 118 | Criacao de paciente antes de uploads deixa cadastro parcial | Baixa/Media (potencial) | ABERTO |
+| 118 | Criacao de paciente antes de uploads deixa cadastro parcial | Baixa/Media (potencial) | RESOLVIDO |
 | 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | ABERTO |
 | 120 | Campos de versao aceitam zero/negativo em inserts diretos | Baixa (potencial) | RESOLVIDO |
 | 121 | `access_logs.status` sem dominio fechado | Baixa | RESOLVIDO |
