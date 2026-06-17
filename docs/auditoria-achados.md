@@ -27,8 +27,8 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 109 | Datas `YYYY-MM-DD` invalidas passam em contratos/normalizadores | Media | RESOLVIDO |
 | 110 | Filtros de periodo de atendimentos como string simples | Media | RESOLVIDO |
 | 111 | Mobile usa `as T` sem validacao runtime das respostas | Media | ABERTO |
-| 112 | Refresh concorrente no mobile nao serializado | Media (potencial) | ABERTO |
-| 113 | Mobile sem timeout/abort nas chamadas API | Media | ABERTO |
+| 112 | Refresh concorrente no mobile nao serializado | Media (potencial) | RESOLVIDO |
+| 113 | Mobile sem timeout/abort nas chamadas API | Media | RESOLVIDO |
 | 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | ABERTO |
 | 115 | FKs `ON DELETE cascade` em dados clinicos vs soft-delete | Media (potencial) | ABERTO |
 | 116 | Vinculos ativos apos soft-delete de usuario/paciente | Media (potencial) | ABERTO |
