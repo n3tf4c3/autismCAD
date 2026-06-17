@@ -19,8 +19,8 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 |---|--------|-----------|--------|
 | 102 | Ultimo `admin-geral` pode ser excluido | Alta | RESOLVIDO |
 | 103 | Refresh tokens mobile stateless e nao revogaveis | Alta | RESOLVIDO |
-| 104 | Integridade evolucoes/atendimentos sem mesmo paciente/profissional | Alta (potencial) | ABERTO |
-| 105 | `db:push`/bootstrap nao cobre funcoes/triggers manuais | Alta (potencial) | ABERTO |
+| 104 | Integridade evolucoes/atendimentos sem mesmo paciente/profissional | Alta (potencial) | RESOLVIDO |
+| 105 | `db:push`/bootstrap nao cobre funcoes/triggers manuais | Alta (potencial) | RESOLVIDO |
 | 106 | API mobile com CORS coringa por padrao em producao | Media | RESOLVIDO |
 | 107 | `drizzle.config.ts` com fallback silencioso para banco local | Media | RESOLVIDO |
 | 108 | Listagens/relatorios sem paginacao ou limite server-side | Media (potencial) | ABERTO |

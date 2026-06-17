@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -12,6 +13,7 @@ import {
   text,
   time,
   timestamp,
+  unique,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -330,6 +332,13 @@ export const atendimentos = pgTable(
     index("idx_atend_profissional").on(table.profissionalId),
     index("idx_atend_data_profissional").on(table.data, table.profissionalId),
     index("idx_atend_deleted_at").on(table.deletedAt),
+    // Achado 104: alvo da FK composta de evolucoes (id ja e unico; o triplo permite
+    // que evolucoes referencie atendimento + paciente + profissional de uma vez).
+    unique("uk_atendimentos_id_paciente_profissional").on(
+      table.id,
+      table.pacienteId,
+      table.profissionalId
+    ),
   ]
 );
 
@@ -448,9 +457,8 @@ export const evolucoes = pgTable(
     profissionalId: bigint("profissional_id", { mode: "number" })
       .notNull()
       .references(() => terapeutas.id, { onDelete: "restrict" }),
-    atendimentoId: bigint("atendimento_id", { mode: "number" }).references(() => atendimentos.id, {
-      onDelete: "set null",
-    }),
+    // Achado 104: integridade composta abaixo (FK para atendimentos por id+paciente+profissional).
+    atendimentoId: bigint("atendimento_id", { mode: "number" }),
     data: date("data").notNull(),
     payload: jsonb("payload").$type<EvolucaoPayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -461,6 +469,15 @@ export const evolucoes = pgTable(
     }),
   },
   (table) => [
+    // Achado 104: evolucao so pode apontar para um atendimento cujo paciente E profissional
+    // coincidam. FK composta para atendimentos (id, paciente_id, profissional_id). Quando
+    // atendimento_id e null, a FK nao e checada (evolucao avulsa). ON DELETE SET NULL anula
+    // apenas atendimento_id (clausula de coluna ajustada na migration; ver achado 104).
+    foreignKey({
+      name: "evolucoes_atendimento_composto_fk",
+      columns: [table.atendimentoId, table.pacienteId, table.profissionalId],
+      foreignColumns: [atendimentos.id, atendimentos.pacienteId, atendimentos.profissionalId],
+    }).onDelete("set null"),
     uniqueIndex("uk_evolucoes_atendimento_ativo")
       .on(table.atendimentoId)
       .where(sql`${table.deletedAt} is null and ${table.atendimentoId} is not null`),
