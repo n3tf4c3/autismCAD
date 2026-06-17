@@ -3,10 +3,8 @@ import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
-import {
-  pacientesListResponseSchema,
-  type PacientesListResponse,
-} from "@autismcad/validators/api/v1";
+import type { PacientesListResponse } from "@autismcad/validators/api/v1";
+import { pacientesListResponseSchema } from "@/api/v1-schemas";
 import type { Paciente } from "@/api/types";
 import { Avatar, Button, Card, Muted, Screen, theme } from "@/ui";
 
