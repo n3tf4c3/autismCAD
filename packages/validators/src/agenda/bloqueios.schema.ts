@@ -1,7 +1,17 @@
 import { z } from "zod";
+import { isCalendarDate, isValidTimeOfDay } from "../common/datetime";
 
-const dataYmd = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Data invalida");
-const horaHm = z.string().trim().regex(/^\d{2}:\d{2}$/, "Hora invalida");
+// Achados 76/88/101: alem do formato, exigir data de calendario real e faixa de hora.
+const dataYmd = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data invalida")
+  .refine(isCalendarDate, "Data invalida. Use AAAA-MM-DD valido");
+const horaHm = z
+  .string()
+  .trim()
+  .regex(/^\d{2}:\d{2}$/, "Hora invalida")
+  .refine(isValidTimeOfDay, "Hora fora da faixa valida (00:00 a 23:59)");
 
 export const listarBloqueiosSchema = z.object({
   profissionalId: z.coerce.number().int().positive(),
