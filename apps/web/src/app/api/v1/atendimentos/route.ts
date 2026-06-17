@@ -1,5 +1,6 @@
 import { requireApiPermission } from "@/server/auth/api-auth";
 import { atendimentosQuerySchema } from "@autismcad/validators/atendimentos/atendimentos.schema";
+import type { AtendimentosListResponse } from "@autismcad/validators/api/v1";
 import { listarAtendimentosPorUsuario } from "@/server/modules/atendimentos/atendimentos.service";
 import { withErrorHandlingNoContext } from "@/server/shared/http";
 
@@ -20,5 +21,5 @@ export const GET = withErrorHandlingNoContext(async (request: Request) => {
   });
 
   const items = await listarAtendimentosPorUsuario(Number(user.id), parsed);
-  return Response.json({ items });
+  return Response.json({ items } satisfies AtendimentosListResponse);
 });

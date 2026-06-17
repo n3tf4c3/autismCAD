@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ClinicTimeResponse } from "@autismcad/validators/api/v1";
 import { useAuth } from "@/auth/AuthContext";
 
 // Achado 77: busca a data "hoje" da clinica (fuso do servidor) uma vez. Enquanto nao
@@ -9,7 +10,7 @@ export function useClinicToday(): string | null {
 
   useEffect(() => {
     let active = true;
-    authFetch<{ today: string }>("/api/v1/time")
+    authFetch<ClinicTimeResponse>("/api/v1/time")
       .then((res) => {
         if (active) setToday(res.today ?? null);
       })

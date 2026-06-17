@@ -4,6 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
 import { useClinicToday } from "@/hooks/useClinicToday";
+import type { EvolutivoReportResponse } from "@autismcad/validators/api/v1";
 import type { EvolutivoReport } from "@/api/types";
 import {
   buildComportamentoResumo,
@@ -131,7 +132,7 @@ function DevolutivaContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch<{ report: EvolutivoReport }>("/api/v1/relatorios/evolutivo", {
+      const res = await authFetch<EvolutivoReportResponse>("/api/v1/relatorios/evolutivo", {
         query: { pacienteId, from: periodo.from, to: periodo.to },
       });
       setReport(res.report);

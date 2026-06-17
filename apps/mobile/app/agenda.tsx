@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
 import { useClinicToday } from "@/hooks/useClinicToday";
+import type { AtendimentosListResponse } from "@autismcad/validators/api/v1";
 import type { Atendimento } from "@/api/types";
 import { Avatar, Button, Card, DayStrip, Field, Muted, Screen, StatusChip, Sunflower, theme } from "@/ui";
 
@@ -93,7 +94,7 @@ function AgendaContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch<{ items: Atendimento[] }>("/api/v1/atendimentos", {
+      const res = await authFetch<AtendimentosListResponse>("/api/v1/atendimentos", {
         query: { data: selectedDay },
       });
       setItems(res.items ?? []);
