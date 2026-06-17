@@ -2,10 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
+import { AuthGuard } from "@/auth/AuthGuard";
 import type { Paciente } from "@/api/types";
 import { Avatar, Button, Card, Muted, Screen, theme } from "@/ui";
 
 export default function Pacientes() {
+  return (
+    <AuthGuard area="responsavel">
+      <PacientesContent />
+    </AuthGuard>
+  );
+}
+
+function PacientesContent() {
   const { user, authFetch, logout } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<Paciente[]>([]);

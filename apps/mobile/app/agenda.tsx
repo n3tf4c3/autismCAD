@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
+import { AuthGuard } from "@/auth/AuthGuard";
 import type { Atendimento } from "@/api/types";
 import { Avatar, Button, Card, DayStrip, Field, Muted, Screen, StatusChip, Sunflower, theme } from "@/ui";
 
@@ -39,6 +40,14 @@ function presencaLabel(presenca?: string | null): string {
 }
 
 export default function Agenda() {
+  return (
+    <AuthGuard area="profissional">
+      <AgendaContent />
+    </AuthGuard>
+  );
+}
+
+function AgendaContent() {
   const { user, loading: authLoading, authFetch, logout } = useAuth();
   const router = useRouter();
   const [anchor, setAnchor] = useState<Date>(() => new Date());

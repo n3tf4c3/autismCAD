@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
+import { AuthGuard } from "@/auth/AuthGuard";
 import type { EvolutivoReport } from "@/api/types";
 import {
   buildComportamentoResumo,
@@ -69,6 +70,14 @@ function fmtHour(value?: string | null): string {
 }
 
 export default function Devolutiva() {
+  return (
+    <AuthGuard area="responsavel">
+      <DevolutivaContent />
+    </AuthGuard>
+  );
+}
+
+function DevolutivaContent() {
   const { user, loading: authLoading, authFetch } = useAuth();
   const params = useLocalSearchParams<{ pacienteId?: string; pacienteNome?: string }>();
   const pacienteId = Number(params.pacienteId ?? 0);
