@@ -33,6 +33,9 @@ import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/prof
 import { AppError } from "@/server/shared/errors";
 import { normalizeDateOnlyStrict } from "@/server/shared/normalize";
 
+// Achado 108: teto defensivo de linhas na listagem (o calendario filtra por data).
+const LISTAGEM_MAX_ATENDIMENTOS = 1000;
+
 function normalizeTurno(value?: string | null) {
   return value && turnosPermitidos.has(value) ? value : "Matutino";
 }
@@ -366,7 +369,9 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput, scope?
     .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
     .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
     .where(and(...where))
-    .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id));
+    .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id))
+    // Achado 108: teto defensivo contra respostas ilimitadas (calendario filtra por data).
+    .limit(LISTAGEM_MAX_ATENDIMENTOS);
 
   return rows.map((row) => ({
     id: row.id,
