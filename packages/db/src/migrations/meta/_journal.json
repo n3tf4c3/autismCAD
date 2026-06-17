@@ -50,6 +50,13 @@
       "when": 1781724710166,
       "tag": "0006_slim_romulus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781725328557,
+      "tag": "0007_fresh_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }

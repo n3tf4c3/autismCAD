@@ -1,0 +1,1 @@
+ALTER TABLE "access_logs" ADD CONSTRAINT "ck_access_logs_status" CHECK ("access_logs"."status" in ('SUCESSO', 'FALHA'));

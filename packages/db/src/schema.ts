@@ -84,6 +84,8 @@ export const accessLogs = pgTable(
     index("idx_access_logs_user_id").on(table.userId),
     // created_at desc espelha a baseline (0000_baseline; listagem mais recente primeiro).
     index("idx_access_logs_status_created_at").on(table.status, table.createdAt.desc()),
+    // Achado 121: dominio fechado (espelha ACCESS_LOG_STATUSES; app so grava esses dois).
+    check("ck_access_logs_status", sql`${table.status} in ('SUCESSO', 'FALHA')`),
   ]
 );
 
