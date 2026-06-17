@@ -31,7 +31,7 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 113 | Mobile sem timeout/abort nas chamadas API | Media | RESOLVIDO |
 | 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | ABERTO |
 | 115 | FKs `ON DELETE cascade` em dados clinicos vs soft-delete | Media (potencial) | RESOLVIDO |
-| 116 | Vinculos ativos apos soft-delete de usuario/paciente | Media (potencial) | ABERTO |
+| 116 | Vinculos ativos apos soft-delete de usuario/paciente | Media (potencial) | RESOLVIDO |
 | 117 | `prontuario_documentos` com unique global bloqueia recriacao | Baixa/Media (potencial) | ABERTO (aceito) |
 | 118 | Criacao de paciente antes de uploads deixa cadastro parcial | Baixa/Media (potencial) | ABERTO |
 | 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | ABERTO |

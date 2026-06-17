@@ -9,7 +9,13 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, pacienteTerapia, pacientes, terapias } from "@autismcad/db/schema";
+import {
+  atendimentos,
+  pacienteTerapia,
+  pacientes,
+  terapias,
+  userPacienteVinculos,
+} from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import {
   conveniosPermitidos,
@@ -474,6 +480,13 @@ export async function softDeletePaciente(id: number, deletedByUserId?: number | 
         .returning({ id: pacientes.id });
 
       if (!result) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+
+      // Achado 116: vinculos M:N nao tem deleted_at; propaga a limpeza no soft-delete
+      // para nao deixar responsavel/terapia apontando para paciente excluido (espelha
+      // o deleteUser, que ja remove os vinculos do usuario).
+      await tx.delete(userPacienteVinculos).where(eq(userPacienteVinculos.pacienteId, id));
+      await tx.delete(pacienteTerapia).where(eq(pacienteTerapia.pacienteId, id));
+
       return result;
     },
     { operation: "pacientes.softDeletePaciente", mode: "required" }
