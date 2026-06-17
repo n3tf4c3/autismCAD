@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
+import { AuthGuard } from "@/auth/AuthGuard";
 import { ApiError } from "@/api/client";
 import {
   AJUDA_OPTIONS,
@@ -29,6 +30,14 @@ import {
 } from "@/ui";
 
 export default function EvolucaoForm() {
+  return (
+    <AuthGuard area="profissional">
+      <EvolucaoFormContent />
+    </AuthGuard>
+  );
+}
+
+function EvolucaoFormContent() {
   const { authFetch } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{
