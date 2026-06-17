@@ -37,6 +37,14 @@ export type SalvarDocumentoInput = z.infer<typeof salvarDocumentoSchema>;
 const evolucaoTextoSchema = z.string().trim().optional().nullable();
 const evolucaoProfissionalIdSchema = z.coerce.number().int().positive().optional().nullable();
 
+// Achado 96: contagens chegam como numero (mobile) ou string (form web). Converte
+// para numero quando possivel para validar faixa; vazio/null vira null (campo opcional).
+function parseContagem(value: number | string | null | undefined): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 const evolucaoItemSchema = z
   .object({
     ensino: evolucaoTextoSchema,
@@ -54,7 +62,33 @@ const evolucaoItemSchema = z
     reforcador: evolucaoTextoSchema,
     reforco: evolucaoTextoSchema,
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((item, ctx) => {
+    // Achado 96: tentativas/acertos devem ser inteiros >= 0 e acertos <= tentativas.
+    const tentativas = parseContagem(item.tentativas ?? item.tentativa);
+    const acertos = parseContagem(item.acertos);
+    if (tentativas != null && (!Number.isInteger(tentativas) || tentativas < 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["tentativas"],
+        message: "Tentativas deve ser um inteiro maior ou igual a 0",
+      });
+    }
+    if (acertos != null && (!Number.isInteger(acertos) || acertos < 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acertos"],
+        message: "Acertos deve ser um inteiro maior ou igual a 0",
+      });
+    }
+    if (tentativas != null && acertos != null && acertos > tentativas) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acertos"],
+        message: "Acertos nao pode exceder tentativas",
+      });
+    }
+  });
 
 const comportamentoPayloadSchema = z
   .object({

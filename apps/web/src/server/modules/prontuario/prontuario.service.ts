@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, isNull, max, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, max, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { runDbTransaction } from "@/server/db/transaction";
@@ -173,10 +173,19 @@ async function assertProfissionalPacienteValido(
 }
 
 async function marcarRepasseConcluido(executor: typeof db, atendimentoId: number) {
+  // Achado 85: so conclui o repasse de atendimentos presentes, alinhando com
+  // resolveStatusRepasseForUpdate em atendimentos.service. Evolucao vinculada a
+  // atendimento ausente/nao informado nao deve marcar repasse como concluido.
   await executor
     .update(atendimentos)
     .set({ statusRepasse: "Concluido", updatedAt: sql`now()` })
-    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)));
+    .where(
+      and(
+        eq(atendimentos.id, atendimentoId),
+        isNull(atendimentos.deletedAt),
+        eq(atendimentos.presenca, "Presente")
+      )
+    );
 }
 
 async function sincronizarRepassePendenteSeSemEvolucao(
@@ -305,11 +314,21 @@ export async function salvarDocumento(
               eq(prontuarioDocumentos.id, documentoId),
               eq(prontuarioDocumentos.pacienteId, pacienteId),
               eq(prontuarioDocumentos.tipo, tipo),
-              isNull(prontuarioDocumentos.deletedAt)
+              isNull(prontuarioDocumentos.deletedAt),
+              // Achado 70: compare-and-swap no status para nao sobrescrever uma
+              // finalizacao concorrente ocorrida entre o SELECT acima e este UPDATE.
+              ne(prontuarioDocumentos.status, "Finalizado")
             )
           )
           .returning({ id: prontuarioDocumentos.id, version: prontuarioDocumentos.version });
-        return row ?? null;
+        if (!row) {
+          throw new AppError(
+            "Documento finalizado nao pode ser alterado",
+            409,
+            "CONFLICT"
+          );
+        }
+        return row;
       },
       { operation: "prontuario.salvarDocumento", mode: "required" }
     );
@@ -495,7 +514,10 @@ export async function atualizarEvolucao(
   id: number,
   input: AtualizarEvolucaoInput,
   user?: { id: number | string; role?: string | null } | null,
-  evolucaoAtual?: Awaited<ReturnType<typeof obterEvolucaoPorId>> | null
+  evolucaoAtual?: Awaited<ReturnType<typeof obterEvolucaoPorId>> | null,
+  // Achado 83: papel EFETIVO (access fresco). Quando ausente, recai sobre a role
+  // do JWT apenas para compatibilidade de chamadas legadas.
+  auth?: { roleCanon: string | null }
 ) {
   const current =
     evolucaoAtual ??
@@ -516,7 +538,7 @@ export async function atualizarEvolucao(
   let profissionalId = profissionalRaw
     ? Number(profissionalRaw)
     : Number(current.profissionalId);
-  const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
+  const roleCanon = auth?.roleCanon ?? canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "PROFISSIONAL") {
     const userId = toPositiveUserIdOrNull(user?.id ?? null);
     if (!userId) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");
