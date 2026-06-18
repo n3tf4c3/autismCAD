@@ -25,7 +25,14 @@ function normalizeApiError(error: unknown): string {
   return "Erro ao carregar profissionais";
 }
 
-export function ProfissionaisPageClient(props: { initialItems: Profissional[] }) {
+export function ProfissionaisPageClient(props: {
+  initialItems: Profissional[];
+  canCreate: boolean;
+  canEditAny: boolean;
+  canEditSelf: boolean;
+  ownProfissionalId: number | null;
+}) {
+  const { canCreate, canEditAny, canEditSelf, ownProfissionalId } = props;
   const [items, setItems] = useState<Profissional[]>(() => props.initialItems);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +69,14 @@ export function ProfissionaisPageClient(props: { initialItems: Profissional[] })
           <p className="text-sm text-gray-600">Consultar e gerenciar profissionais cadastrados.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/profissionais/novo"
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
-          >
-            + Novo cadastro
-          </Link>
+          {canCreate ? (
+            <Link
+              href="/profissionais/novo"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+            >
+              + Novo cadastro
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => void loadProfissionais({ nome, cpf, especialidade })}
@@ -171,12 +180,14 @@ export function ProfissionaisPageClient(props: { initialItems: Profissional[] })
                     >
                       Ver
                     </Link>
-                    <Link
-                      href={`/profissionais/${item.id}/editar`}
-                      className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-                    >
-                      Editar
-                    </Link>
+                    {canEditAny || (canEditSelf && item.id === ownProfissionalId) ? (
+                      <Link
+                        href={`/profissionais/${item.id}/editar`}
+                        className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                      >
+                        Editar
+                      </Link>
+                    ) : null}
                     <Link
                       href={`/calendario?profissionalId=${item.id}`}
                       className="inline-flex items-center justify-center rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"

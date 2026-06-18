@@ -1,14 +1,19 @@
 {
   "expo": {
-    "name": "AutismCAD",
+    "name": "Girassóis+",
     "slug": "autismcad",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "autismcad",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "icon": "./store-assets/icon/icon-1024.png",
     "android": {
-      "package": "com.autismcad.app"
+      "package": "com.autismcad.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./store-assets/icon/adaptive-foreground-1024.png",
+        "backgroundColor": "#0e1626"
+      }
     },
     "ios": {
       "supportsTablet": true,

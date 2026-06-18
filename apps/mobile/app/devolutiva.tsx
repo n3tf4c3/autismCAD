@@ -1,14 +1,31 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
+import { AuthGuard } from "@/auth/AuthGuard";
+import { useClinicToday } from "@/hooks/useClinicToday";
+import type { EvolutivoReportResponse } from "@autismcad/validators/api/v1";
+import { evolutivoReportResponseSchema } from "@/api/v1-schemas";
 import type { EvolutivoReport } from "@/api/types";
 import {
   buildComportamentoResumo,
   buildDesempenhoResumo,
   type SkillRow,
 } from "@/domain/devolutiva";
-import { Button, Card, Field, H1, H2, Label, Muted, OptionRow, Screen, theme } from "@/ui";
+import {
+  Avatar,
+  Button,
+  Card,
+  Field,
+  H2,
+  IndicatorCard,
+  Label,
+  Muted,
+  Screen,
+  SegmentedToggle,
+  theme,
+  WeeklyBars,
+} from "@/ui";
 
 type Mode = "diario" | "mensal";
 
@@ -49,6 +66,12 @@ function parseBrDate(input: string): Date | null {
   if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
   return d;
 }
+// YYYY-MM-DD -> Date local (sem deslocamento de fuso).
+function parseYmdLocal(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
 function fmtHour(value?: string | null): string {
   if (!value) return "-";
   const raw = String(value);
@@ -56,6 +79,14 @@ function fmtHour(value?: string | null): string {
 }
 
 export default function Devolutiva() {
+  return (
+    <AuthGuard area="responsavel">
+      <DevolutivaContent />
+    </AuthGuard>
+  );
+}
+
+function DevolutivaContent() {
   const { user, loading: authLoading, authFetch } = useAuth();
   const params = useLocalSearchParams<{ pacienteId?: string; pacienteNome?: string }>();
   const pacienteId = Number(params.pacienteId ?? 0);
@@ -67,6 +98,17 @@ export default function Devolutiva() {
   const [report, setReport] = useState<EvolutivoReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Achado 77: ajusta o dia padrao para o "hoje" da clinica (fuso do servidor) caso o
+  // usuario ainda nao tenha mudado o dia. So roda uma vez.
+  const clinicToday = useClinicToday();
+  const didSnapToClinicToday = useRef(false);
+  useEffect(() => {
+    if (!clinicToday || didSnapToClinicToday.current) return;
+    didSnapToClinicToday.current = true;
+    const parsed = parseYmdLocal(clinicToday);
+    if (parsed) setAnchor((prev) => (ymd(prev) === ymd(new Date()) ? parsed : prev));
+  }, [clinicToday]);
 
   // Mantem o campo de texto em sincronia quando o dia muda pelas setas.
   useEffect(() => {
@@ -91,8 +133,9 @@ export default function Devolutiva() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch<{ report: EvolutivoReport }>("/api/v1/relatorios/evolutivo", {
+      const res = await authFetch<EvolutivoReportResponse>("/api/v1/relatorios/evolutivo", {
         query: { pacienteId, from: periodo.from, to: periodo.to },
+        schema: evolutivoReportResponseSchema,
       });
       setReport(res.report);
     } catch (e) {
@@ -131,15 +174,33 @@ export default function Devolutiva() {
   const comportamento = useMemo(() => buildComportamentoResumo(report?.evolucoes), [report]);
   const atendimentos = report?.atendimentos ?? [];
   const semDados = !loading && !!report && (ind?.totalAtendimentos ?? 0) === 0;
+  const pacienteNome = params.pacienteNome ?? report?.paciente?.nome ?? `Paciente #${pacienteId}`;
+  const metaIndep = desempenho.rows.find((r) => r.key === "independente")?.value ?? 0;
+  const metaValor = desempenho.total > 0 ? `${metaIndep}/${desempenho.total}` : "—";
+  // Atendimentos por semana do mes (4 barras) — derivado dos dados reais, sem tocar no dominio.
+  const weeklyData = useMemo(() => {
+    const weeks = [0, 0, 0, 0];
+    for (const a of report?.atendimentos ?? []) {
+      const day = Number(String(a.data ?? "").slice(8, 10));
+      if (!day) continue;
+      weeks[Math.min(3, Math.floor((day - 1) / 7))] += 1;
+    }
+    return weeks;
+  }, [report]);
 
   return (
     <Screen>
-      <H1>Devolutiva</H1>
-      <Muted>{params.pacienteNome ?? report?.paciente?.nome ?? `Paciente #${pacienteId}`}</Muted>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Avatar name={pacienteNome} size={72} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: theme.text, fontSize: 22, fontWeight: "800" }}>{pacienteNome}</Text>
+          <Muted>Acompanhamento terapêutico</Muted>
+        </View>
+      </View>
 
       {/* Seletor: modo + navegacao + (no diario) campo de dia digitavel */}
       <Card>
-        <OptionRow options={MODE_OPTIONS} value={mode} onChange={setMode} />
+        <SegmentedToggle options={MODE_OPTIONS} value={mode} onChange={setMode} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={() => step(-1)} hitSlop={12} style={navBtnStyle}>
             <Text style={navArrowStyle}>{"◀"}</Text>
@@ -176,14 +237,17 @@ export default function Devolutiva() {
       {semDados ? <Muted>Sem registros neste {mode === "diario" ? "dia" : "mes"}.</Muted> : null}
 
       {ind ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <IndicatorCard label="Sessões" value={ind.totalAtendimentos ?? 0} />
+          <IndicatorCard label="Presença" value={`${ind.taxaPresencaPercent ?? 0}%`} tone="ok" />
+          <IndicatorCard label="Metas" value={metaValor} tone="accent" />
+        </View>
+      ) : null}
+
+      {mode === "mensal" && atendimentos.length > 0 ? (
         <Card>
-          <Label>Indicadores</Label>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-            <Stat label="Atendimentos" value={ind.totalAtendimentos ?? 0} />
-            <Stat label="Presentes" value={ind.presentes ?? 0} />
-            <Stat label="Ausentes" value={ind.ausentes ?? 0} />
-            <Stat label="Presenca" value={`${ind.taxaPresencaPercent ?? 0}%`} />
-          </View>
+          <Label>Engajamento por semana</Label>
+          <WeeklyBars data={weeklyData} labels={["S1", "S2", "S3", "S4"]} />
         </Card>
       ) : null}
 
@@ -319,15 +383,6 @@ const navBtnStyle = {
 const navArrowStyle = { color: theme.accent, fontSize: 16, fontWeight: "700" } as const;
 
 const TONE_COLOR = { ok: theme.ok, warn: theme.accent, danger: theme.danger } as const;
-
-function Stat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <View>
-      <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "700" }}>{value}</Text>
-      <Text style={{ color: theme.muted, fontSize: 12 }}>{label}</Text>
-    </View>
-  );
-}
 
 function SummaryCard({
   label,

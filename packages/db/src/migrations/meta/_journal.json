@@ -15,6 +15,48 @@
       "when": 1781309745402,
       "tag": "0001_pretty_aqueduct",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781565530619,
+      "tag": "0002_true_mindworm",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781703146122,
+      "tag": "0003_low_peter_quill",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781721048538,
+      "tag": "0004_motionless_captain_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781722187886,
+      "tag": "0005_famous_sasquatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781724710166,
+      "tag": "0006_slim_romulus",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781725328557,
+      "tag": "0007_fresh_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }

@@ -1,18 +1,21 @@
 import { z } from "zod";
+import { isCalendarDate } from "../common/datetime";
 import { ESPECIALIDADES_TERAPEUTA_SET } from "./especialidades";
 
 export const especialidadesPermitidas = ESPECIALIDADES_TERAPEUTA_SET;
 
 const nullableTrimmed = z.string().trim().max(255).optional().nullable();
-const nullableDate = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => {
-    if (value == null) return null;
-    return value.trim() ? value : null;
-  });
+// Achado 124: data opcional, mas quando informada exige data de calendario real
+// (paridade com requiredDate de pacientes/achado 88). Antes aceitava string livre que o
+// service descartava silenciosamente como null (normalizeDateOnlyLoose), perdendo o dado.
+const optionalCalendarDate = (message: string) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((value) => (value == null || value === "" ? null : value))
+    .refine((value) => value == null || isCalendarDate(value), message);
 
 export const profissionaisQuerySchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -31,7 +34,7 @@ export const saveProfissionalSchema = z.object({
     .max(20)
     .transform((value) => value.replace(/\D/g, ""))
     .refine((value) => value.length === 11, "CPF invalido."),
-  dataNascimento: nullableDate,
+  dataNascimento: optionalCalendarDate("Data de nascimento invalida."),
   email: z.string().trim().email().max(120).optional().nullable(),
   telefone: z.string().trim().max(20).optional().nullable(),
   endereco: nullableTrimmed,

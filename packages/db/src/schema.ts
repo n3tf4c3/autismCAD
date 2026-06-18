@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -12,6 +13,7 @@ import {
   text,
   time,
   timestamp,
+  unique,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -36,6 +38,13 @@ export const users = pgTable(
       .default("profissional")
       .references(() => roles.slug, { onDelete: "restrict", onUpdate: "cascade" }),
     ativo: boolean("ativo").notNull().default(true),
+    // Achado 103: versão de credencial dos tokens Bearer mobile. Incrementada na troca de
+    // senha para invalidar access/refresh tokens emitidos antes (revogação sem store).
+    tokenVersion: integer("token_version").notNull().default(0),
+    // Consentimento LGPD: versão da Política de Privacidade aceita + quando. Nulo = nunca
+    // aceitou (precisa consentir). Reconsentimento quando a versão vigente muda.
+    politicaVersaoAceita: varchar("politica_versao_aceita", { length: 16 }),
+    politicaAceitaEm: timestamp("politica_aceita_em", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedByUserId: bigint("deleted_by_user_id", { mode: "number" }).references(
       (): AnyPgColumn => users.id,
@@ -73,8 +82,10 @@ export const accessLogs = pgTable(
   (table) => [
     index("idx_access_logs_created_at").on(table.createdAt),
     index("idx_access_logs_user_id").on(table.userId),
-    // created_at desc espelha a migration 0002 (listagem mais recente primeiro).
+    // created_at desc espelha a baseline (0000_baseline; listagem mais recente primeiro).
     index("idx_access_logs_status_created_at").on(table.status, table.createdAt.desc()),
+    // Achado 121: dominio fechado (espelha ACCESS_LOG_STATUSES; app so grava esses dois).
+    check("ck_access_logs_status", sql`${table.status} in ('SUCESSO', 'FALHA')`),
   ]
 );
 
@@ -231,7 +242,7 @@ export const terapeutas = pgTable(
     bairro: varchar("bairro", { length: 120 }),
     cidade: varchar("cidade", { length: 120 }),
     cep: varchar("cep", { length: 8 }),
-    // Default espelha a migration 0006 (compat de inserts diretos no banco).
+    // Default espelha a baseline (0000_baseline; compat de inserts diretos no banco).
     especialidade: varchar("especialidade", { length: 80 }).notNull().default("Nao informado"),
     observacao: text("observacao"),
     ativo: boolean("ativo").notNull().default(true),
@@ -317,10 +328,19 @@ export const atendimentos = pgTable(
       "ck_atendimentos_status_repasse",
       sql`${table.statusRepasse} in ('Pendente', 'Concluido')`
     ),
+    // Achado 86/100: garante ordem de horario no banco, alem dos validators.
+    check("ck_atendimentos_hora_ordem", sql`${table.horaFim} > ${table.horaInicio}`),
     index("idx_atend_paciente").on(table.pacienteId),
     index("idx_atend_profissional").on(table.profissionalId),
     index("idx_atend_data_profissional").on(table.data, table.profissionalId),
     index("idx_atend_deleted_at").on(table.deletedAt),
+    // Achado 104: alvo da FK composta de evolucoes (id ja e unico; o triplo permite
+    // que evolucoes referencie atendimento + paciente + profissional de uma vez).
+    unique("uk_atendimentos_id_paciente_profissional").on(
+      table.id,
+      table.pacienteId,
+      table.profissionalId
+    ),
   ]
 );
 
@@ -340,7 +360,11 @@ export const agendaBloqueios = pgTable(
     }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("idx_agenda_bloqueios_prof_data").on(table.profissionalId, table.data)]
+  (table) => [
+    index("idx_agenda_bloqueios_prof_data").on(table.profissionalId, table.data),
+    // Achado 86/100: garante ordem de horario no banco, alem dos validators.
+    check("ck_agenda_bloqueios_hora_ordem", sql`${table.horaFim} > ${table.horaInicio}`),
+  ]
 );
 
 export const anamnese = pgTable(
@@ -349,7 +373,9 @@ export const anamnese = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege historico clinico de hard-delete acidental do paciente
+      // (fluxo normal usa soft-delete; purga deliberada deve remover os filhos por rotina).
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     payload: jsonb("payload").$type<AnamnesePayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -366,7 +392,8 @@ export const anamneseVersions = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege o historico clinico de hard-delete acidental do paciente.
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
     payload: jsonb("payload").$type<AnamneseVersionPayloadJson>().notNull(),
@@ -377,6 +404,8 @@ export const anamneseVersions = pgTable(
     index("idx_anamnese_versions_paciente_created").on(table.pacienteId, table.createdAt),
     // Achado 66: status restrito ao dominio da aplicacao.
     check("ck_anamnese_versions_status", sql`${table.status} in ('Rascunho', 'Finalizada')`),
+    // Achado 120: versao sempre positiva (inserts diretos nao podem criar historico invalido).
+    check("ck_anamnese_versions_version_pos", sql`${table.version} > 0`),
   ]
 );
 
@@ -386,7 +415,8 @@ export const prontuarioDocumentos = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege o historico clinico de hard-delete acidental do paciente.
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     tipo: varchar("tipo", { length: 40 }).notNull(),
     version: integer("version").notNull(),
     status: varchar("status", { length: 20 }).notNull().default("Rascunho"),
@@ -417,6 +447,13 @@ export const prontuarioDocumentos = pgTable(
     index("idx_prontuario_documentos_deleted_at").on(table.deletedAt),
     // Achado 66: status restrito ao dominio da aplicacao.
     check("ck_prontuario_documentos_status", sql`${table.status} in ('Rascunho', 'Finalizado')`),
+    // Achado 87/100: dominio fechado de tipo, espelhando DOC_TYPES do validator.
+    check(
+      "ck_prontuario_documentos_tipo",
+      sql`${table.tipo} in ('ANAMNESE', 'PLANO_TERAPEUTICO', 'PLANO_ENSINO', 'RELATORIO_MULTIPROFISSIONAL', 'OUTRO')`
+    ),
+    // Achado 120: versao sempre positiva.
+    check("ck_prontuario_documentos_version_pos", sql`${table.version} > 0`),
   ]
 );
 
@@ -426,13 +463,13 @@ export const evolucoes = pgTable(
     id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     pacienteId: bigint("paciente_id", { mode: "number" })
       .notNull()
-      .references(() => pacientes.id, { onDelete: "cascade" }),
+      // Achado 115: restrict protege o historico clinico de hard-delete acidental do paciente.
+      .references(() => pacientes.id, { onDelete: "restrict" }),
     profissionalId: bigint("profissional_id", { mode: "number" })
       .notNull()
       .references(() => terapeutas.id, { onDelete: "restrict" }),
-    atendimentoId: bigint("atendimento_id", { mode: "number" }).references(() => atendimentos.id, {
-      onDelete: "set null",
-    }),
+    // Achado 104: integridade composta abaixo (FK para atendimentos por id+paciente+profissional).
+    atendimentoId: bigint("atendimento_id", { mode: "number" }),
     data: date("data").notNull(),
     payload: jsonb("payload").$type<EvolucaoPayloadJson>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -443,6 +480,15 @@ export const evolucoes = pgTable(
     }),
   },
   (table) => [
+    // Achado 104: evolucao so pode apontar para um atendimento cujo paciente E profissional
+    // coincidam. FK composta para atendimentos (id, paciente_id, profissional_id). Quando
+    // atendimento_id e null, a FK nao e checada (evolucao avulsa). ON DELETE SET NULL anula
+    // apenas atendimento_id (clausula de coluna ajustada na migration; ver achado 104).
+    foreignKey({
+      name: "evolucoes_atendimento_composto_fk",
+      columns: [table.atendimentoId, table.pacienteId, table.profissionalId],
+      foreignColumns: [atendimentos.id, atendimentos.pacienteId, atendimentos.profissionalId],
+    }).onDelete("set null"),
     uniqueIndex("uk_evolucoes_atendimento_ativo")
       .on(table.atendimentoId)
       .where(sql`${table.deletedAt} is null and ${table.atendimentoId} is not null`),

@@ -29,6 +29,7 @@ import {
 } from "@autismcad/validators/users/users.schema";
 import { runDbTransaction } from "@/server/db/transaction";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
+import { blocksLastAdminGeralRemoval } from "@/server/modules/users/admin-geral-guard";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 
@@ -308,7 +309,10 @@ export async function updateUser(
     email: input.email.trim(),
     role: storedRoleSlug,
     updatedAt: sql`now()`,
-    ...(senha ? { senhaHash: await hashPassword(senha) } : {}),
+    // Achado 103: trocar a senha revoga os tokens Bearer mobile emitidos antes.
+    ...(senha
+      ? { senhaHash: await hashPassword(senha), tokenVersion: sql`${users.tokenVersion} + 1` }
+      : {}),
   };
 
   let removedPacienteIdsForAudit: number[] = [];
@@ -483,6 +487,34 @@ export async function deleteUser(id: number, requesterUserId: number) {
         .limit(1);
       if (!current) {
         throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
+      }
+
+      const targetRoleCanon = normalizeRoleForMatch(current.role ?? "");
+      if (targetRoleCanon === "ADMIN_GERAL") {
+        const [outroAdminGeral] = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(
+            and(
+              inArray(users.role, ["admin-geral", "ADMIN_GERAL"]),
+              eq(users.ativo, true),
+              isNull(users.deletedAt),
+              ne(users.id, id)
+            )
+          )
+          .limit(1);
+        if (
+          blocksLastAdminGeralRemoval({
+            targetRoleCanon,
+            otherActiveAdminGeralExists: Boolean(outroAdminGeral),
+          })
+        ) {
+          throw new AppError(
+            "Nao e possivel excluir o ultimo admin-geral ativo",
+            400,
+            "LAST_ADMIN_GERAL"
+          );
+        }
       }
 
       previousRoleForAudit = current.role ?? null;

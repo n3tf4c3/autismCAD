@@ -1,5 +1,6 @@
 import { requireApiPermission } from "@/server/auth/api-auth";
 import { evolutivoQuerySchema } from "@autismcad/validators/relatorios/relatorios.schema";
+import type { EvolutivoReportResponse } from "@autismcad/validators/api/v1";
 import { consolidateEvolutivoReport } from "@/server/modules/relatorios/relatorios.service";
 import { withErrorHandlingNoContext } from "@/server/shared/http";
 
@@ -20,5 +21,5 @@ export const GET = withErrorHandlingNoContext(async (request: Request) => {
   });
 
   const report = await consolidateEvolutivoReport({ query: parsed, user, access });
-  return Response.json({ report });
+  return Response.json({ report } satisfies EvolutivoReportResponse);
 });

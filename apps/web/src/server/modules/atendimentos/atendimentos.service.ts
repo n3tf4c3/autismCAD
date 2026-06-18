@@ -33,6 +33,9 @@ import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/prof
 import { AppError } from "@/server/shared/errors";
 import { normalizeDateOnlyStrict } from "@/server/shared/normalize";
 
+// Achado 108: teto defensivo de linhas na listagem (o calendario filtra por data).
+const LISTAGEM_MAX_ATENDIMENTOS = 1000;
+
 function normalizeTurno(value?: string | null) {
   return value && turnosPermitidos.has(value) ? value : "Matutino";
 }
@@ -361,12 +364,17 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput, scope?
       updatedAt: atendimentos.updatedAt,
       pacienteNome: pacientes.nome,
       profissionalNome: profissionaisTabela.nome,
+      // Evolucao ativa do atendimento (1:1 pela unique parcial); null quando ainda nao registrada.
+      evolucaoId: evolucoes.id,
     })
     .from(atendimentos)
     .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
     .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
+    .leftJoin(evolucoes, and(eq(evolucoes.atendimentoId, atendimentos.id), isNull(evolucoes.deletedAt)))
     .where(and(...where))
-    .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id));
+    .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id))
+    // Achado 108: teto defensivo contra respostas ilimitadas (calendario filtra por data).
+    .limit(LISTAGEM_MAX_ATENDIMENTOS);
 
   return rows.map((row) => ({
     id: row.id,
@@ -389,6 +397,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput, scope?
     observacoes: row.observacoes,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    evolucaoId: row.evolucaoId,
   }));
 }
 

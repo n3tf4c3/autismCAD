@@ -17,6 +17,10 @@ import { AppError } from "@/server/shared/errors";
 import { ymdMinusDaysInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { escapeLikePattern, normalizeDateOnlyLoose } from "@/server/shared/normalize";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
+import {
+  RELATORIO_MAX_INTERVALO_DIAS,
+  excedeIntervaloMaximoDias,
+} from "@/server/modules/relatorios/intervalo";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
@@ -208,6 +212,14 @@ export async function consolidateEvolutivoReport(params: {
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
+  // Achado 108: barra intervalos enormes que carregariam todos os registros do periodo.
+  if (excedeIntervaloMaximoDias(from, to)) {
+    throw new AppError(
+      `Intervalo do relatorio excede ${RELATORIO_MAX_INTERVALO_DIAS} dias. Refine o periodo.`,
+      400,
+      "RANGE_TOO_LARGE"
+    );
+  }
 
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
@@ -623,6 +635,14 @@ export async function consolidatePlanoEnsinoReport(params: {
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
+  // Achado 108: barra intervalos enormes que carregariam todos os registros do periodo.
+  if (excedeIntervaloMaximoDias(from, to)) {
+    throw new AppError(
+      `Intervalo do relatorio excede ${RELATORIO_MAX_INTERVALO_DIAS} dias. Refine o periodo.`,
+      400,
+      "RANGE_TOO_LARGE"
+    );
+  }
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
   await assertPacienteAccess(params.user, pacienteId, params.access);
@@ -784,6 +804,14 @@ export async function consolidateAssiduidadeReport(params: {
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
+  // Achado 108: barra intervalos enormes que carregariam todos os registros do periodo.
+  if (excedeIntervaloMaximoDias(from, to)) {
+    throw new AppError(
+      `Intervalo do relatorio excede ${RELATORIO_MAX_INTERVALO_DIAS} dias. Refine o periodo.`,
+      400,
+      "RANGE_TOO_LARGE"
+    );
+  }
   if (from > to) throw new AppError("Periodo invalido", 400, "INVALID_PERIOD");
 
   const { profissionalFiltro, allowedPacienteIds } = await resolveAssiduidadeScope({

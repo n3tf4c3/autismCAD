@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isCalendarDate, isValidTimeOfDay } from "../common/datetime";
 
 export const turnosPermitidos = new Set(["Matutino", "Vespertino"]);
 export const presencasPermitidas = new Set([
@@ -12,10 +13,27 @@ const requiredId = z.coerce.number().int().positive();
 
 // Achado 65: alinhar a validacao de horario ao que o service normaliza (HH:MM ou
 // HH:MM:SS, hora com dois digitos), evitando que "9:00" passe aqui e falhe depois.
+// Achado 76: alem do formato, exigir faixa real de hora/minuto (rejeita "99:99").
 const horaField = z
   .string()
   .trim()
-  .regex(/^\d{2}:\d{2}(:\d{2})?$/, "Horario invalido. Use HH:MM ou HH:MM:SS");
+  .regex(/^\d{2}:\d{2}(:\d{2})?$/, "Horario invalido. Use HH:MM ou HH:MM:SS")
+  .refine(isValidTimeOfDay, "Horario fora da faixa valida (00:00 a 23:59)");
+
+// Achado 88/101: data-only que precisa ser uma data de calendario real.
+const dataField = z
+  .string()
+  .trim()
+  .refine(isCalendarDate, "Data invalida. Use AAAA-MM-DD valido");
+
+// Achado 110: filtros de query e periodos de atendimento avulso tambem validam data de
+// calendario real (ou vazio), em vez de aceitar string livre. Vazio = sem filtro/periodo.
+const optionalDataField = z
+  .string()
+  .trim()
+  .refine((value) => value === "" || isCalendarDate(value), "Data invalida. Use AAAA-MM-DD valido")
+  .optional();
+const optionalNullableDataField = optionalDataField.nullable();
 
 const optionalBooleanLike = z
   .union([z.boolean(), z.number(), z.string()])
@@ -55,20 +73,20 @@ function exigirHoraFimMaior(
 export const atendimentosQuerySchema = z.object({
   pacienteId: z.coerce.number().int().positive().optional(),
   profissionalId: optionalId,
-  dataIni: z.string().trim().optional(),
-  dataFim: z.string().trim().optional(),
+  dataIni: optionalDataField,
+  dataFim: optionalDataField,
 });
 
 export const saveAtendimentoSchema = z.object({
   pacienteId: z.coerce.number().int().positive(),
   profissionalId: requiredId,
-  data: z.string().trim().min(10).max(10),
+  data: dataField,
   horaInicio: horaField,
   horaFim: horaField,
   isGrupo: optionalBooleanLike,
   turno: z.string().trim().optional(),
-  periodoInicio: z.string().trim().optional().nullable(),
-  periodoFim: z.string().trim().optional().nullable(),
+  periodoInicio: optionalNullableDataField,
+  periodoFim: optionalNullableDataField,
   presenca: z.string().trim().optional(),
   motivo: z.string().trim().optional().nullable(),
   observacoes: z.string().trim().optional().nullable(),
@@ -81,8 +99,8 @@ export const recorrenteSchema = z.object({
   horaFim: horaField,
   isGrupo: optionalBooleanLike,
   turno: z.string().trim().optional(),
-  periodoInicio: z.string().trim().min(10).max(10),
-  periodoFim: z.string().trim().min(10).max(10),
+  periodoInicio: dataField,
+  periodoFim: dataField,
   presenca: z.string().trim().optional(),
   motivo: z.string().trim().optional().nullable(),
   observacoes: z.string().trim().optional().nullable(),
@@ -95,8 +113,8 @@ export const excluirDiaSchema = z.object({
   horaInicio: horaField,
   horaFim: horaField,
   turno: z.string().trim().optional(),
-  periodoInicio: z.string().trim().min(10).max(10),
-  periodoFim: z.string().trim().min(10).max(10),
+  periodoInicio: dataField,
+  periodoFim: dataField,
   diaSemana: z.coerce.number().int().min(0).max(6),
 });
 
