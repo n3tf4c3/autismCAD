@@ -201,3 +201,79 @@ export function buildEvolucaoPayload(state: EvolucaoFormState): Record<string, u
   }
   return payload;
 }
+
+function asString(value: unknown): string {
+  return value == null ? "" : String(value);
+}
+
+function toBehaviorItems(
+  values: unknown,
+  qtyMap: Record<string, unknown>,
+  tipo: "negativo" | "positivo"
+): BehaviorItem[] {
+  if (!Array.isArray(values)) return [];
+  const labelOf = (value: string): string =>
+    BEHAVIOR_OPTIONS[tipo].find((o) => o.value === value)?.label ?? value;
+  return values
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean)
+    .map((value) => {
+      const q = Number(qtyMap[value] ?? qtyMap[value.toLowerCase()]);
+      return { value, label: labelOf(value), qty: Number.isFinite(q) && q > 0 ? Math.trunc(q) : 1 };
+    });
+}
+
+// Inverso de buildEvolucaoPayload: descompoe o payload salvo de volta nos campos do form,
+// para edicao/correcao. Tolerante a payloads parciais/antigos (itens/itensDesempenho etc.).
+export function parseEvolucaoPayload(
+  payload: Record<string, unknown> | null | undefined
+): EvolucaoFormState {
+  const p = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+
+  const itensRaw = Array.isArray(p.itensDesempenho)
+    ? p.itensDesempenho
+    : Array.isArray(p.itens)
+      ? p.itens
+      : [];
+  const metaRows = itensRaw
+    .map((raw) => {
+      if (!raw || typeof raw !== "object") return null;
+      const r = raw as Record<string, unknown>;
+      return {
+        ensino: asString(r.ensino),
+        habilidade: asString(r.habilidade),
+        opcao: asString(r.opcao ?? r.meta),
+        desempenho: asString(r.desempenho ?? r.performance),
+        tipoAjuda: asString(r.tipoAjuda),
+        tentativas: r.tentativas == null ? "" : asString(r.tentativas),
+        acertos: r.acertos == null ? "" : asString(r.acertos),
+        reforcador: asString(r.reforcador),
+      } satisfies MetaRow;
+    })
+    .filter((row): row is MetaRow => row !== null);
+
+  const comp = (p.comportamentos && typeof p.comportamentos === "object" ? p.comportamentos : {}) as Record<
+    string,
+    unknown
+  >;
+  const quantidades = (comp.quantidades && typeof comp.quantidades === "object"
+    ? comp.quantidades
+    : {}) as Record<string, unknown>;
+  const negQty = (quantidades.negativo && typeof quantidades.negativo === "object"
+    ? quantidades.negativo
+    : {}) as Record<string, unknown>;
+  const posQty = (quantidades.positivo && typeof quantidades.positivo === "object"
+    ? quantidades.positivo
+    : {}) as Record<string, unknown>;
+
+  return {
+    titulo: asString(p.titulo),
+    conduta: asString(p.conduta),
+    descricao: asString(p.descricao),
+    metaRows: metaRows.length ? metaRows : [emptyMetaRow()],
+    compResultado: asString(comp.resultado),
+    negItems: toBehaviorItems(comp.negativos, negQty, "negativo"),
+    posItems: toBehaviorItems(comp.positivos, posQty, "positivo"),
+    compDescricao: asString(comp.descricao),
+  };
+}

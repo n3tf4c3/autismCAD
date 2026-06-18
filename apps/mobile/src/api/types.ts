@@ -5,5 +5,6 @@ export type {
   Atendimento,
   Paciente,
   EvolucaoPayload,
+  EvolucaoDetalhe,
   EvolutivoReport,
 } from "@autismcad/validators/api/v1";

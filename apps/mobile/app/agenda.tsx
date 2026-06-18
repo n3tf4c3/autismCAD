@@ -192,6 +192,8 @@ function AgendaContent() {
                   pacienteId: String(a.pacienteId ?? ""),
                   atendimentoId: String(a.id),
                   pacienteNome: a.pacienteNome ?? "",
+                  // Em atendimento ja evoluido, abre o form em modo edicao (correcao).
+                  evolucaoId: a.evolucaoId ? String(a.evolucaoId) : "",
                 },
               })
             }
@@ -208,7 +210,10 @@ function AgendaContent() {
                   </Text>
                   {a.profissionalNome ? <Muted>{a.profissionalNome}</Muted> : null}
                 </View>
-                <StatusChip label={presencaLabel(a.presenca)} tone={presencaTone(a.presenca)} />
+                <View style={{ alignItems: "flex-end", gap: 4 }}>
+                  <StatusChip label={presencaLabel(a.presenca)} tone={presencaTone(a.presenca)} />
+                  {a.evolucaoId ? <StatusChip label="Registrado" tone="ok" /> : null}
+                </View>
               </View>
             </Card>
           </Pressable>
