@@ -49,8 +49,8 @@ Auditoria 2026-06-18 (`relatorios/auditoria-2026-06-18-025126.md`).
 
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
-| 124 | Data de nascimento de profissional aceita entrada invalida e e descartada silenciosamente (null), divergindo de pacientes | Baixa | ABERTO |
-| 125 | Endereco composto pode exceder `endereco varchar(255)` e gerar erro 22001 nao tratado no save de profissionais | Baixa (potencial) | ABERTO |
+| 124 | Data de nascimento de profissional aceita entrada invalida e e descartada silenciosamente (null), divergindo de pacientes | Baixa | RESOLVIDO |
+| 125 | Endereco composto pode exceder `endereco varchar(255)` e gerar erro 22001 nao tratado no save de profissionais | Baixa (potencial) | RESOLVIDO |
 
 ## Historico resolvido (achados 1-101)
 

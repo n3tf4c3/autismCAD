@@ -42,7 +42,10 @@ function composeEndereco(input: SaveProfissionalInput): string | null {
   ]
     .filter(Boolean)
     .join(", ");
-  return joined || normalizeOptionalText(input.endereco);
+  const result = joined || normalizeOptionalText(input.endereco);
+  // Achado 125: a soma dos campos (logradouro+numero+bairro+cidade) pode exceder a coluna
+  // endereco varchar(255); trunca o valor denormalizado para nao estourar (22001) no save.
+  return result ? result.slice(0, 255) : null;
 }
 
 export async function listarProfissionais(filters: ProfissionaisQueryInput) {
