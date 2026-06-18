@@ -1,6 +1,8 @@
 import React from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -35,14 +37,23 @@ export const BRAND_GRADIENT = ["#f3d886", "#dccf96", "#aac7d4", "#7cc0d6", "#69c
 const AVATAR_GRADIENT = ["#f5a05a", "#d9863f"] as const;
 
 export function Screen({ children }: { children: React.ReactNode }) {
+  // Teclado nao deve cobrir os campos: o ScrollView com flex:1 + adjustResize (Android)
+  // permite rolar o input focado para cima; o KeyboardAvoidingView trata o iOS. O padding
+  // inferior generoso garante folga para os ultimos campos do formulario.
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.bg }}
-      contentContainerStyle={styles.screenContent}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.bg }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {children}
-    </ScrollView>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.bg }}
+        contentContainerStyle={styles.screenContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -355,7 +366,7 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  screenContent: { padding: 16, gap: 14, paddingBottom: 48 },
+  screenContent: { padding: 16, gap: 14, paddingBottom: 160 },
   card: {
     backgroundColor: theme.card,
     borderColor: theme.border,
