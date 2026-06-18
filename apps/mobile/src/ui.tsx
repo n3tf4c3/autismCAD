@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -35,11 +37,46 @@ export const BRAND_GRADIENT = ["#f3d886", "#dccf96", "#aac7d4", "#7cc0d6", "#69c
 const AVATAR_GRADIENT = ["#f5a05a", "#d9863f"] as const;
 
 export function Screen({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const [kbPad, setKbPad] = useState(0);
+
+  // Teclado nao deve cobrir o campo focado. Em vez de depender do auto-scroll do RN (que
+  // nao funciona de forma confiavel no Android/New Arch), ao abrir o teclado adicionamos
+  // padding inferior (= altura do teclado) para haver folga de rolagem e rolamos o input
+  // focado para acima do teclado, medindo sua posicao real na tela.
+  useEffect(() => {
+    const onShow = Keyboard.addListener("keyboardDidShow", (e) => {
+      const kbHeight = e.endCoordinates?.height ?? 0;
+      setKbPad(kbHeight);
+      const focused = TextInput.State.currentlyFocusedInput?.();
+      if (!focused || typeof focused.measureInWindow !== "function") return;
+      focused.measureInWindow((_x: number, y: number, _w: number, height: number) => {
+        const screenH = Dimensions.get("window").height;
+        const overlap = y + height + 24 - (screenH - kbHeight);
+        if (overlap > 0) {
+          scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
+        }
+      });
+    });
+    const onHide = Keyboard.addListener("keyboardDidHide", () => setKbPad(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
+
   return (
     <ScrollView
-      style={{ backgroundColor: theme.bg }}
-      contentContainerStyle={styles.screenContent}
+      ref={scrollRef}
+      style={{ flex: 1, backgroundColor: theme.bg }}
+      contentContainerStyle={[styles.screenContent, { paddingBottom: 24 + kbPad }]}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      onScroll={(e) => {
+        scrollY.current = e.nativeEvent.contentOffset.y;
+      }}
+      scrollEventThrottle={16}
     >
       {children}
     </ScrollView>
