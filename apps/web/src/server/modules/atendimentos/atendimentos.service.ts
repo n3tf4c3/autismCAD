@@ -364,10 +364,13 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput, scope?
       updatedAt: atendimentos.updatedAt,
       pacienteNome: pacientes.nome,
       profissionalNome: profissionaisTabela.nome,
+      // Evolucao ativa do atendimento (1:1 pela unique parcial); null quando ainda nao registrada.
+      evolucaoId: evolucoes.id,
     })
     .from(atendimentos)
     .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
     .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
+    .leftJoin(evolucoes, and(eq(evolucoes.atendimentoId, atendimentos.id), isNull(evolucoes.deletedAt)))
     .where(and(...where))
     .orderBy(desc(atendimentos.data), desc(atendimentos.horaInicio), desc(atendimentos.id))
     // Achado 108: teto defensivo contra respostas ilimitadas (calendario filtra por data).
@@ -394,6 +397,7 @@ export async function listarAtendimentos(filters: AtendimentosQueryInput, scope?
     observacoes: row.observacoes,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    evolucaoId: row.evolucaoId,
   }));
 }
 

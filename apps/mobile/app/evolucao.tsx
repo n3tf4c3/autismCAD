@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
 import { ApiError } from "@/api/client";
+import { evolucaoDetalheResponseSchema } from "@/api/v1-schemas";
+import type { EvolucaoDetalhe } from "@/api/types";
 import {
   AJUDA_OPTIONS,
   BEHAVIOR_OPTIONS,
@@ -11,6 +13,7 @@ import {
   RESULTADO_OPTIONS,
   TITULO_SESSAO_OPTIONS,
   buildEvolucaoPayload,
+  parseEvolucaoPayload,
   validateEvolucaoCounts,
   emptyMetaRow,
   type BehaviorItem,
@@ -45,9 +48,12 @@ function EvolucaoFormContent() {
     pacienteId?: string;
     atendimentoId?: string;
     pacienteNome?: string;
+    evolucaoId?: string;
   }>();
   const pacienteId = Number(params.pacienteId ?? 0);
   const atendimentoId = params.atendimentoId ? Number(params.atendimentoId) : null;
+  const evolucaoId = params.evolucaoId ? Number(params.evolucaoId) : null;
+  const isEdit = !!evolucaoId;
 
   const [titulo, setTitulo] = useState("");
   const [tituloCustom, setTituloCustom] = useState(false);
@@ -61,6 +67,44 @@ function EvolucaoFormContent() {
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Em modo edicao, carrega a evolucao existente e pre-preenche o form antes de exibir.
+  const [loadingExisting, setLoadingExisting] = useState(isEdit);
+
+  useEffect(() => {
+    if (!evolucaoId) return;
+    let active = true;
+    setLoadingExisting(true);
+    setError(null);
+    (async () => {
+      try {
+        const res = await authFetch<{ evolucao: EvolucaoDetalhe }>(
+          `/api/v1/evolucoes/${evolucaoId}`,
+          { schema: evolucaoDetalheResponseSchema }
+        );
+        if (!active) return;
+        const form = parseEvolucaoPayload(res.evolucao.payload ?? null);
+        setTitulo(form.titulo);
+        setTituloCustom(
+          form.titulo !== "" &&
+            !TITULO_SESSAO_OPTIONS.includes(form.titulo as (typeof TITULO_SESSAO_OPTIONS)[number])
+        );
+        setConduta(form.conduta);
+        setDescricao(form.descricao);
+        setMetaRows(form.metaRows);
+        setCompResultado(form.compResultado);
+        setNegItems(form.negItems);
+        setPosItems(form.posItems);
+        setCompDescricao(form.compDescricao);
+      } catch (e) {
+        if (active) setError(e instanceof Error ? e.message : "Falha ao carregar a evolucao.");
+      } finally {
+        if (active) setLoadingExisting(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [evolucaoId, authFetch]);
 
   function updateMeta(index: number, patch: Partial<MetaRow>) {
     setMetaRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -112,10 +156,17 @@ function EvolucaoFormContent() {
         posItems,
         compDescricao,
       });
-      await authFetch("/api/v1/evolucoes", {
-        method: "POST",
-        body: { pacienteId, atendimentoId, payload },
-      });
+      if (isEdit) {
+        await authFetch(`/api/v1/evolucoes/${evolucaoId}`, {
+          method: "PUT",
+          body: { atendimentoId, payload },
+        });
+      } else {
+        await authFetch("/api/v1/evolucoes", {
+          method: "POST",
+          body: { pacienteId, atendimentoId, payload },
+        });
+      }
       router.back();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Falha ao salvar a evolucao.");
@@ -124,13 +175,28 @@ function EvolucaoFormContent() {
     }
   }
 
+  if (loadingExisting) {
+    return (
+      <Screen>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Pressable onPress={() => router.back()} hitSlop={12}>
+            <Text style={{ color: theme.accent, fontSize: 30, fontWeight: "800", lineHeight: 32 }}>‹</Text>
+          </Pressable>
+          <H1>Editar evolução</H1>
+        </View>
+        <Muted>Carregando evolução…</Muted>
+        <ErrorText>{error}</ErrorText>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Text style={{ color: theme.accent, fontSize: 30, fontWeight: "800", lineHeight: 32 }}>‹</Text>
         </Pressable>
-        <H1>Nova evolução</H1>
+        <H1>{isEdit ? "Editar evolução" : "Nova evolução"}</H1>
       </View>
       <Muted>
         {params.pacienteNome ? params.pacienteNome : `Paciente #${pacienteId}`}
@@ -254,7 +320,7 @@ function EvolucaoFormContent() {
       </Card>
 
       <ErrorText>{error}</ErrorText>
-      <Button title="Salvar evolucao" onPress={onSubmit} loading={busy} />
+      <Button title={isEdit ? "Salvar correção" : "Salvar evolucao"} onPress={onSubmit} loading={busy} />
     </Screen>
   );
 }

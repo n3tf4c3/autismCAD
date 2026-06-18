@@ -13,6 +13,19 @@ export type Atendimento = {
   profissionalId?: number | null;
   profissionalNome?: string | null;
   presenca?: string | null;
+  // Id da evolucao ativa do atendimento (null quando ainda nao registrada). Permite ao
+  // mobile sinalizar "Registrado" e abrir o form em modo edicao.
+  evolucaoId?: number | null;
+};
+
+// Evolucao carregada por GET /api/v1/evolucoes/[id] para edicao no mobile.
+export type EvolucaoDetalhe = {
+  id: number;
+  pacienteId: number;
+  profissionalId: number | null;
+  atendimentoId: number | null;
+  data: string;
+  payload?: EvolucaoPayload | null;
 };
 
 // Item de paciente exposto por GET /api/v1/pacientes.
@@ -71,6 +84,7 @@ export type AtendimentosListResponse = { items: Atendimento[] };
 export type PacientesListResponse = { items: Paciente[] };
 export type EvolutivoReportResponse = { report: EvolutivoReport };
 export type ClinicTimeResponse = { today: string };
+export type EvolucaoDetalheResponse = { evolucao: EvolucaoDetalhe };
 
 // Achado 111: os schemas Zod de runtime das respostas v1 vivem no app mobile
 // (`apps/mobile/src/api/v1-schemas.ts`), tipados contra estes tipos. O Metro nao resolve

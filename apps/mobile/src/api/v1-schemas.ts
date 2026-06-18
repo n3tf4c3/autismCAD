@@ -17,6 +17,7 @@ const atendimentoSchema = z
     profissionalId: z.number().nullish(),
     profissionalNome: z.string().nullish(),
     presenca: z.string().nullish(),
+    evolucaoId: z.number().nullish(),
   })
   .passthrough();
 
@@ -37,6 +38,22 @@ export const pacientesListResponseSchema = z
   .passthrough();
 
 export const clinicTimeResponseSchema = z.object({ today: z.string() }).passthrough();
+
+// Evolucao carregada para edicao: garante id e o payload (objeto dinamico) preservado.
+export const evolucaoDetalheResponseSchema = z
+  .object({
+    evolucao: z
+      .object({
+        id: z.number(),
+        pacienteId: z.number(),
+        profissionalId: z.number().nullish(),
+        atendimentoId: z.number().nullish(),
+        data: z.string(),
+        payload: z.record(z.string(), z.unknown()).nullish(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
 
 // Envelope critico do relatorio: garante report.paciente; o restante (indicadores,
 // atendimentos, evolucoes com payload dinamico) passa intacto via passthrough.
