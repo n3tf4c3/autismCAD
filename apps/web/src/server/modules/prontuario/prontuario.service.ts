@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, isNull, max, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, max, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { runDbTransaction } from "@/server/db/transaction";
@@ -142,6 +142,21 @@ async function obterProfissionalIdDoAtendimento(
   return row.profissionalId == null ? null : Number(row.profissionalId);
 }
 
+// Achado 71: data do atendimento vinculado, para a evolucao herdar a data da sessao
+// (independente do relogio do aparelho que enviou o POST).
+async function obterDataDoAtendimento(
+  pacienteId: number,
+  atendimentoId: number
+): Promise<string | null> {
+  const [row] = await db
+    .select({ pacienteId: atendimentos.pacienteId, data: atendimentos.data })
+    .from(atendimentos)
+    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)))
+    .limit(1);
+  if (!row || Number(row.pacienteId) !== Number(pacienteId)) return null;
+  return row.data ? String(row.data).slice(0, 10) : null;
+}
+
 async function assertProfissionalPacienteValido(
   pacienteId: number,
   profissionalId: number,
@@ -173,10 +188,19 @@ async function assertProfissionalPacienteValido(
 }
 
 async function marcarRepasseConcluido(executor: typeof db, atendimentoId: number) {
+  // Achado 85: so conclui o repasse de atendimentos presentes, alinhando com
+  // resolveStatusRepasseForUpdate em atendimentos.service. Evolucao vinculada a
+  // atendimento ausente/nao informado nao deve marcar repasse como concluido.
   await executor
     .update(atendimentos)
     .set({ statusRepasse: "Concluido", updatedAt: sql`now()` })
-    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)));
+    .where(
+      and(
+        eq(atendimentos.id, atendimentoId),
+        isNull(atendimentos.deletedAt),
+        eq(atendimentos.presenca, "Presente")
+      )
+    );
 }
 
 async function sincronizarRepassePendenteSeSemEvolucao(
@@ -305,11 +329,21 @@ export async function salvarDocumento(
               eq(prontuarioDocumentos.id, documentoId),
               eq(prontuarioDocumentos.pacienteId, pacienteId),
               eq(prontuarioDocumentos.tipo, tipo),
-              isNull(prontuarioDocumentos.deletedAt)
+              isNull(prontuarioDocumentos.deletedAt),
+              // Achado 70: compare-and-swap no status para nao sobrescrever uma
+              // finalizacao concorrente ocorrida entre o SELECT acima e este UPDATE.
+              ne(prontuarioDocumentos.status, "Finalizado")
             )
           )
           .returning({ id: prontuarioDocumentos.id, version: prontuarioDocumentos.version });
-        return row ?? null;
+        if (!row) {
+          throw new AppError(
+            "Documento finalizado nao pode ser alterado",
+            409,
+            "CONFLICT"
+          );
+        }
+        return row;
       },
       { operation: "prontuario.salvarDocumento", mode: "required" }
     );
@@ -395,11 +429,20 @@ export async function criarEvolucao(
   // recai sobre a role do JWT — mantido apenas para compatibilidade de chamadas legadas.
   auth?: { roleCanon: string | null; profissionalId: number | null }
 ) {
-  const dataVal = toIsoDate(input.data ?? ymdNowInClinicTz());
   const payload = sanitizeEvolucaoPayload(input.payload ?? {}).payload;
 
   const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw ? Number(atendimentoRaw) : null;
+
+  // Achado 71: sem `data` no input (caso do mobile), a evolucao vinculada a um
+  // atendimento herda a data dele; so cai para a data atual da clinica quando nao ha
+  // atendimento nem data informada.
+  const dataInformada = input.data
+    ? toIsoDate(input.data)
+    : atendimentoId
+      ? await obterDataDoAtendimento(pacienteId, atendimentoId)
+      : null;
+  const dataVal = dataInformada ?? toIsoDate(ymdNowInClinicTz());
 
   const profissionalRaw = input.profissionalId ?? null;
   let profissionalId = profissionalRaw ? Number(profissionalRaw) : null;
@@ -495,7 +538,10 @@ export async function atualizarEvolucao(
   id: number,
   input: AtualizarEvolucaoInput,
   user?: { id: number | string; role?: string | null } | null,
-  evolucaoAtual?: Awaited<ReturnType<typeof obterEvolucaoPorId>> | null
+  evolucaoAtual?: Awaited<ReturnType<typeof obterEvolucaoPorId>> | null,
+  // Achado 83: papel EFETIVO (access fresco). Quando ausente, recai sobre a role
+  // do JWT apenas para compatibilidade de chamadas legadas.
+  auth?: { roleCanon: string | null }
 ) {
   const current =
     evolucaoAtual ??
@@ -516,7 +562,7 @@ export async function atualizarEvolucao(
   let profissionalId = profissionalRaw
     ? Number(profissionalRaw)
     : Number(current.profissionalId);
-  const roleCanon = canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
+  const roleCanon = auth?.roleCanon ?? canonicalRoleName(user?.role ?? null) ?? user?.role ?? null;
   if (roleCanon === "PROFISSIONAL") {
     const userId = toPositiveUserIdOrNull(user?.id ?? null);
     if (!userId) throw new AppError("Profissional nao encontrado", 403, "FORBIDDEN");

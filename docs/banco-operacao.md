@@ -12,16 +12,35 @@ por migrations versionadas:
 npm run db:migrate
 ```
 
-A baseline `src/server/db/migrations/0000_baseline.sql` cria tabelas, índices, FKs,
+A baseline `packages/db/src/migrations/0000_baseline.sql` cria tabelas, índices, FKs,
 **funções** (`jsonb_is_positive_int_array`, `set_updated_at`) e **triggers**
 (`trg_*_set_updated_at`). O schema Drizzle referencia essas funções em `check`
 constraints. `npm run db:check` valida a consistência das migrations.
 
+### Precheck antes de migrations com CHECK constraints
+
+Migrations que adicionam `CHECK` (ex.: `0003`) **falham se ja houver dados que violem**
+a regra, podendo deixar aplicacao parcial (statements rodam em sequencia). Antes de
+`db:migrate` em um ambiente com dados, rode o precheck (read-only) e exija zero:
+
+```bash
+npx tsx apps/web/scripts/db/precheck-0003-constraints.ts
+```
+
+A `0005` (achado 104) adiciona FK composta `evolucoes (atendimento_id, paciente_id,
+profissional_id) -> atendimentos`. Falha se houver evolucao cujo paciente/profissional
+nao coincida com o atendimento referenciado. Precheck (read-only, exija zero linhas):
+
+```bash
+npx tsx apps/web/scripts/db/precheck-0005-evolucao-atendimento.ts
+```
+
 ## `db:push` é proibido fora de sandbox descartável
 
 ```bash
-# PERMITIDO apenas em banco local descartável de desenvolvimento.
-npm run db:push
+# Desabilitado por padrao (achado 105). PERMITIDO apenas em banco local descartavel,
+# com opt-in explicito:
+DB_PUSH_SANDBOX=1 npm run db:push
 ```
 
 `db:push` sincroniza o schema do Drizzle direto no banco, **sem aplicar a DDL
@@ -30,5 +49,49 @@ manual** das migrations (funções/triggers). Usá-lo em um ambiente persistente
 - criar um banco sem as funções/triggers exigidas pelos checks, ou falhar nos checks;
 - gerar drift em relação ao que `db:migrate` produz.
 
-Regra: **nunca** rodar `db:push` apontando para um banco que não possa ser
+Por isso o script **falha fechado**: sem `DB_PUSH_SANDBOX=1` ele aborta antes de tocar
+o banco. Regra: **nunca** rodar `db:push` apontando para um banco que não possa ser
 descartado e recriado por `db:migrate`. Para qualquer banco real, use `db:migrate`.
+
+## Scripts de cleanup de payload (achados 89, 98)
+
+Saneiam JSONB legado (`evolucoes`, `anamnese`/`anamnese_versions`, `prontuario_documentos`
+do tipo `PLANO_ENSINO`). Expostos na raiz do monorepo e em `apps/web/package.json`
+(achado 90):
+
+```bash
+# 1) SEMPRE rode primeiro em dry-run (nao escreve nada) e revise o relatorio JSON.
+npm run db:cleanup:evolucao
+npm run db:cleanup:anamnese
+npm run db:cleanup:plano-ensino
+
+# 2) Para aplicar, adicione --apply. Contra banco REMOTO exige confirmacao explicita.
+#    Use a forma com -w para o encaminhamento de flags ser inequivoco:
+npm run db:cleanup:evolucao -w @autismcad/web -- --apply --yes-prod
+# ou: CLEANUP_CONFIRM=1 npm run db:cleanup:evolucao -w @autismcad/web -- --apply
+```
+
+Salvaguardas (`scripts/db/_cleanup-safety.ts`): cada execucao loga o alvo mascarado
+(`host/database`) e o modo. Em `--apply` contra host nao-local, aborta sem
+`--yes-prod` (ou `CLEANUP_CONFIRM=1`), evitando execucao acidental em producao.
+
+### Atomicidade e reexecucao
+
+Os updates sao aplicados linha a linha, **sem** transacao envolvendo todo o lote.
+O driver atual (`drizzle-orm/neon-http`) e stateless por requisicao HTTP e lanca
+`No transactions support in neon-http driver`; atomicidade de lote exigiria trocar
+para um driver transacional (WebSocket Pool / `postgres-js`) — ver
+`docs/transactions-migration-plan.md`.
+
+Mitigacao enquanto isso: os scripts sao **idempotentes** — o saneamento e
+deterministico e cada linha so e escrita quando muda (`changed`). Uma falha no meio
+do lote e recuperavel apenas reexecutando o script (dry-run e depois `--apply`):
+linhas ja saneadas sao puladas e o resultado final converge.
+
+## Localizacao atual no monorepo
+
+- Schema Drizzle: `packages/db/src/schema.ts`.
+- Migrations: `packages/db/src/migrations/`.
+- Config Drizzle: `packages/db/drizzle.config.ts`.
+- Variaveis de ambiente carregadas pelo Drizzle: `apps/web/.env.local` e `apps/web/.env`.
+- Scripts da raiz delegam para `@autismcad/db`; tambem e possivel rodar com `-w @autismcad/db`.

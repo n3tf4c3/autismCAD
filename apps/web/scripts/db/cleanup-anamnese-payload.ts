@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { anamnese, anamneseVersions } from "@autismcad/db/schema";
 import { sanitizeAnamnesePayload } from "../../src/lib/anamnese/sanitize-anamnese-payload";
+import { assertApplyConfirmed } from "./_cleanup-safety";
 
 function readEnv(key: string): string | undefined {
   const value = process.env[key];
@@ -20,6 +21,7 @@ async function main() {
   if (!databaseUrl) throw new Error("DATABASE_URL nao configurado.");
 
   const apply = hasFlag("--apply");
+  assertApplyConfirmed(apply, databaseUrl);
   const sql = neon(databaseUrl);
   const db = drizzle({ client: sql });
 

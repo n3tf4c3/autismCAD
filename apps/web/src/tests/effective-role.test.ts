@@ -10,6 +10,7 @@ function access(overrides: Partial<UserAccess>): UserAccess {
     role: null,
     canonicalRole: null,
     permissions: new Set<string>(),
+    tokenVersion: 0,
     user: null,
     ...overrides,
   };

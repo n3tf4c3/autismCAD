@@ -27,10 +27,11 @@ export type ApiTokenPair = {
 export async function issueTokenPair(payload: {
   sub: string;
   role: string;
+  tokenVersion: number;
 }): Promise<ApiTokenPair> {
   const key = secretKey();
   const base = (typ: "access" | "refresh") =>
-    new SignJWT({ typ })
+    new SignJWT({ typ, ver: payload.tokenVersion })
       .setProtectedHeader({ alg: "HS256" })
       .setSubject(payload.sub)
       .setIssuer(ISSUER)
@@ -47,9 +48,19 @@ export async function issueTokenPair(payload: {
   return { accessToken, refreshToken, tokenType: "Bearer", expiresIn: ACCESS_TTL_SECONDS };
 }
 
-async function verify(token: string, expectedTyp: "access" | "refresh"): Promise<string> {
+export type VerifiedToken = {
+  sub: string;
+  // null quando o token foi emitido antes do claim 'ver' (tratado como versao 0).
+  tokenVersion: number | null;
+};
+
+async function verify(
+  token: string,
+  expectedTyp: "access" | "refresh"
+): Promise<VerifiedToken> {
   let sub: string | undefined;
   let typ: unknown;
+  let ver: unknown;
   try {
     const { payload } = await jwtVerify(token, secretKey(), {
       issuer: ISSUER,
@@ -57,19 +68,20 @@ async function verify(token: string, expectedTyp: "access" | "refresh"): Promise
     });
     sub = payload.sub;
     typ = payload.typ;
+    ver = payload.ver;
   } catch {
     throw new AppError("Token invalido ou expirado", 401, "UNAUTHORIZED");
   }
   if (typ !== expectedTyp || !sub) {
     throw new AppError("Token invalido", 401, "UNAUTHORIZED");
   }
-  return sub;
+  return { sub, tokenVersion: typeof ver === "number" ? ver : null };
 }
 
-export async function verifyAccessToken(token: string): Promise<string> {
+export async function verifyAccessToken(token: string): Promise<VerifiedToken> {
   return verify(token, "access");
 }
 
-export async function verifyRefreshToken(token: string): Promise<string> {
+export async function verifyRefreshToken(token: string): Promise<VerifiedToken> {
   return verify(token, "refresh");
 }

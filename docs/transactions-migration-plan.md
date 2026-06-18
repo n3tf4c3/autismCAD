@@ -15,8 +15,8 @@ Garantir consistencia de escrita nos fluxos criticos, com uso previsivel de tran
   - valor explicito no ambiente sobrescreve esse default
 
 Referencias:
-- `src/lib/env.ts`
-- `src/server/db/transaction.ts`
+- `apps/web/src/lib/env.ts`
+- `apps/web/src/server/db/transaction.ts`
 
 ## Semantica atual de `runDbTransaction`
 
@@ -27,30 +27,30 @@ Referencias:
 ## Politica atual no codigo
 
 - A maior parte das mutacoes de dominio esta com `mode: "required"`, inclusive:
-  - pacientes, terapeutas, atendimentos, anamnese, prontuario, users.
+  - pacientes, profissionais, atendimentos, agenda/bloqueios, anamnese, prontuario, users.
 - Excecao intencional:
   - `accessLogs.recordLoginAttemptAccess` usa `mode: "allow-fallback"` para nao bloquear login por indisponibilidade de transacao.
 
 ## Fluxos criticos para validacao
 
 ### 1) `pacientes.salvarPaciente`
-- Path: `src/server/modules/pacientes/pacientes.service.ts`
+- Path: `apps/web/src/server/modules/pacientes/pacientes.service.ts`
 - Esperado: sem persistencia parcial de paciente/terapias em caso de falha intermediaria.
 
 ### 2) `prontuario.salvarDocumento`
-- Path: `src/server/modules/prontuario/prontuario.service.ts`
+- Path: `apps/web/src/server/modules/prontuario/prontuario.service.ts`
 - Esperado: versao/documento consistente sob concorrencia.
 
 ### 3) `anamnese.salvarAnamneseCompleta`
-- Path: `src/server/modules/anamnese/anamnese.service.ts`
+- Path: `apps/web/src/server/modules/anamnese/anamnese.service.ts`
 - Esperado: base + versao consistentes sem orfaos.
 
-### 4) `terapeutas.deleteTerapeuta`
-- Path: `src/server/modules/profissionais/profissionais.service.ts`
+### 4) `profissionais.deleteProfissional`
+- Path: `apps/web/src/server/modules/profissionais/profissionais.service.ts`
 - Esperado: operacoes encadeadas (desvinculo + delete logico/fisico conforme regra) sem estado parcial.
 
 ### 5) `pacientes.arquivos.commit.action`
-- Path: `src/app/(protected)/pacientes/paciente.actions.ts`
+- Path: `apps/web/src/app/(protected)/pacientes/paciente.actions.ts`
 - Esperado: troca de chave de arquivo com leitura/escrita consistente e sem ponteiro invalido.
 
 ## Rollout recomendado de ambiente
@@ -78,7 +78,7 @@ Como varios fluxos sao Server Actions (e nao `route.ts` publico), validar por fl
 - Salvar/editar paciente
 - Salvar documento e evolucao de prontuario
 - Salvar/excluir anamnese
-- Excluir terapeuta
+- Excluir profissional
 - Commit de arquivo de paciente
 
 ## Notas de manutencao

@@ -90,7 +90,36 @@ function toIntOrNull(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const n = Number(trimmed);
-  return Number.isFinite(n) ? Math.trunc(n) : null;
+  // Achado 96: contagens nao podem ser negativas; valor invalido vira null.
+  if (!Number.isFinite(n)) return null;
+  const truncated = Math.trunc(n);
+  return truncated < 0 ? null : truncated;
+}
+
+// Achado 114: bloqueia o submit em vez de descartar/alterar contagens silenciosamente.
+// Vazio = sem contagem (permitido). Caso contrario exige inteiro >= 0 e acertos <= tentativas.
+function isCountStringValid(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed === "" || /^\d+$/.test(trimmed);
+}
+
+export function validateEvolucaoCounts(rows: MetaRow[]): string | null {
+  for (let i = 0; i < rows.length; i += 1) {
+    const linha = i + 1;
+    const { tentativas, acertos } = rows[i];
+    if (!isCountStringValid(tentativas)) {
+      return `Linha ${linha}: tentativas deve ser um numero inteiro maior ou igual a 0.`;
+    }
+    if (!isCountStringValid(acertos)) {
+      return `Linha ${linha}: acertos deve ser um numero inteiro maior ou igual a 0.`;
+    }
+    const tent = tentativas.trim() ? Number(tentativas.trim()) : null;
+    const ac = acertos.trim() ? Number(acertos.trim()) : null;
+    if (tent != null && ac != null && ac > tent) {
+      return `Linha ${linha}: acertos (${ac}) nao pode ser maior que tentativas (${tent}).`;
+    }
+  }
+  return null;
 }
 
 export type EvolucaoFormState = {
@@ -171,4 +200,80 @@ export function buildEvolucaoPayload(state: EvolucaoFormState): Record<string, u
     };
   }
   return payload;
+}
+
+function asString(value: unknown): string {
+  return value == null ? "" : String(value);
+}
+
+function toBehaviorItems(
+  values: unknown,
+  qtyMap: Record<string, unknown>,
+  tipo: "negativo" | "positivo"
+): BehaviorItem[] {
+  if (!Array.isArray(values)) return [];
+  const labelOf = (value: string): string =>
+    BEHAVIOR_OPTIONS[tipo].find((o) => o.value === value)?.label ?? value;
+  return values
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean)
+    .map((value) => {
+      const q = Number(qtyMap[value] ?? qtyMap[value.toLowerCase()]);
+      return { value, label: labelOf(value), qty: Number.isFinite(q) && q > 0 ? Math.trunc(q) : 1 };
+    });
+}
+
+// Inverso de buildEvolucaoPayload: descompoe o payload salvo de volta nos campos do form,
+// para edicao/correcao. Tolerante a payloads parciais/antigos (itens/itensDesempenho etc.).
+export function parseEvolucaoPayload(
+  payload: Record<string, unknown> | null | undefined
+): EvolucaoFormState {
+  const p = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+
+  const itensRaw = Array.isArray(p.itensDesempenho)
+    ? p.itensDesempenho
+    : Array.isArray(p.itens)
+      ? p.itens
+      : [];
+  const metaRows = itensRaw
+    .map((raw) => {
+      if (!raw || typeof raw !== "object") return null;
+      const r = raw as Record<string, unknown>;
+      return {
+        ensino: asString(r.ensino),
+        habilidade: asString(r.habilidade),
+        opcao: asString(r.opcao ?? r.meta),
+        desempenho: asString(r.desempenho ?? r.performance),
+        tipoAjuda: asString(r.tipoAjuda),
+        tentativas: r.tentativas == null ? "" : asString(r.tentativas),
+        acertos: r.acertos == null ? "" : asString(r.acertos),
+        reforcador: asString(r.reforcador),
+      } satisfies MetaRow;
+    })
+    .filter((row): row is MetaRow => row !== null);
+
+  const comp = (p.comportamentos && typeof p.comportamentos === "object" ? p.comportamentos : {}) as Record<
+    string,
+    unknown
+  >;
+  const quantidades = (comp.quantidades && typeof comp.quantidades === "object"
+    ? comp.quantidades
+    : {}) as Record<string, unknown>;
+  const negQty = (quantidades.negativo && typeof quantidades.negativo === "object"
+    ? quantidades.negativo
+    : {}) as Record<string, unknown>;
+  const posQty = (quantidades.positivo && typeof quantidades.positivo === "object"
+    ? quantidades.positivo
+    : {}) as Record<string, unknown>;
+
+  return {
+    titulo: asString(p.titulo),
+    conduta: asString(p.conduta),
+    descricao: asString(p.descricao),
+    metaRows: metaRows.length ? metaRows : [emptyMetaRow()],
+    compResultado: asString(comp.resultado),
+    negItems: toBehaviorItems(comp.negativos, negQty, "negativo"),
+    posItems: toBehaviorItems(comp.positivos, posQty, "positivo"),
+    compDescricao: asString(comp.descricao),
+  };
 }

@@ -18,6 +18,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="consentimento" options={{ headerShown: false }} />
           <Stack.Screen name="agenda" options={{ title: "Agenda do dia" }} />
           <Stack.Screen name="evolucao" options={{ title: "Nova evolucao" }} />
           <Stack.Screen name="pacientes" options={{ title: "Pacientes" }} />

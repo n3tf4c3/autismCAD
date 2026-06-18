@@ -127,7 +127,9 @@ export async function atualizarEvolucaoAction(
 
     assertCamelCaseEvolucaoInput(input);
     const parsedInput = atualizarEvolucaoSchema.parse(input ?? {});
-    const updated = await atualizarEvolucao(parsedEvolucaoId, parsedInput, user, evolucaoAtual);
+    const updated = await atualizarEvolucao(parsedEvolucaoId, parsedInput, user, evolucaoAtual, {
+      roleCanon: resolveEffectiveRoleCanon(user, access),
+    });
     const pacienteId = Number(evolucaoAtual.pacienteId);
     revalidatePath(`/prontuario/${pacienteId}`);
     revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);

@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import * as SecureStore from "expo-secure-store";
@@ -14,6 +15,7 @@ export type AuthUser = {
   nome: string;
   email: string;
   role: string;
+  consentRequired?: boolean;
 };
 
 type LoginResponse = {
@@ -27,6 +29,9 @@ type RefreshResponse = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  // Achado 74: papel/usuario EFETIVO devolvido pelo refresh para manter a role
+  // persistida (usada no roteamento) atualizada sem novo login.
+  user?: Pick<AuthUser, "id" | "nome" | "email" | "role"> | null;
 };
 
 type AuthState = {
@@ -34,6 +39,8 @@ type AuthState = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  // marca o consentimento como aceito localmente (após o POST /consentimento dar certo).
+  markConsentAccepted: () => Promise<void>;
   // fetch autenticado com refresh automatico em 401 (uma tentativa).
   authFetch: <T>(path: string, options?: ApiRequest) => Promise<T>;
 };
@@ -110,35 +117,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [persist]
   );
 
+  const markConsentAccepted = useCallback(async () => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, consentRequired: false };
+      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Achado 122: o servidor passou a exigir reconsentimento (403 CONSENT_REQUIRED) — reativa
+  // o gate localmente para o AuthGuard redirecionar à tela de consentimento.
+  const markConsentRequired = useCallback(async () => {
+    setUser((prev) => {
+      if (!prev || prev.consentRequired) return prev;
+      const next = { ...prev, consentRequired: true };
+      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Achado 112: serializa a renovacao. Chamadas concorrentes que recebem 401 aguardam
+  // a MESMA promise de refresh, em vez de cada uma chamar /auth/refresh — evita
+  // renovacoes simultaneas e logout indevido (relevante se houver rotacao de token).
+  const refreshInFlight = useRef<Promise<RefreshResponse> | null>(null);
+
+  const runRefresh = useCallback(
+    (currentRefreshToken: string): Promise<RefreshResponse> => {
+      if (!refreshInFlight.current) {
+        refreshInFlight.current = (async () => {
+          try {
+            const refreshed = await apiRequest<RefreshResponse>("/api/v1/auth/refresh", {
+              method: "POST",
+              body: { refreshToken: currentRefreshToken },
+            });
+            await persist(refreshed);
+            // Achado 74: atualiza a role persistida com o papel efetivo do refresh,
+            // preservando o consentRequired gerido pelo fluxo de consentimento.
+            if (refreshed.user) {
+              const fresh = refreshed.user;
+              setUser((prev) => {
+                const next = prev
+                  ? { ...prev, ...fresh }
+                  : { ...fresh, consentRequired: false };
+                void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+                return next;
+              });
+            }
+            return refreshed;
+          } finally {
+            refreshInFlight.current = null;
+          }
+        })();
+      }
+      return refreshInFlight.current;
+    },
+    [persist]
+  );
+
   const authFetch = useCallback(
     async <T,>(path: string, options: ApiRequest = {}): Promise<T> => {
       try {
-        return await apiRequest<T>(path, { ...options, token: accessToken });
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401 && refreshToken) {
-          // tenta renovar uma vez
-          let refreshed: RefreshResponse;
-          try {
-            refreshed = await apiRequest<RefreshResponse>("/api/v1/auth/refresh", {
-              method: "POST",
-              body: { refreshToken },
-            });
-          } catch {
-            await logout();
-            throw error;
+        try {
+          return await apiRequest<T>(path, { ...options, token: accessToken });
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 401 && refreshToken) {
+            let refreshed: RefreshResponse;
+            try {
+              refreshed = await runRefresh(refreshToken);
+            } catch (refreshError) {
+              // Achado 123: desloga apenas quando o refresh foi de fato rejeitado por auth
+              // (401/403). Timeout/offline/5xx sao transitorios: preserva a sessao para retry.
+              if (
+                refreshError instanceof ApiError &&
+                (refreshError.status === 401 || refreshError.status === 403)
+              ) {
+                await logout();
+                throw error;
+              }
+              throw refreshError;
+            }
+            return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
           }
-          await persist(refreshed);
-          return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
+          throw error;
+        }
+      } catch (error) {
+        // Achado 122: o servidor exige (re)consentimento — reativa o gate para o AuthGuard
+        // levar a /consentimento, independentemente de a falha ter vindo do retry pos-refresh.
+        if (error instanceof ApiError && error.code === "CONSENT_REQUIRED") {
+          await markConsentRequired();
         }
         throw error;
       }
     },
-    [accessToken, refreshToken, persist, logout]
+    [accessToken, refreshToken, runRefresh, logout, markConsentRequired]
   );
 
   const value = useMemo<AuthState>(
-    () => ({ user, loading, login, logout, authFetch }),
-    [user, loading, login, logout, authFetch]
+    () => ({ user, loading, login, logout, markConsentAccepted, authFetch }),
+    [user, loading, login, logout, markConsentAccepted, authFetch]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -105,6 +105,7 @@ function buildUserAccess(user: SessionUser): UserAccess {
     role: user.role ?? null,
     canonicalRole: null,
     permissions: new Set<string>(),
+    tokenVersion: 0,
     user: {
       id: Number(user.id),
       nome: "Teste",

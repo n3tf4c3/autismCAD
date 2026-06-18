@@ -2,6 +2,17 @@
 
 Data: 2026-06-12
 
+## Status em 2026-06-16
+
+Este documento e historico. O bootstrap do monorepo ja foi incorporado ao diretorio atual do projeto, que usa:
+
+- `apps/web` para o Next.js.
+- `apps/mobile` para o Expo.
+- `packages/db`, `packages/validators` e `packages/shared` para codigo compartilhado.
+- `package.json` raiz com workspaces e Turborepo.
+
+Use este arquivo apenas como registro do processo de migracao. Para operacao atual, prefira `README.md`, `docs/banco-operacao.md` e `apps/mobile/README.md`.
+
 Complementa o [plano de monorepo + mobile](./plano-monorepo-mobile.md). Aquele documento define **o quê** (estrutura-alvo, pacotes, fases); este define **como subir a estrutura num diretório novo** (`C:\Codes\autismcad-mono`), mantendo `C:\Codes\autismcad` intacto e funcional durante toda a migração.
 
 ## 1. Decisões de partida

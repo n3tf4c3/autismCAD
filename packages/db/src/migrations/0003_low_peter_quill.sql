@@ -1,0 +1,3 @@
+ALTER TABLE "agenda_bloqueios" ADD CONSTRAINT "ck_agenda_bloqueios_hora_ordem" CHECK ("agenda_bloqueios"."hora_fim" > "agenda_bloqueios"."hora_inicio");--> statement-breakpoint
+ALTER TABLE "atendimentos" ADD CONSTRAINT "ck_atendimentos_hora_ordem" CHECK ("atendimentos"."hora_fim" > "atendimentos"."hora_inicio");--> statement-breakpoint
+ALTER TABLE "prontuario_documentos" ADD CONSTRAINT "ck_prontuario_documentos_tipo" CHECK ("prontuario_documentos"."tipo" in ('ANAMNESE', 'PLANO_TERAPEUTICO', 'PLANO_ENSINO', 'RELATORIO_MULTIPROFISSIONAL', 'OUTRO'));
