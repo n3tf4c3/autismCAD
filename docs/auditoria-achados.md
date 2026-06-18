@@ -6,7 +6,7 @@ memoria duravel de **qual numero ja foi usado** e **qual o status de cada achado
 
 - **Fonte de verdade da numeracao**: o maior numero entre este ledger e os commits
   (`git log --grep=achado -i`). Proximo achado = esse maximo + 1. Nunca reiniciar em 1.
-- **Proximo numero livre: 122.**
+- **Proximo numero livre: 124.**
 - Mantido pelas skills `auditoria-tecnica` (cria achados novos como ABERTO) e
   `resolver-auditoria` (atualiza o status apos a correcao). Toda mensagem de commit
   cita o numero do achado.
@@ -37,6 +37,13 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | ABERTO (aceito) |
 | 120 | Campos de versao aceitam zero/negativo em inserts diretos | Baixa (potencial) | RESOLVIDO |
 | 121 | `access_logs.status` sem dominio fechado | Baixa | RESOLVIDO |
+
+Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-211918.md`).
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 122 | Consentimento LGPD imposto so no cliente mobile; API por token nao bloqueia e reconsentimento nao atinge sessoes ativas | Media | ABERTO |
+| 123 | Mobile desloga em falha de rede/timeout/5xx durante o refresh, nao so em 401/403 | Baixa | ABERTO |
 
 ## Historico resolvido (achados 1-101)
 
