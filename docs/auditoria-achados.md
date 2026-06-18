@@ -6,7 +6,7 @@ memoria duravel de **qual numero ja foi usado** e **qual o status de cada achado
 
 - **Fonte de verdade da numeracao**: o maior numero entre este ledger e os commits
   (`git log --grep=achado -i`). Proximo achado = esse maximo + 1. Nunca reiniciar em 1.
-- **Proximo numero livre: 124.**
+- **Proximo numero livre: 126.**
 - Mantido pelas skills `auditoria-tecnica` (cria achados novos como ABERTO) e
   `resolver-auditoria` (atualiza o status apos a correcao). Toda mensagem de commit
   cita o numero do achado.
@@ -44,6 +44,13 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-211918.md`).
 |---|--------|-----------|--------|
 | 122 | Consentimento LGPD imposto so no cliente mobile; API por token nao bloqueia e reconsentimento nao atinge sessoes ativas | Media | RESOLVIDO |
 | 123 | Mobile desloga em falha de rede/timeout/5xx durante o refresh, nao so em 401/403 | Baixa | RESOLVIDO |
+
+Auditoria 2026-06-18 (`relatorios/auditoria-2026-06-18-025126.md`).
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 124 | Data de nascimento de profissional aceita entrada invalida e e descartada silenciosamente (null), divergindo de pacientes | Baixa | ABERTO |
+| 125 | Endereco composto pode exceder `endereco varchar(255)` e gerar erro 22001 nao tratado no save de profissionais | Baixa (potencial) | ABERTO |
 
 ## Historico resolvido (achados 1-101)
 
