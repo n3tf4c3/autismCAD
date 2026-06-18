@@ -126,6 +126,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Achado 122: o servidor passou a exigir reconsentimento (403 CONSENT_REQUIRED) — reativa
+  // o gate localmente para o AuthGuard redirecionar à tela de consentimento.
+  const markConsentRequired = useCallback(async () => {
+    setUser((prev) => {
+      if (!prev || prev.consentRequired) return prev;
+      const next = { ...prev, consentRequired: true };
+      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   // Achado 112: serializa a renovacao. Chamadas concorrentes que recebem 401 aguardam
   // a MESMA promise de refresh, em vez de cada uma chamar /auth/refresh — evita
   // renovacoes simultaneas e logout indevido (relevante se houver rotacao de token).
@@ -167,22 +178,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authFetch = useCallback(
     async <T,>(path: string, options: ApiRequest = {}): Promise<T> => {
       try {
-        return await apiRequest<T>(path, { ...options, token: accessToken });
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401 && refreshToken) {
-          let refreshed: RefreshResponse;
-          try {
-            refreshed = await runRefresh(refreshToken);
-          } catch {
-            await logout();
-            throw error;
+        try {
+          return await apiRequest<T>(path, { ...options, token: accessToken });
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 401 && refreshToken) {
+            let refreshed: RefreshResponse;
+            try {
+              refreshed = await runRefresh(refreshToken);
+            } catch (refreshError) {
+              // Achado 123: desloga apenas quando o refresh foi de fato rejeitado por auth
+              // (401/403). Timeout/offline/5xx sao transitorios: preserva a sessao para retry.
+              if (
+                refreshError instanceof ApiError &&
+                (refreshError.status === 401 || refreshError.status === 403)
+              ) {
+                await logout();
+                throw error;
+              }
+              throw refreshError;
+            }
+            return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
           }
-          return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
+          throw error;
+        }
+      } catch (error) {
+        // Achado 122: o servidor exige (re)consentimento — reativa o gate para o AuthGuard
+        // levar a /consentimento, independentemente de a falha ter vindo do retry pos-refresh.
+        if (error instanceof ApiError && error.code === "CONSENT_REQUIRED") {
+          await markConsentRequired();
         }
         throw error;
       }
     },
-    [accessToken, refreshToken, runRefresh, logout]
+    [accessToken, refreshToken, runRefresh, logout, markConsentRequired]
   );
 
   const value = useMemo<AuthState>(

@@ -42,8 +42,8 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-211918.md`).
 
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
-| 122 | Consentimento LGPD imposto so no cliente mobile; API por token nao bloqueia e reconsentimento nao atinge sessoes ativas | Media | ABERTO |
-| 123 | Mobile desloga em falha de rede/timeout/5xx durante o refresh, nao so em 401/403 | Baixa | ABERTO |
+| 122 | Consentimento LGPD imposto so no cliente mobile; API por token nao bloqueia e reconsentimento nao atinge sessoes ativas | Media | RESOLVIDO |
+| 123 | Mobile desloga em falha de rede/timeout/5xx durante o refresh, nao so em 401/403 | Baixa | RESOLVIDO |
 
 ## Historico resolvido (achados 1-101)
 
