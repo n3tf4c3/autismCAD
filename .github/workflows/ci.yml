@@ -43,6 +43,10 @@ jobs:
         run: npm run typecheck
 
       - name: Drizzle Check
+        # drizzle-kit check e offline (compara snapshots, nao conecta). Como o achado 107
+        # fez o config falhar sem DATABASE_URL, usamos o opt-in de sandbox documentado.
+        env:
+          DB_LOCAL_FALLBACK: "1"
         run: npm run db:check -w @autismcad/db
 
       - name: Build
