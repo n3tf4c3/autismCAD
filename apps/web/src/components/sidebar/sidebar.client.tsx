@@ -116,9 +116,9 @@ export function SidebarClient(props: {
           key: "dashboard",
           label: "Dashboard",
           icon: "\u{1F3E0}",
-          href: "/",
+          href: "/dashboard",
           kind: "link",
-          activeWhen: (p) => isActivePrefix("/", p),
+          activeWhen: (p) => isActivePrefix("/dashboard", p),
         },
         ...(nav.agenda
           ? [
