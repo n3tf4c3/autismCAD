@@ -6,7 +6,7 @@ memoria duravel de **qual numero ja foi usado** e **qual o status de cada achado
 
 - **Fonte de verdade da numeracao**: o maior numero entre este ledger e os commits
   (`git log --grep=achado -i`). Proximo achado = esse maximo + 1. Nunca reiniciar em 1.
-- **Proximo numero livre: 126.**
+- **Proximo numero livre: 129.**
 - Mantido pelas skills `auditoria-tecnica` (cria achados novos como ABERTO) e
   `resolver-auditoria` (atualiza o status apos a correcao). Toda mensagem de commit
   cita o numero do achado.
@@ -32,9 +32,9 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | RESOLVIDO |
 | 115 | FKs `ON DELETE cascade` em dados clinicos vs soft-delete | Media (potencial) | RESOLVIDO |
 | 116 | Vinculos ativos apos soft-delete de usuario/paciente | Media (potencial) | RESOLVIDO |
-| 117 | `prontuario_documentos` com unique global bloqueia recriacao | Baixa/Media (potencial) | ABERTO (aceito) |
+| 117 | `prontuario_documentos` com unique global bloqueia recriacao | Baixa/Media (potencial) | RESOLVIDO |
 | 118 | Criacao de paciente antes de uploads deixa cadastro parcial | Baixa/Media (potencial) | RESOLVIDO |
-| 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | ABERTO (aceito) |
+| 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | RESOLVIDO |
 | 120 | Campos de versao aceitam zero/negativo em inserts diretos | Baixa (potencial) | RESOLVIDO |
 | 121 | `access_logs.status` sem dominio fechado | Baixa | RESOLVIDO |
 
@@ -51,6 +51,14 @@ Auditoria 2026-06-18 (`relatorios/auditoria-2026-06-18-025126.md`).
 |---|--------|-----------|--------|
 | 124 | Data de nascimento de profissional aceita entrada invalida e e descartada silenciosamente (null), divergindo de pacientes | Baixa | RESOLVIDO |
 | 125 | Endereco composto pode exceder `endereco varchar(255)` e gerar erro 22001 nao tratado no save de profissionais | Baixa (potencial) | RESOLVIDO |
+
+Auditoria 2026-07-07 (`relatorios/auditoria-2026-07-07-192036.md`).
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 126 | Falha no pre-preenchimento da edicao de evolucao (mobile) deixa o form vazio e salvavel — PUT pode sobrescrever o payload clinico existente | Media (potencial) | RESOLVIDO |
+| 127 | Agenda mobile nao recarrega ao voltar do form de evolucao; card recem-evoluido reabre em modo criacao e cai no 409 | Baixa | RESOLVIDO |
+| 128 | Web sem headers de seguranca HTTP (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CSP) | Baixa | RESOLVIDO |
 
 ## Historico resolvido (achados 1-101)
 
@@ -88,7 +96,8 @@ grupo; os relatorios originais nao sao versionados. Status RESOLVIDO salvo indic
 | 76, 86, 87, 88, 100, 101 | `7ca2d38` | constraints de banco e validacao real de data/horario | RESOLVIDO |
 | 77 | `20b9ee3` | mobile: dia padrao usa "hoje" da clinica | RESOLVIDO |
 | 79 | `fb26c6d` | contrato compartilhado da API v1 web<->mobile | RESOLVIDO |
-| 80, 81, 99 | `ac071c8` | decisoes de seguranca aceitas (documentadas) | ABERTO (aceito) |
+| 80, 99 | `ac071c8` | aceitos em 2026-06-16; RESOLVIDOS em 2026-07-08 (80: store de refresh tokens com rotacao/revogacao; 99: npm audit zerado via overrides, junto com o 119) | RESOLVIDO |
+| 81 | `ac071c8` | decisao de seguranca aceita (CORS coringa so fora de producao; documentada) | ABERTO (aceito) |
 | 84, 97 | `301889d` | mobile: guarda central de rotas autenticadas | RESOLVIDO |
 | 93, 94 | `cf7cdf8` | web: UI de pacientes/profissionais por permissao efetiva | RESOLVIDO |
 

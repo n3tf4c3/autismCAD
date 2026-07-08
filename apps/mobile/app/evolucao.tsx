@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
@@ -69,15 +69,23 @@ function EvolucaoFormContent() {
   const [busy, setBusy] = useState(false);
   // Em modo edicao, carrega a evolucao existente e pre-preenche o form antes de exibir.
   const [loadingExisting, setLoadingExisting] = useState(isEdit);
+  // Achado 126: erro de prefill e BLOQUEANTE — sem ele, o form renderizava vazio e o
+  // "Salvar correcao" sobrescrevia o payload existente com dados vazios.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  // Achado 126: authFetch muda de identidade a cada refresh de token; via ref, o prefill
+  // nao re-executa por cima de edicoes em andamento (so por evolucaoId/tentar novamente).
+  const authFetchRef = useRef(authFetch);
+  authFetchRef.current = authFetch;
 
   useEffect(() => {
     if (!evolucaoId) return;
     let active = true;
     setLoadingExisting(true);
-    setError(null);
+    setLoadError(null);
     (async () => {
       try {
-        const res = await authFetch<{ evolucao: EvolucaoDetalhe }>(
+        const res = await authFetchRef.current<{ evolucao: EvolucaoDetalhe }>(
           `/api/v1/evolucoes/${evolucaoId}`,
           { schema: evolucaoDetalheResponseSchema }
         );
@@ -96,7 +104,7 @@ function EvolucaoFormContent() {
         setPosItems(form.posItems);
         setCompDescricao(form.compDescricao);
       } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : "Falha ao carregar a evolucao.");
+        if (active) setLoadError(e instanceof Error ? e.message : "Falha ao carregar a evolucao.");
       } finally {
         if (active) setLoadingExisting(false);
       }
@@ -104,7 +112,7 @@ function EvolucaoFormContent() {
     return () => {
       active = false;
     };
-  }, [evolucaoId, authFetch]);
+  }, [evolucaoId, reloadKey]);
 
   function updateMeta(index: number, patch: Partial<MetaRow>) {
     setMetaRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -175,7 +183,9 @@ function EvolucaoFormContent() {
     }
   }
 
-  if (loadingExisting) {
+  // Achado 126: em modo edicao, o form so monta apos o prefill ter sucesso. Em falha,
+  // tela bloqueante com retry — nunca um form vazio salvavel por cima do dado existente.
+  if (isEdit && (loadingExisting || loadError)) {
     return (
       <Screen>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -184,8 +194,14 @@ function EvolucaoFormContent() {
           </Pressable>
           <H1>Editar evolução</H1>
         </View>
-        <Muted>Carregando evolução…</Muted>
-        <ErrorText>{error}</ErrorText>
+        {loadError ? (
+          <>
+            <ErrorText>{loadError}</ErrorText>
+            <Button title="Tentar novamente" onPress={() => setReloadKey((k) => k + 1)} />
+          </>
+        ) : (
+          <Muted>Carregando evolução…</Muted>
+        )}
       </Screen>
     );
   }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import { AuthGuard } from "@/auth/AuthGuard";
 import { useClinicToday } from "@/hooks/useClinicToday";
@@ -109,14 +109,18 @@ function AgendaContent() {
 
   // So carrega depois que a auth hidratou os tokens do SecureStore, evitando 401
   // espurio ("Nao autenticado") no cold-start antes do token estar disponivel.
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    load();
-  }, [authLoading, user, load]);
+  // Achado 127: useFocusEffect (em vez de useEffect) recarrega tambem ao voltar do form
+  // de evolucao — o card recem-evoluido ganha o chip "Registrado" e abre em modo edicao.
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      load();
+    }, [authLoading, user, load])
+  );
 
   function consultarDia() {
     const parsed = parseBrDate(dayInput);

@@ -17,14 +17,14 @@ export default async function ConsentimentoPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = parseSessionUserId(session.user.id);
   // Já consentiu a versão vigente: não há o que fazer aqui.
-  if (!(await isPolicyConsentRequired(userId))) redirect("/");
+  if (!(await isPolicyConsentRequired(userId))) redirect("/dashboard");
 
   async function aceitar() {
     "use server";
     const s = await getAuthSession();
     if (!s?.user?.id) redirect("/login");
     await acceptCurrentPolicy(parseSessionUserId(s.user.id));
-    redirect("/");
+    redirect("/dashboard");
   }
 
   return (
