@@ -13,6 +13,8 @@ const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"]
 const WA_HREF = "https://wa.me/556536222826";
 const TELEFONE = "(65) 3622-2826";
 const EMAIL = "girassoisclinica@gmail.com";
+const INSTAGRAM_HANDLE = "clinicagirassois";
+const INSTAGRAM_URL = `https://instagram.com/${INSTAGRAM_HANDLE}`;
 const MAPS_EMBED =
   "https://www.google.com/maps?q=Av.+Portugal,+337+-+Jardim+Tropical,+Cuiab%C3%A1+-+MT,+78065-145&output=embed";
 
@@ -545,6 +547,9 @@ export default function LandingPage() {
               <span style={{ fontSize: 17, fontWeight: 700 }}>{TELEFONE}</span>
               <a href={`mailto:${EMAIL}`} style={{ fontSize: 16, fontWeight: 700 }}>
                 {EMAIL}
+              </a>
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener" style={{ fontSize: 16, fontWeight: 700 }}>
+                @{INSTAGRAM_HANDLE}
               </a>
             </div>
           </div>
