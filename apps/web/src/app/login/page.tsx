@@ -19,7 +19,7 @@ export default function LoginPage() {
       email,
       password,
       redirect: false,
-      callbackUrl: "/",
+      callbackUrl: "/dashboard",
     });
 
     setLoading(false);
@@ -29,7 +29,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.href = result.url ?? "/";
+    window.location.href = result.url ?? "/dashboard";
   }
 
   return (

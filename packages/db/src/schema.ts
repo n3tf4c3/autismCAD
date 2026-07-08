@@ -89,6 +89,28 @@ export const accessLogs = pgTable(
   ]
 );
 
+// Achado 80: store dos refresh tokens da API mobile. Cada refresh token emitido tem seu
+// jti registrado aqui; o refresh rotaciona (revoga o usado e grava o novo) e o logout
+// revoga, permitindo revogacao individual antes da expiracao. O JWT continua assinado —
+// o store so decide se ele ainda vale (vazamento do banco nao permite forjar token).
+export const apiRefreshTokens = pgTable(
+  "api_refresh_tokens",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jti: varchar("jti", { length: 64 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uk_api_refresh_tokens_jti").on(table.jti),
+    index("idx_api_refresh_tokens_user").on(table.userId),
+  ]
+);
+
 export const roles = pgTable("roles", {
   slug: varchar("slug", { length: 32 }).primaryKey(),
   nome: varchar("nome", { length: 80 }).notNull(),
@@ -435,11 +457,11 @@ export const prontuarioDocumentos = pgTable(
     }),
   },
   (table) => [
-    uniqueIndex("uk_prontuario_documentos_paciente_tipo_version").on(
-      table.pacienteId,
-      table.tipo,
-      table.version
-    ),
+    // Achado 117: unique parcial (apenas registros ativos), permitindo recriar um
+    // documento do mesmo tipo/versao apos soft-delete — mesmo padrao de evolucoes.
+    uniqueIndex("uk_prontuario_documentos_paciente_tipo_version")
+      .on(table.pacienteId, table.tipo, table.version)
+      .where(sql`${table.deletedAt} is null`),
     index("idx_prontuario_documentos_paciente").on(table.pacienteId),
     index("idx_prontuario_documentos_tipo").on(table.tipo),
     index("idx_prontuario_documentos_created_at").on(table.createdAt),

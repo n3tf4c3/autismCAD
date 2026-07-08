@@ -7,7 +7,6 @@ export const metadata: Metadata = {
     "Como solicitar a exclusão da sua conta e dos dados associados no aplicativo Girassóis+.",
 };
 
-// TODO(clínica): confirmar e-mail oficial de contato.
 const CONTACT_EMAIL = "girassoisclinica@gmail.com";
 
 export default function ExclusaoDeContaPage() {
