@@ -19,9 +19,17 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.autismcad.app"
     },
-    "plugins": ["expo-router", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
     "extra": {
-      "apiBaseUrl": "https://www.girassois.com.br"
-    }
+      "apiBaseUrl": "https://www.girassois.com.br",
+      "router": {},
+      "eas": {
+        "projectId": "8b6d05e5-c9a9-46d0-b97a-895778765a02"
+      }
+    },
+    "owner": "netface"
   }
 }
