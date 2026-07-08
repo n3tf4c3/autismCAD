@@ -6,15 +6,16 @@ Referência: `relatorios/auditoria-2026-06-16-115803.md`.
 
 ## Achado 80 — Refresh token mobile stateless (30 dias)
 
-**Status:** aceito (MVP).
+**Status:** RESOLVIDO em 2026-07-08.
 
-Os tokens Bearer do mobile são JWT HS256 sem store de refresh
-(`apps/web/src/server/auth/api-token.ts`). Simples e serverless-safe; o custo é não
-poder revogar um token antes de expirar (access 1h, refresh 30d).
-
-**Revisar quando:** houver requisito de logout remoto/revogação imediata, ou
-incidente de credencial vazada. A correção exige um store de refresh tokens
-(rotação + revogação) — mudança de infraestrutura, fora do escopo atual.
+Deixou de ser uma decisão aceita: os refresh tokens passaram a ser rastreados
+server-side na tabela `api_refresh_tokens` (migration 0009). Cada refresh token
+carrega um `jti` registrado no store (`apps/web/src/server/auth/refresh-token-store.ts`);
+o refresh **rotaciona** (revoga o token usado e registra o novo, num UPDATE atômico
+que impede corrida) e o novo `POST /api/v1/auth/logout` revoga o token apresentado.
+Tokens legados sem `jti` são rejeitados no refresh (exigem novo login). A exposição
+máxima de um token vazado caiu de 30 dias para 1 h (TTL do access token). A revogação
+em massa por troca de senha (`token_version`, achado 103) permanece como segunda camada.
 
 ## Achado 81 — CORS da API v1 com origem coringa por padrão
 
