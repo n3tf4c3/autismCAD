@@ -1,0 +1,2 @@
+DROP INDEX "uk_prontuario_documentos_paciente_tipo_version";--> statement-breakpoint
+CREATE UNIQUE INDEX "uk_prontuario_documentos_paciente_tipo_version" ON "prontuario_documentos" USING btree ("paciente_id","tipo","version") WHERE "prontuario_documentos"."deleted_at" is null;
