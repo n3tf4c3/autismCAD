@@ -435,11 +435,11 @@ export const prontuarioDocumentos = pgTable(
     }),
   },
   (table) => [
-    uniqueIndex("uk_prontuario_documentos_paciente_tipo_version").on(
-      table.pacienteId,
-      table.tipo,
-      table.version
-    ),
+    // Achado 117: unique parcial (apenas registros ativos), permitindo recriar um
+    // documento do mesmo tipo/versao apos soft-delete — mesmo padrao de evolucoes.
+    uniqueIndex("uk_prontuario_documentos_paciente_tipo_version")
+      .on(table.pacienteId, table.tipo, table.version)
+      .where(sql`${table.deletedAt} is null`),
     index("idx_prontuario_documentos_paciente").on(table.pacienteId),
     index("idx_prontuario_documentos_tipo").on(table.tipo),
     index("idx_prontuario_documentos_created_at").on(table.createdAt),
