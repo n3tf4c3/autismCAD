@@ -32,9 +32,9 @@ Auditoria 2026-06-17 (`relatorios/auditoria-2026-06-17-104859.md`).
 | 114 | Conversao de contagens de evolucao mascara entradas invalidas | Media | RESOLVIDO |
 | 115 | FKs `ON DELETE cascade` em dados clinicos vs soft-delete | Media (potencial) | RESOLVIDO |
 | 116 | Vinculos ativos apos soft-delete de usuario/paciente | Media (potencial) | RESOLVIDO |
-| 117 | `prontuario_documentos` com unique global bloqueia recriacao | Baixa/Media (potencial) | ABERTO (aceito) |
+| 117 | `prontuario_documentos` com unique global bloqueia recriacao | Baixa/Media (potencial) | RESOLVIDO |
 | 118 | Criacao de paciente antes de uploads deixa cadastro parcial | Baixa/Media (potencial) | RESOLVIDO |
-| 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | ABERTO (aceito) |
+| 119 | `npm audit` com vulnerabilidades transitivas moderadas/baixa | Baixa/Media | RESOLVIDO |
 | 120 | Campos de versao aceitam zero/negativo em inserts diretos | Baixa (potencial) | RESOLVIDO |
 | 121 | `access_logs.status` sem dominio fechado | Baixa | RESOLVIDO |
 
@@ -96,7 +96,8 @@ grupo; os relatorios originais nao sao versionados. Status RESOLVIDO salvo indic
 | 76, 86, 87, 88, 100, 101 | `7ca2d38` | constraints de banco e validacao real de data/horario | RESOLVIDO |
 | 77 | `20b9ee3` | mobile: dia padrao usa "hoje" da clinica | RESOLVIDO |
 | 79 | `fb26c6d` | contrato compartilhado da API v1 web<->mobile | RESOLVIDO |
-| 80, 81, 99 | `ac071c8` | decisoes de seguranca aceitas (documentadas) | ABERTO (aceito) |
+| 80, 99 | `ac071c8` | aceitos em 2026-06-16; RESOLVIDOS em 2026-07-08 (80: store de refresh tokens com rotacao/revogacao; 99: npm audit zerado via overrides, junto com o 119) | RESOLVIDO |
+| 81 | `ac071c8` | decisao de seguranca aceita (CORS coringa so fora de producao; documentada) | ABERTO (aceito) |
 | 84, 97 | `301889d` | mobile: guarda central de rotas autenticadas | RESOLVIDO |
 | 93, 94 | `cf7cdf8` | web: UI de pacientes/profissionais por permissao efetiva | RESOLVIDO |
 
