@@ -96,6 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // Achado 80: revoga o refresh token no servidor (best-effort — offline/erro nao
+    // bloqueia o logout local; o token expira ou e revogado num proximo uso).
+    const currentRefresh = refreshToken;
+    if (currentRefresh) {
+      void apiRequest("/api/v1/auth/logout", {
+        method: "POST",
+        body: { refreshToken: currentRefresh },
+      }).catch(() => {});
+    }
     setUser(null);
     setAccessToken(null);
     setRefreshToken(null);
@@ -104,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       SecureStore.deleteItemAsync(REFRESH_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
     ]);
-  }, []);
+  }, [refreshToken]);
 
   const login = useCallback(
     async (email: string, password: string) => {
