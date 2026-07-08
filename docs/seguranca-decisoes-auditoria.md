@@ -33,21 +33,18 @@ expor endpoints sensíveis a navegador.
 
 ## Achado 99 — `npm audit` com vulnerabilidades em tooling
 
-**Status:** aceito, com revisão programada.
+**Status:** RESOLVIDO em 2026-07-08 (junto com o achado 119, que registrava o mesmo
+quadro reauditado). `npm audit` = **0 vulnerabilidades**.
 
-As 16 vulnerabilidades (1 baixa, 11 moderadas, 4 altas) estão **todas em cadeias de
-tooling de build/dev**, não em dependências de runtime do app publicado:
+Resolvido sem bump de Expo SDK (o projeto já estava no SDK 56 e nem o 57 zeraria a
+cadeia do `uuid`, pois `xcode@3.0.1` upstream ainda pina `uuid ^7`). Caminho adotado:
+`overrides` no `package.json` root — `@babel/core ^7.29.7`, `js-yaml ^4.3.0` e
+`uuid ^11.1.1` (o `xcode` só usa `uuid.v4()`, compatível com v11) — e lockfile
+regenerado do zero com `--legacy-peer-deps` (o peer `@babel/core: "*"` do
+`react-native-worklets` resolve para o Babel 8 recém-publicado e trava ERESOLVE em
+qualquer re-resolução fresca; `npm ci`/install a partir do lock não são afetados).
+`eslint-plugin-react-hooks` pinado em `7.0.1` (a 7.1.1 ativa regras novas como erro
+em padrões pré-existentes das telas mobile — tratar em item próprio, fora deste).
 
-- `esbuild` / `@esbuild-kit/*` via `drizzle-kit`;
-- `@babel/core`, `js-yaml`;
-- `uuid` (v3/v5/v6) via `xcode` → `@expo/*` CLI.
-
-Não são exploráveis no runtime da aplicação implantada (web server / app nativo). As
-correções dependem de releases upstream de Expo SDK e drizzle-kit.
-
-**Decisão:** não rodar `npm audit fix --force` (downgrade/breaking nas cadeias Expo)
-nesta branch de lançamento. Atualizar por caminho controlado — bump de Expo
-SDK/drizzle-kit fora da branch de release, com `npm run build` e teste em device.
-
-**Revisar quando:** próximo bump de Expo SDK, ou se alguma cadeia vulnerável passar a
-fazer parte do runtime.
+**Revisar quando:** próximo bump de Expo SDK (remover os overrides que o upstream
+absorver e reavaliar o pin do eslint-plugin-react-hooks).
