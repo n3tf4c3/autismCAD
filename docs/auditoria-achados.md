@@ -56,9 +56,9 @@ Auditoria 2026-07-07 (`relatorios/auditoria-2026-07-07-192036.md`).
 
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
-| 126 | Falha no pre-preenchimento da edicao de evolucao (mobile) deixa o form vazio e salvavel — PUT pode sobrescrever o payload clinico existente | Media (potencial) | ABERTO |
-| 127 | Agenda mobile nao recarrega ao voltar do form de evolucao; card recem-evoluido reabre em modo criacao e cai no 409 | Baixa | ABERTO |
-| 128 | Web sem headers de seguranca HTTP (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CSP) | Baixa | ABERTO |
+| 126 | Falha no pre-preenchimento da edicao de evolucao (mobile) deixa o form vazio e salvavel — PUT pode sobrescrever o payload clinico existente | Media (potencial) | RESOLVIDO |
+| 127 | Agenda mobile nao recarrega ao voltar do form de evolucao; card recem-evoluido reabre em modo criacao e cai no 409 | Baixa | RESOLVIDO |
+| 128 | Web sem headers de seguranca HTTP (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CSP) | Baixa | RESOLVIDO |
 
 ## Historico resolvido (achados 1-101)
 
