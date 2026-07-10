@@ -1,65 +1,52 @@
-# CLAUDE.md
+# CLAUDE.md — AutismCAD
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+> Diretrizes comportamentais gerais vêm de `C:\Codes\CLAUDE.md` (carregado junto).
+> Este arquivo traz só o contexto específico do projeto.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+## O que é
 
-## 1. Think Before Coding
+Gestão de clínica para pacientes TEA (Clínica Girassóis): pacientes,
+profissionais, agenda/consultas, prontuário (evoluções, plano de ensino,
+anamnese), relatórios com exportação PDF/DOCX, RBAC com logs de acesso, e app
+mobile de apoio consumindo `/api/v1`.
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+## Stack
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+- **Monorepo npm workspaces + Turborepo**: `apps/web`, `apps/mobile`,
+  `packages/db`, `packages/validators`, `packages/shared`.
+- **Web** (`apps/web`): Next.js 16 (App Router) · React 19 · NextAuth v4
+  (Credentials/JWT) · Drizzle ORM.
+- **Banco**: PostgreSQL com `DATABASE_DRIVER=neon-serverless` e
+  `REQUIRE_DB_TRANSACTIONS=1` — **este projeto TEM transação interativa real**
+  (diferente dos projetos em `neon-http`). Preferir `DATABASE_URL_UNPOOLED`
+  (endpoint sem `-pooler`).
+- **Mobile** (`apps/mobile`): Expo/React Native + Expo Router, Bearer JWT.
+- **Arquivos**: Cloudflare R2 (S3 SDK). Em produção, R2 e `CRON_SECRET` são
+  obrigatórios em runtime.
+- **Validação/contratos**: Zod compartilhado em `@autismcad/validators` — não
+  redeclarar limites em web/mobile.
 
-## 2. Simplicity First
+## Comandos (da raiz; turbo por baixo)
 
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+```bash
+npm run typecheck && npm run lint && npm test
+npm run build                      # build dos workspaces
+npm run dev                        # turbo run dev
+npm run db:generate | db:migrate | db:check | db:studio
+npm run db:seed:admin -w @autismcad/web
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+## Convenções e invariantes
 
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+- **`db:push` é DESABILITADO** (achado 105): cria schema sem as funções/triggers
+  das migrations. Fluxo canônico é `db:generate` + `db:migrate`; sandbox
+  descartável só com `DB_PUSH_SANDBOX=1`.
+- **`as never` é proibido** em `apps/web/src` — o CI tem guardrail que falha o
+  build se encontrar.
+- RBAC: toda action/rota valida permissão no backend; a matriz de permissões da
+  UI espelha o backend. Logs de acesso nas operações sensíveis.
+- Numeração de achados de auditoria é contínua — ledger em
+  `docs/auditoria-achados.md`; decisões de segurança em
+  `docs/seguranca-decisoes-auditoria.md`.
+- Relatórios de auditoria ficam em `relatorios/` (gitignored); skills
+  `/auditoria-tecnica` e `/resolver-auditoria` definem o processo.
