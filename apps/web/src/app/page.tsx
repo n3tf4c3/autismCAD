@@ -208,32 +208,17 @@ export default function LandingPage() {
           />
         </svg>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 14 }}>
-            <Girassol size={52} style={{ animation: "flutua 5s ease-in-out infinite" }} />
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <span
-                className="lp-oswald"
-                style={{
-                  fontWeight: 400,
-                  fontSize: "clamp(20px,2.6vw,26px)",
-                  letterSpacing: "8px",
-                  textTransform: "uppercase",
-                  marginLeft: 8,
-                  color: "#6d5426",
-                }}
-              >
-                Clínica
-              </span>
-              <span
-                className="lp-vibes"
-                style={{ fontSize: "clamp(58px,9vw,96px)", lineHeight: 0.9, marginTop: -6, color: "#5a3d1a" }}
-              >
-                Girassóis
-              </span>
-            </div>
-            <Girassol size={38} style={{ marginBottom: 14, animation: "flutua 6s ease-in-out infinite" }} />
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/girassois.svg"
+            alt="Clínica Girassóis"
+            style={{
+              width: "clamp(240px,46vw,420px)",
+              height: "auto",
+              animation: "flutua 6s ease-in-out infinite",
+            }}
+          />
           <span style={{ fontSize: "clamp(15px,1.8vw,17px)", fontWeight: 600, color: "#6d5426", letterSpacing: "1px" }}>
             Terapia infantil multidisciplinar · Cuiabá – MT
           </span>
