@@ -16,7 +16,7 @@ const EMAIL = "girassoisclinica@gmail.com";
 const INSTAGRAM_HANDLE = "clinicagirassois";
 const INSTAGRAM_URL = `https://instagram.com/${INSTAGRAM_HANDLE}`;
 const MAPS_EMBED =
-  "https://www.google.com/maps?q=Av.+Portugal,+337+-+Jardim+Tropical,+Cuiab%C3%A1+-+MT,+78065-145&output=embed";
+  "https://www.google.com/maps?q=Rua+Trinidad+e+Tobago,+100+-+Jardim+Calif%C3%B3rnia,+Cuiab%C3%A1+-+MT&output=embed";
 
 export const metadata: Metadata = {
   title: "Clínica Girassóis — Terapia infantil multidisciplinar em Cuiabá",
@@ -220,11 +220,15 @@ export default function LandingPage() {
                   letterSpacing: "8px",
                   textTransform: "uppercase",
                   marginLeft: 8,
+                  color: "#6d5426",
                 }}
               >
                 Clínica
               </span>
-              <span className="lp-vibes" style={{ fontSize: "clamp(58px,9vw,96px)", lineHeight: 0.9, marginTop: -6 }}>
+              <span
+                className="lp-vibes"
+                style={{ fontSize: "clamp(58px,9vw,96px)", lineHeight: 0.9, marginTop: -6, color: "#5a3d1a" }}
+              >
                 Girassóis
               </span>
             </div>
@@ -522,9 +526,9 @@ export default function LandingPage() {
                 Endereço
               </span>
               <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.5 }}>
-                Av. Portugal, 337 — Jardim Tropical
+                Rua Trinidad e Tobago, 100 — Jardim Califórnia
                 <br />
-                Cuiabá – MT, 78065-145
+                Cuiabá – MT
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
