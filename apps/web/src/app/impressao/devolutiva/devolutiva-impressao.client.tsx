@@ -1083,7 +1083,7 @@ export function DevolutivaImpressaoClient(props: {
               </span>
             </div>
             <div className="bg-[#6f111b] px-6 py-2 text-center text-[13px] font-medium leading-5 text-white sm:px-8">
-              Av. Portugal, 337 - Jardim Tropical, Cuiaba - MT, 78065-145
+              Rua Trinidad e Tobago, 100 - Jardim Califórnia, Cuiabá - MT
             </div>
           </footer>
         </article>
