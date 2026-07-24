@@ -211,7 +211,7 @@ export default function LandingPage() {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/girassois.svg"
+            src="/girassois-logo.png"
             alt="Clínica Girassóis"
             style={{
               width: "clamp(240px,46vw,420px)",
