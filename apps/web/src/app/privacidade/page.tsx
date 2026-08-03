@@ -11,9 +11,13 @@ export const metadata: Metadata = {
 // Versão vigente vem de @autismcad/shared/policy — ao subir lá, o app exige
 // reconsentimento (ver plano de lançamento, bloco LGPD). Atualize a data junto.
 const POLICY_VERSION = CURRENT_PRIVACY_POLICY_VERSION;
-const POLICY_DATE = "15 de junho de 2026";
-// TODO(clínica): confirmar razão social, CNPJ, endereço e e-mail do encarregado (DPO).
+const POLICY_DATE = "3 de agosto de 2026";
 const CONTROLLER = "Clínica Girassóis";
+const CONTROLLER_ADDRESS =
+  "Rua Trinidad e Tobago, 100 — Jardim Califórnia, Cuiabá/MT";
+// Razão social e CNPJ pendentes de confirmação da clínica. Enquanto vazios, a linha
+// nao e renderizada — a politica publica nunca exibe texto de rascunho ao titular.
+const CONTROLLER_CNPJ = "";
 const CONTACT_EMAIL = "girassoisclinica@gmail.com";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -98,19 +102,25 @@ export default function PrivacidadePage() {
           apoiam na operação (operadores), sob contrato e instruções:
         </p>
         <ul className="list-disc space-y-1 pl-6">
+          <li><strong>Neon</strong> — banco de dados que armazena os cadastros, a agenda e os registros de prontuário.</li>
           <li><strong>Cloudflare R2</strong> — armazenamento de arquivos (ex.: fotos e laudos).</li>
           <li><strong>Vercel</strong> — hospedagem da aplicação web e da API.</li>
         </ul>
-        <p className="text-sm text-slate-500">
-          TODO(clínica): revisar e completar esta lista de subprocessadores conforme a
-          infraestrutura efetiva.
-        </p>
       </Section>
 
       <Section title="5. Segurança e transferência">
         <p>
           Os dados trafegam por conexões criptografadas (HTTPS) e o acesso é restrito por
           autenticação e perfis de permissão. Senhas são armazenadas com hash.
+        </p>
+        <p>
+          <strong>Transferência internacional:</strong> os operadores listados acima
+          mantêm servidores fora do Brasil — o banco de dados fica em região dos Estados
+          Unidos (AWS <em>us-east-1</em>, via Neon) e o armazenamento de arquivos e a
+          hospedagem usam a infraestrutura global da Cloudflare e da Vercel. Portanto, os
+          dados tratados aqui — <strong>inclusive os dados de saúde</strong> — são
+          armazenados e processados no exterior, sob contrato com esses fornecedores e nas
+          hipóteses do art. 33 da LGPD.
         </p>
       </Section>
 
@@ -139,16 +149,18 @@ export default function PrivacidadePage() {
 
       <Section title="8. Contato e encarregado">
         <p>
-          Para exercer seus direitos ou tirar dúvidas sobre esta política, fale com o{" "}
-          <strong>{CONTROLLER}</strong> pelo e-mail{" "}
+          Controlador dos dados: <strong>{CONTROLLER}</strong>
+          {CONTROLLER_CNPJ.length > 0 ? `, CNPJ ${CONTROLLER_CNPJ}` : ""}, com endereço na{" "}
+          {CONTROLLER_ADDRESS}.
+        </p>
+        <p>
+          Para exercer seus direitos, falar com o encarregado pelo tratamento de dados
+          (DPO) ou tirar dúvidas sobre esta política, escreva para{" "}
           <a href={`mailto:${CONTACT_EMAIL}`} className="text-amber-600 underline">
             {CONTACT_EMAIL}
           </a>
-          .
-        </p>
-        <p className="text-sm text-slate-500">
-          TODO(clínica): incluir razão social, CNPJ, endereço e o contato do encarregado
-          (DPO), se aplicável.
+          . Este é o canal oficial de atendimento ao titular, previsto no art. 41 da LGPD,
+          e as solicitações são respondidas pela própria clínica.
         </p>
       </Section>
 
