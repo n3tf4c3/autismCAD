@@ -6,6 +6,7 @@ import { AppError } from "@/server/shared/errors";
 import { getAuthSession } from "@/server/auth/session";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
+import { assertSessionNotRevoked } from "@/server/auth/token-version";
 import { parseSessionUserId } from "@/server/auth/user-id";
 
 export type AuthenticatedUser = {
@@ -14,6 +15,8 @@ export type AuthenticatedUser = {
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  // Achado 131: claim 'ver' da sessao; null em sessoes emitidas antes do claim existir.
+  tokenVersion?: number | null;
 };
 
 async function requireSessionUser(): Promise<AuthenticatedUser> {
@@ -25,10 +28,17 @@ async function requireSessionUser(): Promise<AuthenticatedUser> {
   return { ...session.user, id: userId };
 }
 
+// Achado 131: a troca de senha incrementa users.token_version. A sessao de cookie da web
+// so segue valida enquanto o claim 'ver' bater com a coluna — mesma regra do Bearer mobile.
+// Conferido nos guards que ja carregam a versao atual, sem consulta extra ao banco.
+function assertSessionCurrent(user: AuthenticatedUser, currentVersion: number): void {
+  assertSessionNotRevoked({ tokenVersion: user.tokenVersion ?? null, currentVersion });
+}
+
 export async function requireUser(): Promise<AuthenticatedUser> {
   const user = await requireSessionUser();
   const [activeUser] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, tokenVersion: users.tokenVersion })
     .from(users)
     .where(
       and(
@@ -41,6 +51,7 @@ export async function requireUser(): Promise<AuthenticatedUser> {
   if (!activeUser) {
     throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
+  assertSessionCurrent(user, activeUser.tokenVersion);
   return user;
 }
 
@@ -64,6 +75,7 @@ export async function requireAdminGeral() {
   if (!access.exists) {
     throw new AppError("Usuario nao encontrado", 401, "UNAUTHORIZED");
   }
+  assertSessionCurrent(user, access.tokenVersion);
   const isAdminGeral = (access.canonicalRole ?? access.role) === "ADMIN_GERAL";
   if (!isAdminGeral) {
     throw new AppError("Acesso restrito ao admin-geral", 403, "FORBIDDEN");
@@ -77,6 +89,7 @@ export async function requirePermission(permissionKey: string | string[]) {
   if (!access.exists) {
     throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
+  assertSessionCurrent(user, access.tokenVersion);
   const keys = Array.isArray(permissionKey) ? permissionKey : [permissionKey];
   assertHasPermission(access, keys);
   return { user, access };

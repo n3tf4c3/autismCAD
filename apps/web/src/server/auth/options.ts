@@ -63,6 +63,7 @@ export const authOptions: NextAuthOptions = {
           name: user.nome,
           email: user.email,
           role: user.role,
+          tokenVersion: user.tokenVersion,
         };
       },
     }),
@@ -72,6 +73,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.sub = user.id;
         token.role = user.role;
+        // Achado 131: carimba a versao de credencial vigente no momento do login.
+        token.ver = user.tokenVersion;
         token.roleSyncedAt = Math.floor(Date.now() / 1000);
         return token;
       }
@@ -81,6 +84,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         session.user.id = token.sub;
         session.user.role = String(token.role ?? "profissional");
+        session.user.tokenVersion = typeof token.ver === "number" ? token.ver : null;
       }
       return session;
     },

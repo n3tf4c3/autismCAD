@@ -6,7 +6,7 @@ import {
 } from "@/server/auth/access";
 import type { AuthenticatedUser } from "@/server/auth/auth";
 import { verifyAccessToken } from "@/server/auth/api-token";
-import { isMobileTokenRevoked } from "@/server/auth/token-version";
+import { isCredentialVersionRevoked } from "@/server/auth/token-version";
 import { consentGateBlocks } from "@/server/modules/consent/consent-gate";
 import { isPolicyConsentRequired } from "@/server/modules/consent/consent.service";
 import { AppError } from "@/server/shared/errors";
@@ -37,7 +37,7 @@ export async function requireApiUser(
   }
 
   // Achado 103: access token emitido antes da ultima troca de senha foi revogado.
-  if (isMobileTokenRevoked({ tokenVersion, currentVersion: access.tokenVersion })) {
+  if (isCredentialVersionRevoked({ tokenVersion, currentVersion: access.tokenVersion })) {
     throw new AppError("Sessao expirada, faca login novamente", 401, "TOKEN_REVOKED");
   }
 

@@ -4,7 +4,7 @@ import {
   claimRefreshToken,
   registerRefreshToken,
 } from "@/server/auth/refresh-token-store";
-import { isMobileTokenRevoked } from "@/server/auth/token-version";
+import { isCredentialVersionRevoked } from "@/server/auth/token-version";
 import { withErrorHandlingNoContext } from "@/server/shared/http";
 
 export const runtime = "nodejs";
@@ -34,7 +34,7 @@ export const POST = withErrorHandlingNoContext(async (request: Request) => {
   }
 
   // Achado 103: refresh token emitido antes da ultima troca de senha foi revogado.
-  if (isMobileTokenRevoked({ tokenVersion, currentVersion: access.tokenVersion })) {
+  if (isCredentialVersionRevoked({ tokenVersion, currentVersion: access.tokenVersion })) {
     return Response.json(
       { error: "Sessao expirada, faca login novamente", code: "TOKEN_REVOKED" },
       { status: 401 }
