@@ -15,9 +15,9 @@ const POLICY_DATE = "3 de agosto de 2026";
 const CONTROLLER = "Clínica Girassóis";
 const CONTROLLER_ADDRESS =
   "Rua Trinidad e Tobago, 100 — Jardim Califórnia, Cuiabá/MT";
-// Razão social e CNPJ pendentes de confirmação da clínica. Enquanto vazios, a linha
+// Razão social e CNPJ confirmados pela clínica em 04/08/2026. Se ficar vazio, a linha
 // nao e renderizada — a politica publica nunca exibe texto de rascunho ao titular.
-const CONTROLLER_CNPJ = "";
+const CONTROLLER_CNPJ = "44.254.893/0001-77";
 const CONTACT_EMAIL = "girassoisclinica@gmail.com";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
