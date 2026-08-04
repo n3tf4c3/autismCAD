@@ -31,6 +31,7 @@ import { runDbTransaction } from "@/server/db/transaction";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { blocksLastAdminGeralRemoval } from "@/server/modules/users/admin-geral-guard";
 import { AppError } from "@/server/shared/errors";
+import { escapeLikePattern } from "@/server/shared/normalize";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 
 function isResponsavelRole(roleName: string): boolean {
@@ -187,7 +188,7 @@ export async function createUser(input: CreateUserInput) {
   const [roleRow] = await db
     .select({ slug: roles.slug })
     .from(roles)
-    .where(ilike(roles.slug, roleName))
+    .where(ilike(roles.slug, escapeLikePattern(roleName)))
     .limit(1);
   if (!roleRow) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
@@ -279,7 +280,7 @@ export async function updateUser(
   const [roleRow] = await db
     .select({ slug: roles.slug })
     .from(roles)
-    .where(ilike(roles.slug, roleName))
+    .where(ilike(roles.slug, escapeLikePattern(roleName)))
     .limit(1);
   if (!roleRow) {
     throw new AppError("Role invalida", 400, "INVALID_ROLE");
@@ -640,7 +641,7 @@ export async function updateRolePermissions(
   const [roleExists] = await db
     .select({ slug: roles.slug })
     .from(roles)
-    .where(ilike(roles.slug, normalizedRole))
+    .where(ilike(roles.slug, escapeLikePattern(normalizedRole)))
     .limit(1);
   if (!roleExists) {
     throw new AppError("Role nao encontrada", 404, "NOT_FOUND");
