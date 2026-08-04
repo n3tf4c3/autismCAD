@@ -6,7 +6,7 @@ memoria duravel de **qual numero ja foi usado** e **qual o status de cada achado
 
 - **Fonte de verdade da numeracao**: o maior numero entre este ledger e os commits
   (`git log --grep=achado -i`). Proximo achado = esse maximo + 1. Nunca reiniciar em 1.
-- **Proximo numero livre: 131.**
+- **Proximo numero livre: 135.**
 - Mantido pelas skills `auditoria-tecnica` (cria achados novos como ABERTO) e
   `resolver-auditoria` (atualiza o status apos a correcao). Toda mensagem de commit
   cita o numero do achado.
@@ -66,6 +66,16 @@ Revisao 2026-08-03 (analise de pendencias, sem relatorio formal em `relatorios/`
 |---|--------|-----------|--------|
 | 129 | `npm audit` regrediu de 0 para 5 vulns (next-auth critical, next/postcss/sharp/brace-expansion high) por CVEs publicados apos 2026-07-08 | Alta | RESOLVIDO |
 | 130 | Politica de privacidade publica com `TODO(clinica)` visivel ao titular, operador Neon ausente da lista e transferencia internacional de dado sensivel nao declarada (LGPD art. 33) | Alta | RESOLVIDO |
+
+Verificacao de seguranca 2026-08-04 (`relatorios/seguranca-2026-08-04-022911.md`),
+commit do veredito `a841ce9`. Gate REPROVADO: 20 PASS, 3 PARCIAL, 1 FALHA, 7 N-A.
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 131 | Troca de senha revoga tokens mobile (claim `ver`) mas nao a sessao web: o JWT do NextAuth nao carrega nem confere `tokenVersion`, sobrevivendo ate o `maxAge` de 8h | Alta | RESOLVIDO |
+| 132 | CSP ausente (quesito D1); demais headers e HSTS confirmados na resposta de producao | Media | ABERTO (aceito) — CSP implantada em enforce; `'unsafe-inline'` em script-src/style-src aceito porque nonce exigiria middleware em todas as rotas, tornando dinamicas as paginas hoje estaticas (landing, /login, /privacidade). D1 segue PARCIAL por esse criterio |
+| 133 | Fail-open do rate limit de login sem politica de degradacao escrita por rota nem controle compensatorio independente | Media | DOCUMENTADO — politica por operacao em `docs/seguranca-decisoes-auditoria.md`: login degrada, demais negam; o store e o proprio Postgres da app, entao nao ha caminho em que o contador caia com o login de pe |
+| 134 | Lookup de role usa `ilike` com input nao escapado (`role` = `%` casa qualquer slug e o `limit(1)` sem `order by` escolhe arbitrario); exige admin-geral, entao e integridade e nao escalada | Baixa | RESOLVIDO |
 
 ## Historico resolvido (achados 1-101)
 

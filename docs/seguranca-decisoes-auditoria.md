@@ -48,3 +48,28 @@ em padrões pré-existentes das telas mobile — tratar em item próprio, fora d
 
 **Revisar quando:** próximo bump de Expo SDK (remover os overrides que o upstream
 absorver e reavaliar o pin do eslint-plugin-react-hooks).
+
+## Achado 133 — Política de degradação do rate limit sob falha do store
+
+**Status:** decisão explícita, registrada em 2026-08-04 (quesito D4 da
+`verificacao-seguranca`).
+
+O rate limit de login (achado 60) conta falhas recentes em `access_logs`
+(`apps/web/src/server/modules/access-logs/access-logs.service.ts`). A política por
+operação é:
+
+| Operação | Sob falha do store | Por quê |
+|---|---|---|
+| **Login** (web e mobile) | **degrada** (fail-open, não bloqueia) | negar login com o banco meio no ar tira a clínica do ar inteira; o custo de um brute force durante a janela é menor que o de indisponibilidade total |
+| Demais operações sensíveis | **negam** | nenhuma existe hoje: não há reset de senha, exclusão de conta self-service nem validação de compra. Quando existirem, entram aqui como fail-closed |
+
+**Controle compensatório.** O quesito D4 pede compensação que não dependa do store
+externo. Aqui **o store é o próprio Postgres da aplicação**, não um Redis à parte: se ele
+cai, o `select` do usuário em `verifyCredentials` já falha e ninguém entra. A janela real
+de fail-open é estreita — erro específico da consulta de agregação com o banco no ar — e
+não há caminho em que o atacante consiga derrubar só o contador mantendo o login de pé.
+
+**Revisar quando:** (a) o rate limit migrar para store externo (Upstash/Redis) — aí o
+fail-open passa a ser explorável isoladamente e exige lockout por conta persistido em
+`users`; ou (b) surgir operação sensível nova (reset de senha, exclusão self-service,
+billing), que nasce fail-closed.
