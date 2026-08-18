@@ -69,6 +69,17 @@ function parseDateOnlyUtc(value: string): Date {
   return dt;
 }
 
+// Formatacao usada so nas mensagens de conflito: quem agenda precisa saber
+// QUAL atendimento colidiu, nao apenas que houve colisao.
+function formatDataBr(value: string): string {
+  const [ano, mes, dia] = value.slice(0, 10).split("-");
+  return dia && mes && ano ? `${dia}/${mes}/${ano}` : value;
+}
+
+function formatHoraBr(value: string): string {
+  return value.slice(0, 5);
+}
+
 function resolveProfissionalId(input: { profissionalId?: number | null }) {
   const id = input.profissionalId ?? null;
   if (!id) {
@@ -194,16 +205,28 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
   }
 
   const [conflitoPaciente] = await executor
-    .select({ id: atendimentos.id })
+    .select({
+      data: atendimentos.data,
+      horaInicio: atendimentos.horaInicio,
+      horaFim: atendimentos.horaFim,
+      profissionalNome: profissionaisTabela.nome,
+    })
     .from(atendimentos)
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
     .where(and(...wherePaciente))
     .limit(1);
-  if (conflitoPaciente) return "paciente" as const;
+  if (conflitoPaciente) {
+    return { tipo: "paciente" as const, ...conflitoPaciente };
+  }
 
   // Horario bloqueado torna o profissional indisponivel para qualquer sessao
   // (individual ou grupo).
   const [conflitoBloqueio] = await executor
-    .select({ id: agendaBloqueios.id })
+    .select({
+      data: agendaBloqueios.data,
+      horaInicio: agendaBloqueios.horaInicio,
+      horaFim: agendaBloqueios.horaFim,
+    })
     .from(agendaBloqueios)
     .where(
       and(
@@ -213,7 +236,9 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
       )
     )
     .limit(1);
-  if (conflitoBloqueio) return "bloqueio" as const;
+  if (conflitoBloqueio) {
+    return { tipo: "bloqueio" as const, ...conflitoBloqueio };
+  }
 
   // Regra de negocio: o profissional PODE atender dois pacientes no mesmo
   // horario (sessoes simultaneas, em grupo ou individuais). Os unicos
@@ -261,11 +286,26 @@ async function salvarAtendimentoDb(
     isGrupo,
     ignoreId: id ?? null,
   });
-  if (conflito === "paciente") {
-    throw new AppError("Conflito de horario para este paciente", 409, "SCHEDULE_CONFLICT");
+  if (conflito?.tipo === "paciente") {
+    // O conflito de paciente atravessa profissionais: quem agenda pela agenda de
+    // um profissional nao enxerga o atendimento que bloqueia. Nomear data, hora e
+    // profissional evita a cacada as cegas (ainda pior na reserva por periodo,
+    // onde o choque pode estar em qualquer data do intervalo).
+    const comProfissional = conflito.profissionalNome
+      ? ` com ${conflito.profissionalNome}`
+      : "";
+    throw new AppError(
+      `Conflito de horario para este paciente: ja existe atendimento em ${formatDataBr(conflito.data)}, das ${formatHoraBr(conflito.horaInicio)} as ${formatHoraBr(conflito.horaFim)}${comProfissional}.`,
+      409,
+      "SCHEDULE_CONFLICT"
+    );
   }
-  if (conflito === "bloqueio") {
-    throw new AppError("Horario bloqueado na agenda do profissional", 409, "SCHEDULE_CONFLICT");
+  if (conflito?.tipo === "bloqueio") {
+    throw new AppError(
+      `Horario bloqueado na agenda do profissional em ${formatDataBr(conflito.data)}, das ${formatHoraBr(conflito.horaInicio)} as ${formatHoraBr(conflito.horaFim)}.`,
+      409,
+      "SCHEDULE_CONFLICT"
+    );
   }
 
   // `realizado` is derived from `presenca` by business rule and DB constraint.
