@@ -13,6 +13,7 @@ import {
   listarProfissionais,
   obterProfissionalPorUsuario,
   salvarProfissional,
+  contarAgendaFuturaProfissional,
   setProfissionalAtivo,
 } from "@/server/modules/profissionais/profissionais.service";
 import { AppError, toAppError } from "@/server/shared/errors";
@@ -90,10 +91,9 @@ export async function salvarProfissionalAction(
   }
 }
 
-export async function setProfissionalAtivoAction(
-  profissionalId: number,
-  ativo: boolean
-): Promise<ActionResult<{ id: number; ativo: boolean }>> {
+export async function contarAgendaFuturaProfissionalAction(
+  profissionalId: number
+): Promise<ActionResult<{ total: number }>> {
   try {
     const idNum = Number(profissionalId);
     if (!Number.isFinite(idNum) || idNum <= 0) {
@@ -101,13 +101,40 @@ export async function setProfissionalAtivoAction(
     }
 
     await requirePermission("profissionais:edit");
-    const result = await setProfissionalAtivo(idNum, Boolean(ativo));
+    const total = await contarAgendaFuturaProfissional(idNum);
+
+    return { ok: true, data: { total } };
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function setProfissionalAtivoAction(
+  profissionalId: number,
+  ativo: boolean
+): Promise<ActionResult<{ id: number; ativo: boolean; atendimentosCancelados: number }>> {
+  try {
+    const idNum = Number(profissionalId);
+    if (!Number.isFinite(idNum) || idNum <= 0) {
+      throw new AppError("Profissional invalido", 400, "INVALID_INPUT");
+    }
+
+    const { user } = await requirePermission("profissionais:edit");
+    const result = await setProfissionalAtivo(idNum, Boolean(ativo), user.id);
 
     revalidatePath("/profissionais");
     revalidatePath(`/profissionais/${idNum}`);
     revalidatePath(`/profissionais/${idNum}/editar`);
+    revalidatePath("/consultas");
 
-    return { ok: true, data: { id: result.id, ativo: result.ativo } };
+    return {
+      ok: true,
+      data: {
+        id: result.id,
+        ativo: result.ativo,
+        atendimentosCancelados: result.atendimentosCancelados,
+      },
+    };
   } catch (error) {
     return actionErrorResult(error);
   }
