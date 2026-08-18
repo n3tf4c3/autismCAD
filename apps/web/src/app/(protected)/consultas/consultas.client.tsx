@@ -108,6 +108,13 @@ export function ConsultasClient(props: {
   const [delItem, setDelItem] = useState<Atendimento | null>(null);
   const [delBusy, setDelBusy] = useState(false);
 
+  const [periodoOpen, setPeriodoOpen] = useState(false);
+  const [periodoItem, setPeriodoItem] = useState<Atendimento | null>(null);
+  const [periodoEscopo, setPeriodoEscopo] = useState<"todos" | "profissional">("todos");
+  const [periodoProfissionalId, setPeriodoProfissionalId] = useState<string>("");
+  const [periodoMsg, setPeriodoMsg] = useState<string | null>(null);
+  const [periodoBusy, setPeriodoBusy] = useState(false);
+
   async function loadAtendimentos(overrides?: {
     pacienteId?: string;
     profissionalId?: string;
@@ -238,32 +245,52 @@ export function ConsultasClient(props: {
     }
   }
 
-  async function excluirPorPeriodo(a: Atendimento) {
-    const dataYmd = ymdForInput(a.data);
-    const dia = dowFromYmdUtc(dataYmd);
-    const nomeDia = dayNamePtBr(dia);
-    const periodoIni = ymdForInput(a.periodoInicio || a.data);
-    const periodoFim = ymdForInput(a.periodoFim || a.data);
-    const ok = window.confirm(
-      `Excluir todos os atendimentos de ${nomeDia} entre ${periodoIni} e ${periodoFim}?`
-    );
-    if (!ok) return;
+  function openExcluirPorPeriodo(a: Atendimento) {
+    setPeriodoItem(a);
+    // Pre-seleciona o profissional da linha; o usuario troca ou escolhe "todos".
+    setPeriodoEscopo(a.profissionalId ? "profissional" : "todos");
+    setPeriodoProfissionalId(a.profissionalId ? String(a.profissionalId) : "");
+    setPeriodoMsg(null);
+    setPeriodoBusy(false);
+    setPeriodoOpen(true);
+  }
 
+  function closeExcluirPorPeriodo() {
+    setPeriodoOpen(false);
+    setPeriodoItem(null);
+    setPeriodoMsg(null);
+    setPeriodoBusy(false);
+  }
+
+  async function confirmExcluirPorPeriodo() {
+    const a = periodoItem;
+    if (!a) return;
+    const somenteProfissional = periodoEscopo === "profissional";
+    if (somenteProfissional && !periodoProfissionalId) {
+      setPeriodoMsg("Selecione um profissional.");
+      return;
+    }
+
+    setPeriodoMsg(null);
+    setPeriodoBusy(true);
     setError(null);
     try {
       const result = await excluirDiaAtendimentosAction({
         pacienteId: a.pacienteId,
+        profissionalId: somenteProfissional ? Number(periodoProfissionalId) : undefined,
         horaInicio: hhmmForInput(a.horaInicio) || String(a.horaInicio),
         horaFim: hhmmForInput(a.horaFim) || String(a.horaFim),
         turno: a.turno || "Matutino",
-        periodoInicio: periodoIni,
-        periodoFim: periodoFim,
-        diaSemana: dia,
+        periodoInicio: ymdForInput(a.periodoInicio || a.data),
+        periodoFim: ymdForInput(a.periodoFim || a.data),
+        diaSemana: dowFromYmdUtc(ymdForInput(a.data)),
       });
       if (!result.ok) throw new Error(result.error || "Erro ao excluir atendimentos do dia");
+      closeExcluirPorPeriodo();
       await loadAtendimentos();
     } catch (err) {
-      setError(normalizeApiError(err));
+      setPeriodoMsg(normalizeApiError(err));
+      setPeriodoBusy(false);
     }
   }
 
@@ -445,7 +472,7 @@ export function ConsultasClient(props: {
                           </button>
                           <button
                             type="button"
-                            onClick={() => void excluirPorPeriodo(a)}
+                            onClick={() => openExcluirPorPeriodo(a)}
                             title="Excluir atendimentos por periodo"
                             aria-label="Excluir atendimentos por periodo"
                             className="inline-flex h-7 w-8 items-center justify-center rounded-full border border-amber-200 text-[11px] font-bold text-amber-700 hover:bg-amber-50"
@@ -671,6 +698,94 @@ export function ConsultasClient(props: {
                 disabled={delBusy}
               >
                 {delBusy ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {periodoOpen && periodoItem ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeExcluirPorPeriodo();
+          }}
+        >
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-[var(--marrom)]">
+              Excluir atendimentos por período
+            </h3>
+            <p className="mt-2 text-sm text-gray-700">
+              Atendimentos de{" "}
+              <span className="font-semibold text-[var(--marrom)]">
+                {periodoItem.pacienteNome}
+              </span>{" "}
+              toda {dayNamePtBr(dowFromYmdUtc(ymdForInput(periodoItem.data)))} às{" "}
+              {String(periodoItem.horaInicio).slice(0, 5)}, entre{" "}
+              {ymdForInput(periodoItem.periodoInicio || periodoItem.data)} e{" "}
+              {ymdForInput(periodoItem.periodoFim || periodoItem.data)}.
+            </p>
+
+            <fieldset className="mt-4 text-sm">
+              <legend className="mb-2 font-semibold text-gray-700">
+                Excluir de qual profissional?
+              </legend>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="escopo-exclusao-periodo"
+                  checked={periodoEscopo === "todos"}
+                  onChange={() => setPeriodoEscopo("todos")}
+                  disabled={periodoBusy}
+                />
+                <span>Todos os profissionais</span>
+              </label>
+              <label className="mt-2 flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="escopo-exclusao-periodo"
+                  checked={periodoEscopo === "profissional"}
+                  onChange={() => setPeriodoEscopo("profissional")}
+                  disabled={periodoBusy}
+                />
+                <span>Somente o profissional selecionado</span>
+              </label>
+              <select
+                className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30 disabled:bg-gray-50 disabled:text-gray-400"
+                aria-label="Profissional"
+                value={periodoProfissionalId}
+                onChange={(e) => setPeriodoProfissionalId(e.target.value)}
+                disabled={periodoEscopo !== "profissional" || periodoBusy}
+              >
+                <option value="">Selecione um profissional</option>
+                {profissionais.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.nome}
+                  </option>
+                ))}
+              </select>
+            </fieldset>
+
+            {periodoMsg ? <p className="mt-3 text-sm text-red-600">{periodoMsg}</p> : null}
+
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeExcluirPorPeriodo}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={periodoBusy}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmExcluirPorPeriodo()}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"
+                disabled={periodoBusy}
+              >
+                {periodoBusy ? "Excluindo..." : "Excluir"}
               </button>
             </div>
           </div>
