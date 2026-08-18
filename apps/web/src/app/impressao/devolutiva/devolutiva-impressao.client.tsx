@@ -1088,11 +1088,6 @@ export function DevolutivaImpressaoClient(props: {
                   <EngagementPie rows={engajamentoResumo.rows} total={engajamentoResumo.total} size={180} />
                   <p className="text-sm leading-7 text-slate-700">
                     {engajamentoResumo.total} registro(s) de engajamento nas metas do período.
-                    {engajamentoResumo.rowsOutros.length
-                      ? ` Em "Outros": ${engajamentoResumo.rowsOutros
-                          .map((row) => `${row.label} (${row.value})`)
-                          .join(", ")}.`
-                      : ""}
                   </p>
                 </div>
               ) : (

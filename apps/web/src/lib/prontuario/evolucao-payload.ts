@@ -40,9 +40,11 @@ function sanitizeItemsArray(value: unknown): { items: Record<string, unknown>[];
   return { items, changed };
 }
 
+// `opcao` deixou de servir como rotulo: hoje e o engajamento (Sim/Nao). A meta passa a
+// vir da habilidade/objetivo, senao a lista viraria "sim; nao; sim" nos relatorios.
 function deriveMetasFromItems(items: Record<string, unknown>[]): string[] {
   return items
-    .map((item) => pickString(item.opcao ?? item.meta ?? item.habilidade).trim())
+    .map((item) => pickString(item.habilidade ?? item.meta ?? item.ensino).trim())
     .filter(Boolean);
 }
 

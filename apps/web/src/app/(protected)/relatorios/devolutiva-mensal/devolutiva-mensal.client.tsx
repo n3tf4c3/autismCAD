@@ -555,7 +555,7 @@ export function DevolutivaMensalClient(props: {
             emptyMessage="Sem engajamento registrado nas metas deste período."
             total={engajamentoMensal.total}
             rows={engajamentoMensal.rows}
-            rowsOutros={engajamentoMensal.rowsOutros}
+            ignorados={engajamentoMensal.ignorados}
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">

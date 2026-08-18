@@ -3,8 +3,9 @@ import { test } from "node:test";
 
 import { buildEngajamentoResumo } from "@/lib/relatorios/engajamento";
 
-// O engajamento e texto livre (campo `opcao` das metas da evolucao). O resumo
-// classifica em Sim / Nao / Outros para alimentar o grafico de pizza.
+// O engajamento das metas da evolucao so admite Sim / Nao. Registros anteriores ao
+// rename do campo guardam o antigo "Alvo" (texto livre) no mesmo `opcao`: nao entram
+// na contagem, so no aviso de ignorados.
 
 function evolucao(opcoes: Array<string | undefined>) {
   return {
@@ -16,43 +17,50 @@ function evolucao(opcoes: Array<string | undefined>) {
 test("sem evolucoes o total e zero", () => {
   const resumo = buildEngajamentoResumo(null);
   assert.equal(resumo.total, 0);
-  assert.deepEqual(resumo.rowsOutros, []);
+  assert.equal(resumo.ignorados, 0);
 });
 
 test("conta sim e nao com acento, caixa e abreviacao", () => {
   const resumo = buildEngajamentoResumo([
     evolucao(["Sim", "sim", "S"]),
-    evolucao(["Não", "nao", "N", " NAO "]),
+    evolucao(["Não", "nao", "N"]),
   ]);
 
-  assert.equal(resumo.total, 7);
+  assert.equal(resumo.total, 6);
+  assert.equal(resumo.ignorados, 0);
   assert.deepEqual(
     resumo.rows.map((row) => [row.key, row.value, row.pct]),
     [
-      ["sim", 3, 43],
-      ["nao", 4, 57],
+      ["sim", 3, 50],
+      ["nao", 3, 50],
     ],
   );
 });
 
-test("valores fora do padrao caem em Outros e sao listados", () => {
-  const resumo = buildEngajamentoResumo([evolucao(["Sim", "Parcial", "parcial", "As vezes"])]);
+test("valores fora do padrao nao entram no grafico, so em ignorados", () => {
+  const resumo = buildEngajamentoResumo([evolucao(["Sim", "Vogais", "Quebra cabeça"])]);
 
-  const outros = resumo.rows.find((row) => row.key === "outros");
-  assert.equal(outros?.value, 3);
+  assert.equal(resumo.total, 1);
+  assert.equal(resumo.ignorados, 2);
   assert.deepEqual(
-    resumo.rowsOutros.map((row) => [row.label, row.value]),
+    resumo.rows.map((row) => [row.key, row.value, row.pct]),
     [
-      ["Parcial", 2],
-      ["As vezes", 1],
+      ["sim", 1, 100],
+      ["nao", 0, 0],
     ],
   );
 });
 
-test("ignora itens sem engajamento preenchido", () => {
+test("periodo so com dado antigo fica sem grafico", () => {
+  const resumo = buildEngajamentoResumo([evolucao(["Vogais", "Animais", "bola"])]);
+  assert.equal(resumo.total, 0);
+  assert.equal(resumo.ignorados, 3);
+});
+
+test("itens sem engajamento preenchido nao contam nem como ignorados", () => {
   const resumo = buildEngajamentoResumo([evolucao(["Sim", "", undefined, "   "])]);
   assert.equal(resumo.total, 1);
-  assert.equal(resumo.rows.length, 2);
+  assert.equal(resumo.ignorados, 0);
 });
 
 test("aceita payload antigo com `itens` no lugar de `itensDesempenho`", () => {

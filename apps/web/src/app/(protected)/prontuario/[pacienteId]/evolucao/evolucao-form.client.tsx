@@ -8,6 +8,10 @@ import {
   criarEvolucaoAction,
   excluirEvolucaoAction,
 } from "@/app/(protected)/prontuario/prontuario.actions";
+import {
+  ENGAJAMENTO_OPTIONS,
+  normalizeEngajamento,
+} from "@autismcad/validators/prontuario/engajamento";
 
 type Atendimento = {
   id: number;
@@ -339,7 +343,7 @@ export function EvolucaoFormClient(props: {
 
     const metas = itensDesempenho.length
       ? itensDesempenho
-          .map((i) => pickString(i.opcao || i.habilidade).trim())
+          .map((i) => pickString(i.habilidade || i.ensino).trim())
           .filter(Boolean)
       : [];
 
@@ -699,8 +703,8 @@ export function EvolucaoFormClient(props: {
             <div className="space-y-1">
               <p className="text-sm font-semibold text-[var(--marrom)]">Metas / desempenho da sessão</p>
               <p className="text-xs text-gray-500">
-                Registre habilidade, engajamento, desempenho (Ajuda / Nao fez / Independente), tipo de ajuda e
-                reforcador.
+                Registre habilidade, engajamento (Sim / Nao), desempenho (Ajuda / Nao fez / Independente), tipo
+                de ajuda e reforcador.
               </p>
               <p className="text-xs text-gray-500">
                 <span className="font-semibold text-[var(--marrom)]">Ajuda:</span> MOD - Modelo, INS - Instrucao, SV - Suporte Verbal,
@@ -744,12 +748,23 @@ export function EvolucaoFormClient(props: {
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
                   <p className="text-xs font-semibold text-gray-600">Engajamento</p>
-                  <input
-                    value={row.opcao}
+                  <select
+                    value={normalizeEngajamento(row.opcao) ?? row.opcao}
                     onChange={(e) => updateMetaRow(row.id, { opcao: e.target.value })}
-                    className="rounded-lg border px-3 py-2 text-sm"
-                    placeholder="Ex: Sim, Nao..."
-                  />
+                    className="rounded-lg border bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">Selecione</option>
+                    {ENGAJAMENTO_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                    {/* Registros anteriores ao rename guardam o antigo "Alvo" neste campo.
+                        Mantem o valor como opcao para a edicao nao apagar o historico. */}
+                    {row.opcao && !normalizeEngajamento(row.opcao) ? (
+                      <option value={row.opcao}>{row.opcao} (registro antigo)</option>
+                    ) : null}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <p className="text-xs font-semibold text-gray-600">Desempenho</p>

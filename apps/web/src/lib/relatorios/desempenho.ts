@@ -65,8 +65,9 @@ function pickPerformanceLabel(item: Record<string, unknown>): string {
   const habilidade = String(item.habilidade ?? "").trim();
   if (habilidade) return habilidade;
 
-  const opcao = String(item.opcao ?? item.meta ?? "").trim();
-  if (opcao) return opcao;
+  // `opcao` saiu daqui: virou o engajamento (Sim/Nao) e rotularia o card como "Sim".
+  const meta = String(item.meta ?? "").trim();
+  if (meta) return meta;
 
   const ensino = String(item.ensino ?? "").trim();
   if (ensino) return ensino;

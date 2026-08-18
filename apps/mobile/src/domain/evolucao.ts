@@ -10,6 +10,26 @@ export const TITULO_SESSAO_OPTIONS = [
   "Musicoterapia",
 ] as const;
 
+// Espelha ENGAJAMENTO_OPTIONS de @autismcad/validators/prontuario/engajamento; fica
+// duplicado aqui porque o Metro nao resolve import de VALOR daquele subpath (achado 111).
+export const ENGAJAMENTO_OPTIONS = [
+  { value: "sim", label: "Sim" },
+  { value: "nao", label: "Nao" },
+] as const;
+
+// Devolve "" tanto para vazio quanto para o conteudo antigo de "Alvo" (texto livre),
+// que existe em registros anteriores ao rename do campo.
+export function normalizeEngajamento(value: string): "sim" | "nao" | "" {
+  const v = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  if (v === "sim" || v === "s") return "sim";
+  if (v === "nao" || v === "n") return "nao";
+  return "";
+}
+
 export const DESEMPENHO_OPTIONS = [
   { value: "ajuda", label: "Ajuda" },
   { value: "nao_fez", label: "Nao fez" },
@@ -162,7 +182,7 @@ export function buildEvolucaoPayload(state: EvolucaoFormState): Record<string, u
     .filter(Boolean) as Record<string, unknown>[];
 
   const metas = itensDesempenho
-    .map((i) => String(i.opcao || i.habilidade || "").trim())
+    .map((i) => String(i.habilidade || i.ensino || "").trim())
     .filter(Boolean);
 
   const mapBehaviors = (items: BehaviorItem[]) => {
