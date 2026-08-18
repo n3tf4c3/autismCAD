@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { EngagementSection } from "@/components/reports/engagement-section";
 import { RecentFeedbackList } from "@/components/reports/recent-feedback-list";
 import { ReportSectionTabs } from "@/components/reports/report-section-tabs";
 import { ReportSummaryCards } from "@/components/reports/report-summary-cards";
 import { SkillsGrid } from "@/components/reports/skills-grid";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
+import { buildEngajamentoResumo } from "@/lib/relatorios/engajamento";
 import { formatDateBr } from "@autismcad/shared/date-only";
 import {
   gerarRelatorioEvolutivoAction,
@@ -166,6 +168,10 @@ export function DevolutivaDiaClient(props: {
 
   const desempenhoResumo = useMemo(() => {
     return buildDesempenhoResumo(report?.evolucoes);
+  }, [report]);
+
+  const engajamentoResumo = useMemo(() => {
+    return buildEngajamentoResumo(report?.evolucoes);
   }, [report]);
 
   const comportamentoResumo = useMemo(() => {
@@ -389,6 +395,7 @@ export function DevolutivaDiaClient(props: {
             items={[
               { id: "resumo", label: "Resumo" },
               { id: "habilidades", label: "Habilidades", badge: desempenhoResumo.rowsBySkill.length },
+              { id: "engajamento", label: "Engajamento", badge: engajamentoResumo.total },
               { id: "devolutivas", label: "Devolutivas", badge: feedbackItems.length },
               { id: "comportamentos", label: "Comport.", badge: comportamentoResumo.total },
               { id: "atendimentos", label: "Atend.", badge: report.atendimentos.length },
@@ -445,6 +452,15 @@ export function DevolutivaDiaClient(props: {
             title="Habilidades trabalhadas"
             subtitle="Cards mais compactos para leitura rápida no celular, mantendo comparação clara entre os três status."
             emptyMessage="Não há habilidades suficientes para montar o gráfico deste dia."
+          />
+
+          <EngagementSection
+            sectionId="engajamento"
+            subtitle="Distribuição do engajamento registrado nas metas das evoluções do dia."
+            emptyMessage="Sem engajamento registrado nas metas deste dia."
+            total={engajamentoResumo.total}
+            rows={engajamentoResumo.rows}
+            rowsOutros={engajamentoResumo.rowsOutros}
           />
 
           <section id="devolutivas" className="scroll-mt-24 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">

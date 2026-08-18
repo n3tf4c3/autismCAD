@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { EngagementPie } from "@/components/reports/engagement-pie";
 import { buildDesempenhoResumo } from "@/lib/relatorios/desempenho";
+import { buildEngajamentoResumo } from "@/lib/relatorios/engajamento";
 import { formatDateBr } from "@autismcad/shared/date-only";
 import {
   gerarRelatorioEvolutivoAction,
@@ -188,6 +190,32 @@ function behaviorLabelFromValue(value: string): string {
   if (!clean) return "-";
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
+
+// Seções opcionais do documento: o usuário escolhe quais entram na impressão
+// (ex.: uma folha só com o gráfico de engajamento). O cabeçalho sai sempre.
+const SECOES_DOCUMENTO = [
+  { key: "sintese", label: "Síntese clínica do período", grafico: false },
+  { key: "frequencia", label: "Frequência e continuidade", grafico: true },
+  { key: "intercorrencias", label: "Intercorrências e ausências", grafico: false },
+  { key: "habilidades", label: "Habilidades trabalhadas", grafico: true },
+  { key: "engajamento", label: "Nível de Engajamento", grafico: true },
+  { key: "comportamentos", label: "Comportamentos apresentados", grafico: true },
+  { key: "registros", label: "Registros clínicos", grafico: false },
+] as const;
+
+type SecaoKey = (typeof SECOES_DOCUMENTO)[number]["key"];
+
+const TODAS_SECOES_ATIVAS = Object.fromEntries(
+  SECOES_DOCUMENTO.map((secao) => [secao.key, true]),
+) as Record<SecaoKey, boolean>;
+
+const SOMENTE_GRAFICOS_ATIVOS = Object.fromEntries(
+  SECOES_DOCUMENTO.map((secao) => [secao.key, secao.grafico]),
+) as Record<SecaoKey, boolean>;
+
+const NENHUMA_SECAO_ATIVA = Object.fromEntries(
+  SECOES_DOCUMENTO.map((secao) => [secao.key, false]),
+) as Record<SecaoKey, boolean>;
 
 function DocumentField(props: {
   label: string;
@@ -511,6 +539,7 @@ export function DevolutivaImpressaoClient(props: {
   const [exportingDocx, setExportingDocx] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [report, setReport] = useState<ImpressaoReport | null>(null);
+  const [secoes, setSecoes] = useState<Record<SecaoKey, boolean>>(TODAS_SECOES_ATIVAS);
 
   const selectedRange = useMemo(() => {
     if (periodPreset === "custom") {
@@ -530,6 +559,8 @@ export function DevolutivaImpressaoClient(props: {
   }, [props.pacienteId, selectedRange]);
 
   const desempenhoResumo = useMemo(() => buildDesempenhoResumo(report?.evolucoes), [report]);
+  const engajamentoResumo = useMemo(() => buildEngajamentoResumo(report?.evolucoes), [report]);
+  const nenhumaSecaoSelecionada = SECOES_DOCUMENTO.every((secao) => !secoes[secao.key]);
 
   const comportamentoResumo = useMemo(() => {
     const resultado: Record<ComportamentoResultado, number> = {
@@ -826,6 +857,61 @@ export function DevolutivaImpressaoClient(props: {
             ) : null}
           </div>
 
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--marrom)]">Seções do relatório</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Desmarque o que não deve sair na impressão. O cabeçalho com paciente e período sai sempre.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSecoes(TODAS_SECOES_ATIVAS)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Marcar todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSecoes(SOMENTE_GRAFICOS_ATIVOS)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Só gráficos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSecoes(NENHUMA_SECAO_ATIVA)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {SECOES_DOCUMENTO.map((secao) => (
+                <label key={secao.key} className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={secoes[secao.key]}
+                    onChange={(event) =>
+                      setSecoes((atual) => ({ ...atual, [secao.key]: event.target.checked }))
+                    }
+                    className="h-4 w-4 accent-[var(--laranja)]"
+                  />
+                  <span>{secao.label}</span>
+                  {secao.grafico ? (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8a5a12]">
+                      gráfico
+                    </span>
+                  ) : null}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {selectedRange ? (
             <p className="text-sm text-slate-500">
               Paciente: <span className="font-medium">{props.pacienteNome}</span> | Recorte atual: {fmtDate(selectedRange.from)} a {fmtDate(selectedRange.to)}.
@@ -878,15 +964,19 @@ export function DevolutivaImpressaoClient(props: {
           </header>
 
           <div className="space-y-4 px-6 pb-5 sm:px-8">
-            <DocumentSection title="Síntese clínica do período">
-              <div className="space-y-2 text-sm leading-6 text-slate-700">
-                {sinteseClinica.map((paragraph, index) => (
-                  <p key={`${paragraph}-${index}`}>{paragraph}</p>
-                ))}
-              </div>
-            </DocumentSection>
+            {secoes.sintese ? (
+              <DocumentSection title="Síntese clínica do período">
+                <div className="space-y-2 text-sm leading-6 text-slate-700">
+                  {sinteseClinica.map((paragraph, index) => (
+                    <p key={`${paragraph}-${index}`}>{paragraph}</p>
+                  ))}
+                </div>
+              </DocumentSection>
+            ) : null}
 
+            {secoes.frequencia || secoes.intercorrencias ? (
             <div className="grid items-start gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+              {secoes.frequencia ? (
               <DocumentSection title="Frequencia e continuidade assistencial">
                 <div className="space-y-2.5">
                   <AttendanceDistributionChart
@@ -933,7 +1023,9 @@ export function DevolutivaImpressaoClient(props: {
                   </div>
                 </div>
               </DocumentSection>
+              ) : null}
 
+              {secoes.intercorrencias ? (
               <DocumentSection title="Intercorrências e ausências">
                 <div className="space-y-3 text-sm text-slate-700">
                   {motivosAusencia.length ? (
@@ -948,8 +1040,11 @@ export function DevolutivaImpressaoClient(props: {
                   )}
                 </div>
               </DocumentSection>
+              ) : null}
             </div>
+            ) : null}
 
+            {secoes.habilidades ? (
             <DocumentSection title="Habilidades trabalhadas">
               {topSkillRows.length ? (
                 <div className="space-y-4">
@@ -984,7 +1079,29 @@ export function DevolutivaImpressaoClient(props: {
                 <p className="text-sm leading-7 text-slate-700">Não há habilidades com volume suficiente para consolidação neste recorte.</p>
               )}
             </DocumentSection>
+            ) : null}
 
+            {secoes.engajamento ? (
+            <DocumentSection title="Nível de Engajamento">
+              {engajamentoResumo.total ? (
+                <div className="space-y-3">
+                  <EngagementPie rows={engajamentoResumo.rows} total={engajamentoResumo.total} size={180} />
+                  <p className="text-sm leading-7 text-slate-700">
+                    {engajamentoResumo.total} registro(s) de engajamento nas metas do período.
+                    {engajamentoResumo.rowsOutros.length
+                      ? ` Em "Outros": ${engajamentoResumo.rowsOutros
+                          .map((row) => `${row.label} (${row.value})`)
+                          .join(", ")}.`
+                      : ""}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-slate-700">Sem engajamento registrado nas metas deste recorte.</p>
+              )}
+            </DocumentSection>
+            ) : null}
+
+            {secoes.comportamentos ? (
             <DocumentSection title="Comportamentos Apresentados">
               {behaviorRows.length ? (
                 <div className="space-y-4">
@@ -1043,7 +1160,9 @@ export function DevolutivaImpressaoClient(props: {
                 <p className="text-sm leading-7 text-slate-700">Não há comportamentos estruturados suficientes para consolidação neste período.</p>
               )}
             </DocumentSection>
+            ) : null}
 
+            {secoes.registros ? (
             <DocumentSection title="Registros clínico">
               {feedbackItems.length ? (
                 <div className="space-y-3">
@@ -1065,6 +1184,13 @@ export function DevolutivaImpressaoClient(props: {
                 <p className="text-sm leading-7 text-slate-700">Sem observações textuais selecionadas para o período analisado.</p>
               )}
             </DocumentSection>
+            ) : null}
+
+            {nenhumaSecaoSelecionada ? (
+              <p className="print:hidden text-sm leading-7 text-slate-600">
+                Nenhuma seção selecionada — marque ao menos uma acima para montar o documento.
+              </p>
+            ) : null}
           </div>
 
           <footer className="border-t border-[#e4d3c1] bg-[#fcfaf7]">
