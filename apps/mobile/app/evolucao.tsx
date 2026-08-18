@@ -268,7 +268,7 @@ function EvolucaoFormContent() {
               </Pressable>
             ) : null}
           </View>
-          <Field label="Ensino" value={row.ensino} onChangeText={(v) => updateMeta(i, { ensino: v })} placeholder="Ex: Imitacao, Ecoico" />
+          <Field label="Objetivo" value={row.ensino} onChangeText={(v) => updateMeta(i, { ensino: v })} placeholder="Ex: Imitacao, Ecoico" />
           <Field label="Habilidade" value={row.habilidade} onChangeText={(v) => updateMeta(i, { habilidade: v })} placeholder="Ex: Nomeacao, Pareamento" />
           <Field label="Engajamento" value={row.opcao} onChangeText={(v) => updateMeta(i, { opcao: v })} placeholder="Ex: Sim, Nao" />
           <Label>Desempenho</Label>
