@@ -699,7 +699,7 @@ export function EvolucaoFormClient(props: {
             <div className="space-y-1">
               <p className="text-sm font-semibold text-[var(--marrom)]">Metas / desempenho da sessão</p>
               <p className="text-xs text-gray-500">
-                Registre habilidade, alvo apresentado, desempenho (Ajuda / Nao fez / Independente), tipo de ajuda e
+                Registre habilidade, engajamento, desempenho (Ajuda / Nao fez / Independente), tipo de ajuda e
                 reforcador.
               </p>
               <p className="text-xs text-gray-500">
@@ -743,12 +743,12 @@ export function EvolucaoFormClient(props: {
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <p className="text-xs font-semibold text-gray-600">Alvo</p>
+                  <p className="text-xs font-semibold text-gray-600">Engajamento</p>
                   <input
                     value={row.opcao}
                     onChange={(e) => updateMetaRow(row.id, { opcao: e.target.value })}
                     className="rounded-lg border px-3 py-2 text-sm"
-                    placeholder="Ex: Gato, Cachorro..."
+                    placeholder="Ex: Sim, Nao..."
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
