@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  contarAgendaFuturaProfissionalAction,
   deleteProfissionalAction,
   setProfissionalAtivoAction,
 } from "@/app/(protected)/profissionais/profissional.actions";
@@ -30,25 +31,48 @@ export function ProfissionalActionsClient({
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"archive" | "delete" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+  const [arquivarOpen, setArquivarOpen] = useState(false);
+  const [agendaFutura, setAgendaFutura] = useState<number | null>(null);
 
   if (!canArchive && !canDelete) return null;
 
-  async function toggleArquivo() {
+  async function abrirArquivar() {
     if (busyAction) return;
-    const vaiArquivar = ativo;
-    const ok = window.confirm(
-      vaiArquivar
-        ? `Arquivar o profissional ${profissionalNome}?`
-        : `Desarquivar o profissional ${profissionalNome}?`
-    );
-    if (!ok) return;
+    setMsg(null);
+    setOkMsg(null);
+    setAgendaFutura(null);
+    setArquivarOpen(true);
+    try {
+      const result = await contarAgendaFuturaProfissionalAction(profissionalId);
+      if (!result.ok) throw new Error(result.error || "Erro ao consultar a agenda");
+      setAgendaFutura(result.data.total);
+    } catch (error) {
+      setMsg(normalizeApiError(error));
+      setArquivarOpen(false);
+    }
+  }
 
+  async function desarquivar() {
+    if (busyAction) return;
+    const ok = window.confirm(`Desarquivar o profissional ${profissionalNome}?`);
+    if (!ok) return;
+    await aplicarStatus(true);
+  }
+
+  async function aplicarStatus(novoAtivo: boolean) {
     setBusyAction("archive");
     setMsg(null);
+    setOkMsg(null);
     try {
-      const result = await setProfissionalAtivoAction(profissionalId, !vaiArquivar);
+      const result = await setProfissionalAtivoAction(profissionalId, novoAtivo);
       if (!result.ok) throw new Error(result.error || "Erro ao atualizar status");
-      setMsg(null);
+      setArquivarOpen(false);
+      setOkMsg(
+        novoAtivo
+          ? "Profissional desarquivado."
+          : `Profissional arquivado. ${result.data.atendimentosCancelados} atendimento(s) futuro(s) cancelado(s).`
+      );
       router.refresh();
     } catch (error) {
       setMsg(normalizeApiError(error));
@@ -87,7 +111,7 @@ export function ProfissionalActionsClient({
         {canArchive ? (
           <button
             type="button"
-            onClick={() => void toggleArquivo()}
+            onClick={() => void (ativo ? abrirArquivar() : desarquivar())}
             disabled={busyAction !== null}
             className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -110,6 +134,61 @@ export function ProfissionalActionsClient({
         ) : null}
       </div>
       {msg ? <p className="text-xs text-red-600">{msg}</p> : null}
+      {okMsg ? <p className="text-xs text-emerald-700">{okMsg}</p> : null}
+
+      {arquivarOpen ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !busyAction) setArquivarOpen(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Arquivar profissional</h3>
+            <p className="mt-2 text-sm text-gray-700">
+              Arquivar{" "}
+              <span className="font-semibold text-[var(--marrom)]">{profissionalNome}</span>?
+            </p>
+            {agendaFutura === null ? (
+              <p className="mt-3 text-sm text-gray-500">Verificando a agenda...</p>
+            ) : agendaFutura > 0 ? (
+              <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                <span className="font-semibold">{agendaFutura}</span> atendimento(s) agendado(s) a
+                partir de amanha serao cancelados. Desarquivar depois nao restaura esses
+                atendimentos.
+              </p>
+            ) : (
+              <p className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+                Nenhum atendimento futuro na agenda dele.
+              </p>
+            )}
+            <p className="mt-3 text-xs text-gray-500">
+              O historico de hoje e das datas anteriores e mantido para consulta.
+            </p>
+
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setArquivarOpen(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={busyAction !== null}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void aplicarStatus(false)}
+                className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60"
+                disabled={busyAction !== null || agendaFutura === null}
+              >
+                {busyAction === "archive" ? "Arquivando..." : "Arquivar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, ilike, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
@@ -8,6 +8,7 @@ import {
   SaveProfissionalInput,
   ProfissionaisQueryInput,
 } from "@autismcad/validators/profissionais/profissionais.schema";
+import { ymdNowInClinicTz } from "@/server/shared/clock";
 import { AppError } from "@/server/shared/errors";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 import {
@@ -248,7 +249,32 @@ export async function deleteProfissional(id: number, deletedByUserId?: number | 
   return { id: deleted.id };
 }
 
-export async function setProfissionalAtivo(id: number, ativo: boolean) {
+// Arquivar um profissional cancela a agenda dele daqui para frente. Hoje e o passado
+// ficam intactos para consulta de historico, e o que ja tem registro proprio
+// (realizado ou ausencia justificada) e preservado, igual a exclusao por periodo.
+function agendaFuturaCancelavel(profissionalId: number, hoje: string) {
+  return [
+    eq(atendimentos.profissionalId, profissionalId),
+    isNull(atendimentos.deletedAt),
+    gt(atendimentos.data, hoje),
+    eq(atendimentos.realizado, false),
+    sql`${atendimentos.presenca} <> 'Ausente'`,
+  ];
+}
+
+export async function contarAgendaFuturaProfissional(id: number) {
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(atendimentos)
+    .where(and(...agendaFuturaCancelavel(id, ymdNowInClinicTz())));
+  return row?.total ?? 0;
+}
+
+export async function setProfissionalAtivo(
+  id: number,
+  ativo: boolean,
+  arquivadoPorUserId?: number | null
+) {
   return runDbTransaction(
     async (tx) => {
       const [result] = await tx
@@ -261,7 +287,22 @@ export async function setProfissionalAtivo(id: number, ativo: boolean) {
         throw new AppError("Profissional nao encontrado", 404, "NOT_FOUND");
       }
 
-      return result;
+      // Desarquivar nao restaura a agenda cancelada: o cancelamento e definitivo.
+      let atendimentosCancelados = 0;
+      if (!ativo) {
+        const cancelados = await tx
+          .update(atendimentos)
+          .set({
+            deletedAt: sql`now()`,
+            deletedByUserId: arquivadoPorUserId ?? null,
+            updatedAt: sql`now()`,
+          })
+          .where(and(...agendaFuturaCancelavel(id, ymdNowInClinicTz())))
+          .returning({ id: atendimentos.id });
+        atendimentosCancelados = cancelados.length;
+      }
+
+      return { ...result, atendimentosCancelados };
     },
     { operation: "profissionais.setProfissionalAtivo", mode: "required" }
   );

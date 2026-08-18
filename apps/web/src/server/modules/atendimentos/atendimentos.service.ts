@@ -116,11 +116,29 @@ async function acquireAtendimentoScheduleLock(executor: DbExecutor, params: {
   );
 }
 
+async function carregarAtendimentoParaEdicao(executor: DbExecutor, id: number) {
+  const [row] = await executor
+    .select({ id: atendimentos.id, profissionalId: atendimentos.profissionalId })
+    .from(atendimentos)
+    .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+    .limit(1);
+  if (!row) {
+    throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
+  }
+  return row;
+}
+
 // Achado 46: FKs garantem existencia fisica, mas nao que paciente/profissional
 // estejam ativos e nao deletados. Valida na mesma transacao da gravacao.
 async function assertEntidadesAtivas(
   executor: DbExecutor,
-  params: { pacienteId: number; profissionalId: number }
+  params: {
+    pacienteId: number;
+    profissionalId: number;
+    // Historico de profissional arquivado continua editavel (registrar presenca ou
+    // fechar repasse atrasado) enquanto o profissional do atendimento nao muda.
+    permitirProfissionalInativo?: boolean;
+  }
 ) {
   const [pac] = await executor
     .select({ id: pacientes.id })
@@ -137,16 +155,18 @@ async function assertEntidadesAtivas(
     throw new AppError("Paciente inativo ou removido", 409, "PACIENTE_INATIVO");
   }
 
+  const profWhere = [
+    eq(profissionaisTabela.id, params.profissionalId),
+    isNull(profissionaisTabela.deletedAt),
+  ];
+  if (!params.permitirProfissionalInativo) {
+    profWhere.push(eq(profissionaisTabela.ativo, true));
+  }
+
   const [prof] = await executor
     .select({ id: profissionaisTabela.id })
     .from(profissionaisTabela)
-    .where(
-      and(
-        eq(profissionaisTabela.id, params.profissionalId),
-        eq(profissionaisTabela.ativo, true),
-        isNull(profissionaisTabela.deletedAt)
-      )
-    )
+    .where(and(...profWhere))
     .limit(1);
   if (!prof) {
     throw new AppError("Profissional inativo ou removido", 409, "PROFISSIONAL_INATIVO");
@@ -224,9 +244,12 @@ async function salvarAtendimentoDb(
     data,
   });
 
+  const existente = id ? await carregarAtendimentoParaEdicao(executor, id) : null;
+
   await assertEntidadesAtivas(executor, {
     pacienteId: input.pacienteId,
     profissionalId,
+    permitirProfissionalInativo: existente?.profissionalId === profissionalId,
   });
 
   const conflito = await existeConflitoHorario(executor, {
@@ -249,15 +272,6 @@ async function salvarAtendimentoDb(
   const realizado = presenca === "Presente";
 
   if (id) {
-    const [existing] = await executor
-      .select({ id: atendimentos.id })
-      .from(atendimentos)
-      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-      .limit(1);
-    if (!existing) {
-      throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
-    }
-
     const statusRepasse = await resolveStatusRepasseForUpdate(executor, {
       atendimentoId: id,
       presenca,
