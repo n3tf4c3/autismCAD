@@ -32,7 +32,7 @@ export default async function CalendarioPage(props: {
   try {
     await requirePermission("profissionais:view");
     const profissionaisRows = await listarProfissionais({ somenteAssistencial: true });
-    profissionais = profissionaisRows.map((item) => ({
+    profissionais = profissionaisRows.filter((item) => item.ativo).map((item) => ({
       id: item.id,
       nome: item.nome,
       especialidade: item.especialidade ?? null,
