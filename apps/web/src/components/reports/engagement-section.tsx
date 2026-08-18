@@ -14,7 +14,7 @@ type EngagementSectionProps = {
   emptyMessage: string;
   total: number;
   rows: EngagementRow[];
-  rowsOutros: Array<{ label: string; value: number }>;
+  ignorados: number;
 };
 
 export function EngagementSection(props: EngagementSectionProps) {
@@ -34,18 +34,19 @@ export function EngagementSection(props: EngagementSectionProps) {
       </div>
 
       {props.total ? (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4">
           <EngagementPie rows={props.rows} total={props.total} />
-          {props.rowsOutros.length ? (
-            <p className="text-xs text-gray-600">
-              Em &quot;Outros&quot;:{" "}
-              {props.rowsOutros.map((row) => `${row.label} (${row.value})`).join(", ")}.
-            </p>
-          ) : null}
         </div>
       ) : (
         <p className="mt-4 text-sm text-gray-700">{props.emptyMessage}</p>
       )}
+
+      {props.ignorados ? (
+        <p className="mt-3 text-xs text-gray-600">
+          {props.ignorados} registro(s) fora do padrão Sim/Não foram desconsiderados — são metas antigas, de
+          quando este campo se chamava &quot;Alvo&quot;.
+        </p>
+      ) : null}
     </section>
   );
 }

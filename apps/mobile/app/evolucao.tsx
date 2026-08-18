@@ -10,6 +10,8 @@ import {
   AJUDA_OPTIONS,
   BEHAVIOR_OPTIONS,
   DESEMPENHO_OPTIONS,
+  ENGAJAMENTO_OPTIONS,
+  normalizeEngajamento,
   RESULTADO_OPTIONS,
   TITULO_SESSAO_OPTIONS,
   buildEvolucaoPayload,
@@ -270,7 +272,15 @@ function EvolucaoFormContent() {
           </View>
           <Field label="Objetivo" value={row.ensino} onChangeText={(v) => updateMeta(i, { ensino: v })} placeholder="Ex: Imitacao, Ecoico" />
           <Field label="Habilidade" value={row.habilidade} onChangeText={(v) => updateMeta(i, { habilidade: v })} placeholder="Ex: Nomeacao, Pareamento" />
-          <Field label="Engajamento" value={row.opcao} onChangeText={(v) => updateMeta(i, { opcao: v })} placeholder="Ex: Sim, Nao" />
+          <Label>Engajamento</Label>
+          <OptionRow
+            options={ENGAJAMENTO_OPTIONS}
+            value={normalizeEngajamento(row.opcao)}
+            onChange={(v) => updateMeta(i, { opcao: v })}
+          />
+          {row.opcao && !normalizeEngajamento(row.opcao) ? (
+            <Muted>Registro antigo neste campo: &quot;{row.opcao}&quot;. Toque em Sim ou Nao para substituir.</Muted>
+          ) : null}
           <Label>Desempenho</Label>
           <OptionRow
             options={DESEMPENHO_OPTIONS}
