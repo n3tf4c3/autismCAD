@@ -347,7 +347,8 @@ function SkillDistributionChart(props: {
   const groupWidth = 74;
   const barWidth = 12;
   const groupBarGap = 4;
-  const svgWidth = leftPad + props.rows.length * groupWidth + rightPad;
+  const plotWidth = Math.max(props.rows.length * groupWidth, 260);
+  const svgWidth = leftPad + plotWidth + rightPad;
   const svgHeight = chartTop + chartHeight + chartBottom;
   const yLevels = [0, 25, 50, 75, 100];
 
@@ -372,8 +373,9 @@ function SkillDistributionChart(props: {
 
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="block w-full"
-        preserveAspectRatio="xMinYMin meet"
+        className="mx-auto block w-full"
+        style={{ maxWidth: svgWidth, maxHeight: svgHeight }}
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Gráfico de barras por habilidade trabalhada"
       >
