@@ -64,6 +64,7 @@ const terapiaCanonicalByNormalized = new Map<string, string>([
   ["intensiva", "Intensiva"],
   ["especial", "Especial"],
   ["intercambio", "Intercambio"],
+  ["particular", "Particular"],
 ]);
 
 function normalizeTextForMatch(value: string): string {

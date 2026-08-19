@@ -13,7 +13,7 @@ import {
   salvarPacienteAction,
 } from "@/app/(protected)/pacientes/paciente.actions";
 
-type TerapiaKey = "Convencional" | "Intensiva" | "Especial" | "Intercambio";
+type TerapiaKey = "Convencional" | "Intensiva" | "Especial" | "Intercambio" | "Particular";
 type Kind = "foto" | "laudo" | "documento";
 
 type PacienteFormValues = z.input<typeof savePacienteSchema>;
@@ -23,6 +23,7 @@ const terapiaOptions: Array<{ key: TerapiaKey; label: string }> = [
   { key: "Intensiva", label: "Intensiva" },
   { key: "Especial", label: "Especial" },
   { key: "Intercambio", label: "Intercambio" },
+  { key: "Particular", label: "Particular" },
 ];
 
 const terapiaCanonicalByNormalized = new Map<string, TerapiaKey>(
@@ -560,7 +561,7 @@ export function PacienteFormClient(props: {
               render={({ field }) => {
                 const selected = normalizeTerapias(field.value);
                 return (
-                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
                     {terapiaOptions.map((t) => {
                       const checked = selected.includes(t.key);
                       return (
