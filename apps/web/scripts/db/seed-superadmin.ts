@@ -100,6 +100,7 @@ async function main() {
       { nome: "Intensiva" },
       { nome: "Especial" },
       { nome: "Intercambio" },
+      { nome: "Particular" },
     ])
     .onConflictDoNothing();
 
