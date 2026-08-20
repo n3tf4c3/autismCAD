@@ -1,6 +1,5 @@
 import { requirePermission } from "@/server/auth/auth";
 import { hasPermission } from "@/server/auth/access";
-import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { CalendarioClient } from "@/app/(protected)/calendario/calendario.client";
 
@@ -15,14 +14,16 @@ function normalizeDateParam(value?: string): string | undefined {
 export default async function CalendarioPage(props: {
   searchParams: Promise<{ profissionalId?: string; data?: string }>;
 }) {
-  const { user, access } = await requirePermission("consultas:view");
+  const { access } = await requirePermission("consultas:view");
 
-  let canCreateAtendimento = false;
+  // A agenda e somente leitura para atendimento: marcar consulta acontece na tela
+  // do paciente. Aqui sobra o bloqueio de horario, que usa a mesma permissao.
+  let canBloquearHorario = false;
   try {
     await requirePermission("consultas:create");
-    canCreateAtendimento = true;
+    canBloquearHorario = true;
   } catch {
-    canCreateAtendimento = false;
+    canBloquearHorario = false;
   }
 
   // Desbloquear remove bloqueio (consultas:cancel), permissao distinta de criar (achado 43).
@@ -41,15 +42,6 @@ export default async function CalendarioPage(props: {
     profissionais = [];
   }
 
-  let pacientes: Array<{ id: number; nome: string }> = [];
-  try {
-    await requirePermission("pacientes:view");
-    const pacientesRows = await listarPacientesPorUsuario(user.id, {});
-    pacientes = pacientesRows.map((item) => ({ id: item.id, nome: item.nome }));
-  } catch {
-    pacientes = [];
-  }
-
   const searchParams = await props.searchParams;
   const profissionalParam = String(searchParams.profissionalId ?? "").trim();
   const hasProfissionalInList =
@@ -65,10 +57,9 @@ export default async function CalendarioPage(props: {
   return (
     <CalendarioClient
       initialProfissionais={profissionais}
-      initialPacientes={pacientes}
       initialProfissionalId={initialProfissionalId || undefined}
       initialData={normalizeDateParam(searchParams.data)}
-      canCreateAtendimento={canCreateAtendimento}
+      canBloquearHorario={canBloquearHorario}
       canDeleteBloqueio={canDeleteBloqueio}
     />
   );
