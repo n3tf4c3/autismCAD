@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  criarAtendimentoAction,
-  criarAtendimentosRecorrentesAction,
-  listarAtendimentosAction,
-} from "@/app/(protected)/consultas/consultas.actions";
-import { derivarTurno } from "@autismcad/validators/atendimentos/atendimentos.schema";
+import { listarAtendimentosAction } from "@/app/(protected)/consultas/consultas.actions";
 import {
   criarBloqueiosAction,
   excluirBloqueioAction,
@@ -25,7 +20,6 @@ type Atendimento = {
 };
 
 type Profissional = { id: number; nome: string; especialidade?: string | null };
-type Paciente = { id: number; nome: string };
 
 type BloqueioAgenda = {
   id: number;
@@ -96,16 +90,14 @@ function unwrapAction<T>(result: ActionResult<T>): T {
   return result.data;
 }
 
-function overlaps(h1i: string, h1f: string, h2i: string, h2f: string): boolean {
-  return h1f > h2i && h1i < h2f;
-}
-
+// O calendario e uma agenda de leitura: marcar atendimento aqui, fora do fluxo do
+// paciente, estava desencontrando as consultas. Sobrou o bloqueio de horario, que
+// e o unico jeito de reservar a agenda do profissional (ferias, almoco, reuniao).
 export function CalendarioClient(props: {
   initialProfissionais: Profissional[];
-  initialPacientes: Paciente[];
   initialProfissionalId?: string;
   initialData?: string;
-  canCreateAtendimento: boolean;
+  canBloquearHorario: boolean;
   canDeleteBloqueio: boolean;
 }) {
   const initialDateParsed = parseYmdToLocalDate(props.initialData ?? "");
@@ -126,16 +118,13 @@ export function CalendarioClient(props: {
   const [error, setError] = useState<string | null>(null);
 
   const [data, setData] = useState<string>(() => initialDate);
-  const [reservaModo, setReservaModo] = useState<"dia" | "periodo">("dia");
+  const [bloqueioModo, setBloqueioModo] = useState<"dia" | "periodo">("dia");
   const [periodoInicio, setPeriodoInicio] = useState<string>(() => initialDate);
   const [periodoFim, setPeriodoFim] = useState<string>(() => initialDate);
   const [diasSemana, setDiasSemana] = useState<Set<number>>(() => new Set());
   const [inicio, setInicio] = useState<string>("08:00");
   const [fim, setFim] = useState<string>("09:00");
-  const [pacienteId, setPacienteId] = useState<string>("");
-  const [isGrupo, setIsGrupo] = useState(false);
   const [observacoes, setObservacoes] = useState<string>("");
-  const [bloquearHorario, setBloquearHorario] = useState(false);
 
   const rangeLabel = useMemo(() => {
     const start = weekMonday(weekStart);
@@ -155,7 +144,6 @@ export function CalendarioClient(props: {
   }, [weekStart]);
 
   const profissionais = props.initialProfissionais;
-  const pacientes = props.initialPacientes;
 
   async function loadAgenda() {
     const reqId = ++agendaReqRef.current;
@@ -204,11 +192,10 @@ export function CalendarioClient(props: {
     }
   }
 
-  async function reservar() {
+  async function bloquear() {
     if (!profissionalId || !inicio || !fim) return;
-    if (!bloquearHorario && !pacienteId) return;
-    if (reservaModo === "dia" && !data) return;
-    if (reservaModo === "periodo" && (!periodoInicio || !periodoFim || !diasSemana.size)) return;
+    if (bloqueioModo === "dia" && !data) return;
+    if (bloqueioModo === "periodo" && (!periodoInicio || !periodoFim || !diasSemana.size)) return;
     setSaving(true);
     setError(null);
     try {
@@ -220,49 +207,10 @@ export function CalendarioClient(props: {
         throw new Error("Horário inicial deve ser menor que o final");
       }
 
-      const bloqueiosProfissional = bloqueios.filter((b) => b.profissionalId === profissionalNum);
-      const hasBlockConflict = (dateStr: string) =>
-        bloqueiosProfissional.some(
-          (b) => b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim)
-        );
-
-      if (bloquearHorario) {
-        const datas: string[] = [];
-        if (reservaModo === "dia") {
-          datas.push(data);
-        } else {
-          const ini = parseYmdToLocalDate(periodoInicio);
-          const fimDt = parseYmdToLocalDate(periodoFim);
-          if (!ini || !fimDt) throw new Error("Período inválido");
-          if (ini > fimDt) throw new Error("Período inicial maior que final");
-          for (let dt = new Date(ini); dt <= fimDt; dt.setDate(dt.getDate() + 1)) {
-            const dow = dt.getDay();
-            if (!diasSemana.has(dow)) continue;
-            datas.push(ymdLocal(dt));
-          }
-        }
-
-        if (!datas.length) {
-          throw new Error("Nenhum bloqueio gerado para o periodo e dias selecionados");
-        }
-        unwrapAction(
-          await criarBloqueiosAction({
-            profissionalId: profissionalNum,
-            datas,
-            horaInicio: inicio,
-            horaFim: fim,
-            observacoes: observacoes.trim() || null,
-          })
-        );
-        setObservacoes("");
-        await loadAgenda();
-        return;
-      }
-
-      if (reservaModo === "dia" && hasBlockConflict(data)) {
-        throw new Error("Horário bloqueado na agenda");
-      }
-      if (reservaModo === "periodo") {
+      const datas: string[] = [];
+      if (bloqueioModo === "dia") {
+        datas.push(data);
+      } else {
         const ini = parseYmdToLocalDate(periodoInicio);
         const fimDt = parseYmdToLocalDate(periodoFim);
         if (!ini || !fimDt) throw new Error("Período inválido");
@@ -270,45 +218,22 @@ export function CalendarioClient(props: {
         for (let dt = new Date(ini); dt <= fimDt; dt.setDate(dt.getDate() + 1)) {
           const dow = dt.getDay();
           if (!diasSemana.has(dow)) continue;
-          if (hasBlockConflict(ymdLocal(dt))) {
-            throw new Error(`Horário bloqueado em ${ymdLocal(dt)}`);
-          }
+          datas.push(ymdLocal(dt));
         }
       }
 
-      const turno = derivarTurno(inicio);
-      const payload =
-        reservaModo === "periodo"
-          ? {
-              pacienteId,
-              profissionalId: profissionalId,
-              horaInicio: inicio,
-              horaFim: fim,
-              isGrupo,
-              turno,
-              periodoInicio,
-              periodoFim,
-              presenca: "Nao informado",
-              observacoes: observacoes || null,
-              motivo: null,
-              diasSemana: Array.from(diasSemana.values()).sort((a, b) => a - b),
-            }
-          : {
-              pacienteId,
-              profissionalId: profissionalId,
-              data,
-              horaInicio: inicio,
-              horaFim: fim,
-              isGrupo,
-              turno,
-              presenca: "Nao informado",
-              observacoes: observacoes || null,
-            };
-      if (reservaModo === "periodo") {
-        unwrapAction(await criarAtendimentosRecorrentesAction(payload));
-      } else {
-        unwrapAction(await criarAtendimentoAction(payload));
+      if (!datas.length) {
+        throw new Error("Nenhum bloqueio gerado para o periodo e dias selecionados");
       }
+      unwrapAction(
+        await criarBloqueiosAction({
+          profissionalId: profissionalNum,
+          datas,
+          horaInicio: inicio,
+          horaFim: fim,
+          observacoes: observacoes.trim() || null,
+        })
+      );
       setObservacoes("");
       await loadAgenda();
     } catch (err) {
@@ -459,7 +384,7 @@ export function CalendarioClient(props: {
                 <div key={dayStr} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="text-sm font-semibold text-[var(--marrom)]">{fmtShort(d)}</div>
-                    {profissionalId && props.canCreateAtendimento ? (
+                    {profissionalId && props.canBloquearHorario ? (
                       <button
                         type="button"
                         className="text-xs text-[var(--laranja)] hover:underline"
@@ -471,7 +396,7 @@ export function CalendarioClient(props: {
                           if (dow !== null) setDiasSemana(new Set([dow]));
                         }}
                       >
-                        + reservar
+                        + bloquear
                       </button>
                     ) : null}
                   </div>
@@ -534,22 +459,25 @@ export function CalendarioClient(props: {
           </div>
         </section>
 
-        {props.canCreateAtendimento ? (
+        {props.canBloquearHorario ? (
         <section className="calendar-reserva-card rounded-xl border border-[#f4e0bc] bg-[#fff8ec] p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-[var(--marrom)]">Reservar horario</h2>
+          <h2 className="text-sm font-semibold text-[var(--marrom)]">Bloquear horário</h2>
+          <p className="mt-1 text-xs text-gray-600">
+            Esta agenda é somente leitura. Para marcar atendimento, use a tela do paciente.
+          </p>
           <div className="mt-3 space-y-2 text-sm">
             <label className="block text-gray-700">
-              Tipo de reserva
+              Tipo de bloqueio
               <select
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                value={reservaModo}
-                onChange={(e) => setReservaModo(e.target.value === "periodo" ? "periodo" : "dia")}
+                value={bloqueioModo}
+                onChange={(e) => setBloqueioModo(e.target.value === "periodo" ? "periodo" : "dia")}
               >
                 <option value="dia">Data unica</option>
                 <option value="periodo">Por periodo</option>
               </select>
             </label>
-            {reservaModo === "dia" ? (
+            {bloqueioModo === "dia" ? (
               <label className="block text-gray-700">
                 Data
                 <input
@@ -627,52 +555,11 @@ export function CalendarioClient(props: {
                 />
               </label>
             </div>
-            <div className="flex items-center gap-4">
-              <label className="inline-flex items-center gap-2 text-gray-700">
-                <input
-                  type="checkbox"
-                  className="rounded text-[var(--laranja)]"
-                  checked={bloquearHorario}
-                  onChange={(e) => setBloquearHorario(e.target.checked)}
-                />
-                <span>Bloquear horário (sem paciente)</span>
-              </label>
-              {!bloquearHorario ? (
-                <label className="ml-auto inline-flex items-center gap-2 text-gray-700">
-                  <input
-                    type="checkbox"
-                    className="rounded text-[var(--laranja)]"
-                    checked={isGrupo}
-                    onChange={(e) => setIsGrupo(e.target.checked)}
-                  />
-                  <span>Sessão em grupo</span>
-                </label>
-              ) : null}
-            </div>
-            {bloquearHorario ? (
-              <p className="text-xs text-amber-700">
-                Bloqueio salvo no sistema e visivel para todos os usuarios desta agenda.
-              </p>
-            ) : null}
-            {!bloquearHorario ? (
-              <label className="block text-gray-700">
-                Paciente
-                <select
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={pacienteId}
-                  onChange={(e) => setPacienteId(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {pacientes.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.id} - {p.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
+            <p className="text-xs text-amber-700">
+              Bloqueio salvo no sistema e visivel para todos os usuarios desta agenda.
+            </p>
             <label className="block text-gray-700">
-              Observações {bloquearHorario ? "(motivo do bloqueio)" : ""}
+              Observações (motivo do bloqueio)
               <textarea
                 rows={2}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
@@ -684,18 +571,16 @@ export function CalendarioClient(props: {
             <button
               type="button"
               className="mt-1 w-full rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
-              onClick={() => void reservar()}
-              disabled={!profissionalId || (!bloquearHorario && !pacienteId) || saving}
+              onClick={() => void bloquear()}
+              disabled={
+                !profissionalId || saving || (bloqueioModo === "periodo" && !diasSemana.size)
+              }
             >
               {saving
                 ? "Salvando..."
-                : bloquearHorario
-                  ? reservaModo === "periodo"
-                    ? "Bloquear por periodo"
-                    : "Bloquear horário"
-                  : reservaModo === "periodo"
-                    ? "Reservar por periodo"
-                    : "Reservar"}
+                : bloqueioModo === "periodo"
+                  ? "Bloquear por periodo"
+                  : "Bloquear horário"}
             </button>
           </div>
         </section>
