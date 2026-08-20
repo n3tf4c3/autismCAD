@@ -12,6 +12,7 @@ export default async function ConsultasPage() {
     isAdmin ||
     hasPermissionKey(access.permissions, "consultas:edit") ||
     hasPermissionKey(access.permissions, "consultas:presence");
+  const canCreateAtendimento = isAdmin || hasPermissionKey(access.permissions, "consultas:create");
   const canDeleteAtendimento = isAdmin || hasPermissionKey(access.permissions, "consultas:cancel");
   const canEditRepasse = isAdmin || hasPermissionKey(access.permissions, "evolucoes:create");
 
@@ -37,6 +38,7 @@ export default async function ConsultasPage() {
     <ConsultasClient
       initialProfissionais={profissionais}
       initialPacientes={pacientes}
+      canCreateAtendimento={canCreateAtendimento}
       canEditAtendimento={canEditAtendimento}
       canDeleteAtendimento={canDeleteAtendimento}
       canEditRepasse={canEditRepasse}

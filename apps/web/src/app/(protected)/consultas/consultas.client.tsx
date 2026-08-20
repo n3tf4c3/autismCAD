@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { derivarTurno } from "@autismcad/validators/atendimentos/atendimentos.schema";
 import {
+  criarAtendimentoAction,
   excluirAtendimentoAction,
   excluirDiaAtendimentosAction,
   listarAtendimentosAction,
@@ -78,6 +79,7 @@ function dowFromYmdUtc(ymd: string): number {
 export function ConsultasClient(props: {
   initialProfissionais: Profissional[];
   initialPacientes: Paciente[];
+  canCreateAtendimento: boolean;
   canEditAtendimento: boolean;
   canDeleteAtendimento: boolean;
   canEditRepasse: boolean;
@@ -113,6 +115,21 @@ export function ConsultasClient(props: {
   // Turno segue o horario de inicio (o servidor grava assim de qualquer forma);
   // exibir como campo derivado evita a divergencia de um select esquecido.
   const editTurno = derivarTurno(editHoraInicio);
+
+  // Atendimento avulso (encaixe, reposicao): o agendamento recorrente continua na
+  // tela do paciente; aqui e sempre uma data unica, sem carimbo de periodo.
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoMsg, setNovoMsg] = useState<string | null>(null);
+  const [novoBusy, setNovoBusy] = useState(false);
+  const [novoPacienteId, setNovoPacienteId] = useState<string>("");
+  const [novoProfissionalId, setNovoProfissionalId] = useState<string>("");
+  const [novoData, setNovoData] = useState<string>(ymdToday());
+  const [novoHoraInicio, setNovoHoraInicio] = useState<string>("08:00");
+  const [novoHoraFim, setNovoHoraFim] = useState<string>("09:00");
+  const [novoIsGrupo, setNovoIsGrupo] = useState(false);
+  const [novoPresenca, setNovoPresenca] = useState<string>("Nao informado");
+  const [novoMotivo, setNovoMotivo] = useState<string>("");
+  const novoTurno = derivarTurno(novoHoraInicio);
 
   const [delOpen, setDelOpen] = useState(false);
   const [delItem, setDelItem] = useState<Atendimento | null>(null);
@@ -228,6 +245,67 @@ export function ConsultasClient(props: {
     }
   }
 
+  function openNovo() {
+    setNovoMsg(null);
+    setNovoBusy(false);
+    setNovoPacienteId(pacienteId || "");
+    setNovoProfissionalId(profissionalId || "");
+    setNovoData(dataIni || ymdToday());
+    setNovoHoraInicio("08:00");
+    setNovoHoraFim("09:00");
+    setNovoIsGrupo(false);
+    setNovoPresenca("Nao informado");
+    setNovoMotivo("");
+    setNovoOpen(true);
+  }
+
+  function closeNovo() {
+    setNovoOpen(false);
+    setNovoBusy(false);
+  }
+
+  async function submitNovo() {
+    setNovoMsg(null);
+
+    const pacienteIdNum = Number(novoPacienteId);
+    const profissionalIdNum = Number(novoProfissionalId);
+    if (!pacienteIdNum || !profissionalIdNum || !novoData || !novoHoraInicio || !novoHoraFim) {
+      setNovoMsg("Preencha paciente, profissional, data e horarios.");
+      return;
+    }
+
+    const motivo = novoMotivo.trim();
+    if (novoPresenca === "Ausente" && !motivo) {
+      setNovoMsg("Informe o motivo da ausencia.");
+      return;
+    }
+
+    setNovoBusy(true);
+    try {
+      const result = await criarAtendimentoAction({
+        pacienteId: pacienteIdNum,
+        profissionalId: profissionalIdNum,
+        data: novoData,
+        horaInicio: novoHoraInicio,
+        horaFim: novoHoraFim,
+        isGrupo: novoIsGrupo,
+        turno: novoTurno,
+        periodoInicio: null,
+        periodoFim: null,
+        presenca: novoPresenca || "Nao informado",
+        motivo: motivo || null,
+        observacoes: null,
+      });
+      if (!result.ok) throw new Error(result.error || "Erro ao criar atendimento");
+      closeNovo();
+      await loadAtendimentos();
+    } catch (err) {
+      setNovoMsg(normalizeApiError(err));
+    } finally {
+      setNovoBusy(false);
+    }
+  }
+
   function openDelete(a: Atendimento) {
     setDelItem(a);
     setDelOpen(true);
@@ -316,13 +394,24 @@ export function ConsultasClient(props: {
             <h1 className="text-2xl font-bold text-[var(--marrom)]">Consultas</h1>
             <p className="text-sm text-gray-600">Atendimentos registrados</p>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadAtendimentos()}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            Recarregar
-          </button>
+          <div className="flex items-center gap-2">
+            {props.canCreateAtendimento ? (
+              <button
+                type="button"
+                onClick={openNovo}
+                className="rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              >
+                Novo atendimento
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void loadAtendimentos()}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Recarregar
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-5">
@@ -521,6 +610,157 @@ export function ConsultasClient(props: {
           </table>
         </div>
       </section>
+
+      {novoOpen ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeNovo();
+          }}
+        >
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Novo atendimento</p>
+                <h3 className="text-lg font-bold text-[var(--marrom)]">Atendimento avulso</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Encaixe ou reposição em uma data única. Para agendar um período recorrente, use a
+                  tela do paciente.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-2xl leading-none text-gray-500 hover:text-[var(--laranja)]"
+                aria-label="Fechar"
+                onClick={closeNovo}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+              <label className="flex flex-col gap-2 md:col-span-2">
+                <span className="font-semibold text-gray-700">Paciente</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoPacienteId}
+                  onChange={(e) => setNovoPacienteId(e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {pacientes.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Profissional</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoProfissionalId}
+                  onChange={(e) => setNovoProfissionalId(e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {profissionais.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Data do atendimento</span>
+                <input
+                  type="date"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoData}
+                  onChange={(e) => setNovoData(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Horário inicio</span>
+                <input
+                  type="time"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoHoraInicio}
+                  onChange={(e) => setNovoHoraInicio(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Horário fim</span>
+                <input
+                  type="time"
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoHoraFim}
+                  onChange={(e) => setNovoHoraFim(e.target.value)}
+                />
+              </label>
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Turno</span>
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600">
+                  {novoTurno}
+                </p>
+                <span className="text-xs text-gray-500">Definido pelo horário de início.</span>
+              </div>
+              <label className="inline-flex items-center gap-2 self-end pb-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  className="rounded text-[var(--laranja)]"
+                  checked={novoIsGrupo}
+                  onChange={(e) => setNovoIsGrupo(e.target.checked)}
+                />
+                <span>Sessão em grupo</span>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-semibold text-gray-700">Presença</span>
+                <select
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoPresenca}
+                  onChange={(e) => setNovoPresenca(e.target.value)}
+                >
+                  <option value="Nao informado">Nao informado</option>
+                  <option value="Presente">Presente</option>
+                  <option value="Ausente">Ausente</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-2 md:col-span-2">
+                <span className="font-semibold text-gray-700">Motivo/Observação</span>
+                <textarea
+                  rows={3}
+                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+                  value={novoMotivo}
+                  onChange={(e) => setNovoMotivo(e.target.value)}
+                  placeholder="Motivo da ausencia ou observacoes"
+                />
+              </label>
+            </div>
+
+            {novoMsg ? <p className="mt-3 text-sm text-red-600">{novoMsg}</p> : null}
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                onClick={closeNovo}
+                disabled={novoBusy}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                onClick={() => void submitNovo()}
+                disabled={novoBusy}
+              >
+                {novoBusy ? "Salvando..." : "Criar atendimento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {editOpen && editItem ? (
         <div
