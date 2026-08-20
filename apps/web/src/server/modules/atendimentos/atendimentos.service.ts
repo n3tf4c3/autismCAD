@@ -22,6 +22,7 @@ import { loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES } from "@/server/auth/permissions";
 import {
   AtendimentosQueryInput,
+  derivarTurno,
   ExcluirDiaInput,
   presencasPermitidas,
   RecorrenteInput,
@@ -31,6 +32,7 @@ import {
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { AppError } from "@/server/shared/errors";
+import { isForeignKeyViolation } from "@/server/shared/pg-errors";
 import { normalizeDateOnlyStrict } from "@/server/shared/normalize";
 
 // Achado 108: teto defensivo de linhas na listagem (o calendario filtra por data).
@@ -137,6 +139,41 @@ async function carregarAtendimentoParaEdicao(executor: DbExecutor, id: number) {
     throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
   }
   return row;
+}
+
+// A FK composta evolucoes(atendimento_id, paciente_id, profissional_id) ->
+// atendimentos(id, paciente_id, profissional_id) e ON UPDATE NO ACTION (migration
+// 0005). Trocar o profissional de um atendimento ja evoluido e recusado pelo banco
+// com um 23503 cru, que virava "Erro interno" na tela. Antecipar aqui da a razao.
+// A FK nao enxerga deleted_at: evolucao soft-deletada mantem o vinculo e trava igual.
+async function assertProfissionalTrocavel(executor: DbExecutor, atendimentoId: number) {
+  const [evolucao] = await executor
+    .select({ id: evolucoes.id, deletedAt: evolucoes.deletedAt })
+    .from(evolucoes)
+    .where(eq(evolucoes.atendimentoId, atendimentoId))
+    .limit(1);
+  if (!evolucao) return;
+
+  throw new AppError(
+    evolucao.deletedAt
+      ? "Este atendimento tem uma evolucao excluida ainda vinculada, o que impede trocar o profissional."
+      : "Este atendimento ja tem evolucao registrada com o profissional atual. Exclua a evolucao antes de trocar o profissional.",
+    409,
+    "EVOLUCAO_VINCULADA"
+  );
+}
+
+// Rede de seguranca para a corrida entre a checagem acima e o update: se a FK
+// estourar mesmo assim, entrega a mesma explicacao em vez de "Erro interno".
+function traduzirErroVinculoEvolucao(error: unknown): unknown {
+  if (isForeignKeyViolation(error, "evolucoes_atendimento_composto_fk")) {
+    return new AppError(
+      "Nao foi possivel trocar o profissional: existe evolucao vinculada a este atendimento.",
+      409,
+      "EVOLUCAO_VINCULADA"
+    );
+  }
+  return error;
 }
 
 // Achado 46: FKs garantem existencia fisica, mas nao que paciente/profissional
@@ -256,7 +293,10 @@ async function salvarAtendimentoDb(
   const horaInicio = normalizeTime(input.horaInicio);
   const horaFim = normalizeTime(input.horaFim);
   const isGrupo = Boolean(input.isGrupo);
-  const turno = normalizeTurno(input.turno);
+  // Turno nao e escolha livre: deriva do horario de inicio. Confiar no campo
+  // enviado grava incoerencias ("Vespertino as 08:00") que sujam relatorio e o
+  // casamento por turno do excluirDia.
+  const turno = derivarTurno(horaInicio);
   const presenca = normalizePresenca(input.presenca);
 
   if (presenca === "Ausente" && !input.motivo?.trim()) {
@@ -270,6 +310,10 @@ async function salvarAtendimentoDb(
   });
 
   const existente = id ? await carregarAtendimentoParaEdicao(executor, id) : null;
+
+  if (id && existente && existente.profissionalId !== profissionalId) {
+    await assertProfissionalTrocavel(executor, id);
+  }
 
   await assertEntidadesAtivas(executor, {
     pacienteId: input.pacienteId,
@@ -317,27 +361,35 @@ async function salvarAtendimentoDb(
       presenca,
     });
 
-    const [updated] = await executor
-      .update(atendimentos)
-      .set({
-        pacienteId: input.pacienteId,
-        profissionalId,
-        data,
-        horaInicio,
-        horaFim,
-        isGrupo,
-        turno,
-        periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
-        periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
-        presenca,
-        realizado,
-        statusRepasse,
-        motivo: input.motivo?.trim() || null,
-        observacoes: input.observacoes?.trim() || null,
-        updatedAt: sql`now()`,
-      })
-      .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
-      .returning({ id: atendimentos.id });
+    const atualizar = () =>
+      executor
+        .update(atendimentos)
+        .set({
+          pacienteId: input.pacienteId,
+          profissionalId,
+          data,
+          horaInicio,
+          horaFim,
+          isGrupo,
+          turno,
+          periodoInicio: input.periodoInicio ? normalizeDateRequired(input.periodoInicio) : null,
+          periodoFim: input.periodoFim ? normalizeDateRequired(input.periodoFim) : null,
+          presenca,
+          realizado,
+          statusRepasse,
+          motivo: input.motivo?.trim() || null,
+          observacoes: input.observacoes?.trim() || null,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(atendimentos.id, id), isNull(atendimentos.deletedAt)))
+        .returning({ id: atendimentos.id });
+
+    let updated: { id: number } | undefined;
+    try {
+      [updated] = await atualizar();
+    } catch (error) {
+      throw traduzirErroVinculoEvolucao(error);
+    }
     if (!updated) {
       throw new AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
     }

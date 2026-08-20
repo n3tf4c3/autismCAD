@@ -70,6 +70,15 @@ function exigirHoraFimMaior(
   }
 }
 
+// Turno e derivado do horario de inicio (mesma regra ja usada no calendario):
+// antes das 12h => Matutino, a partir das 12h => Vespertino. Derivar, em vez de
+// confiar no campo enviado, impede gravar incoerencias como "Vespertino as 08:00".
+export function derivarTurno(horaInicio: string): "Matutino" | "Vespertino" {
+  const minutos = horaParaMinutos(horaInicio);
+  if (minutos === null) return "Matutino";
+  return minutos < 12 * 60 ? "Matutino" : "Vespertino";
+}
+
 export const atendimentosQuerySchema = z.object({
   pacienteId: z.coerce.number().int().positive().optional(),
   profissionalId: optionalId,
