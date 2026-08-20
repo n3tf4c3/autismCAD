@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { listarPacientesAction } from "@/app/(protected)/pacientes/paciente.actions";
 import { criarAtendimentosRecorrentesAction } from "@/app/(protected)/consultas/consultas.actions";
+import { derivarTurno } from "@autismcad/validators/atendimentos/atendimentos.schema";
 
 type Paciente = {
   id: number;
@@ -62,9 +63,10 @@ export function PacientesPageClient(props: {
   const [consultaPaciente, setConsultaPaciente] = useState<Paciente | null>(null);
   const [consultaProfissionalId, setConsultaProfissionalId] = useState<string>("");
   const [consultaHoraInicio, setConsultaHoraInicio] = useState<string>("08:00");
+  // Turno acompanha o horario de inicio; o servidor grava derivado de qualquer forma.
+  const consultaTurno = derivarTurno(consultaHoraInicio);
   const [consultaHoraFim, setConsultaHoraFim] = useState<string>("09:00");
   const [consultaIsGrupo, setConsultaIsGrupo] = useState(false);
-  const [consultaTurno, setConsultaTurno] = useState<string>("Matutino");
   const [consultaPeriodoInicio, setConsultaPeriodoInicio] = useState<string>(ymdToday());
   const [consultaPeriodoFim, setConsultaPeriodoFim] = useState<string>(ymdToday());
   const [consultaPresenca, setConsultaPresenca] = useState<string>("Nao informado");
@@ -100,7 +102,6 @@ export function PacientesPageClient(props: {
     setConsultaMotivo("");
     setConsultaPresenca("Nao informado");
     setConsultaIsGrupo(false);
-    setConsultaTurno("Matutino");
     setConsultaHoraInicio("08:00");
     setConsultaHoraFim("09:00");
     const today = ymdToday();
@@ -161,7 +162,7 @@ export function PacientesPageClient(props: {
         horaInicio: consultaHoraInicio,
         horaFim: consultaHoraFim,
         isGrupo: consultaIsGrupo,
-        turno: consultaTurno || "Matutino",
+        turno: consultaTurno,
         periodoInicio: consultaPeriodoInicio,
         periodoFim: consultaPeriodoFim,
         presenca: consultaPresenca || "Nao informado",
@@ -349,17 +350,13 @@ export function PacientesPageClient(props: {
                 </select>
               </label>
 
-              <label className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <span className="font-semibold text-gray-700">Turno</span>
-                <select
-                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={consultaTurno}
-                  onChange={(e) => setConsultaTurno(e.target.value)}
-                >
-                  <option value="Matutino">Matutino</option>
-                  <option value="Vespertino">Vespertino</option>
-                </select>
-              </label>
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600">
+                  {consultaTurno}
+                </p>
+                <span className="text-xs text-gray-500">Definido pelo horário de início.</span>
+              </div>
               <label className="inline-flex items-center gap-2 self-end pb-2 text-gray-700">
                 <input
                   type="checkbox"

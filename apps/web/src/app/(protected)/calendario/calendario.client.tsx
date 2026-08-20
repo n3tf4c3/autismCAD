@@ -6,6 +6,7 @@ import {
   criarAtendimentosRecorrentesAction,
   listarAtendimentosAction,
 } from "@/app/(protected)/consultas/consultas.actions";
+import { derivarTurno } from "@autismcad/validators/atendimentos/atendimentos.schema";
 import {
   criarBloqueiosAction,
   excluirBloqueioAction,
@@ -275,7 +276,7 @@ export function CalendarioClient(props: {
         }
       }
 
-      const turno = Number(inicio.split(":")[0]) < 12 ? "Matutino" : "Vespertino";
+      const turno = derivarTurno(inicio);
       const payload =
         reservaModo === "periodo"
           ? {

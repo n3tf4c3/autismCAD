@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { derivarTurno } from "@autismcad/validators/atendimentos/atendimentos.schema";
 import {
   excluirAtendimentoAction,
   excluirDiaAtendimentosAction,
@@ -58,6 +59,12 @@ function hhmmForInput(value: unknown): string {
   return "";
 }
 
+function dataBr(value: unknown): string {
+  const parts = ymdForInput(value).split("-");
+  if (parts.length !== 3) return "-";
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
 function dayNamePtBr(dow: number): string {
   const names = ["Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"];
   return names[dow] ?? String(dow);
@@ -98,11 +105,14 @@ export function ConsultasClient(props: {
   const [editHoraInicio, setEditHoraInicio] = useState<string>("");
   const [editHoraFim, setEditHoraFim] = useState<string>("");
   const [editIsGrupo, setEditIsGrupo] = useState(false);
-  const [editTurno, setEditTurno] = useState<string>("Matutino");
   const [editPeriodoInicio, setEditPeriodoInicio] = useState<string>("");
   const [editPeriodoFim, setEditPeriodoFim] = useState<string>("");
   const [editPresenca, setEditPresenca] = useState<string>("Nao informado");
   const [editMotivo, setEditMotivo] = useState<string>("");
+
+  // Turno segue o horario de inicio (o servidor grava assim de qualquer forma);
+  // exibir como campo derivado evita a divergencia de um select esquecido.
+  const editTurno = derivarTurno(editHoraInicio);
 
   const [delOpen, setDelOpen] = useState(false);
   const [delItem, setDelItem] = useState<Atendimento | null>(null);
@@ -155,7 +165,6 @@ export function ConsultasClient(props: {
     setEditHoraInicio(hhmmForInput(a.horaInicio));
     setEditHoraFim(hhmmForInput(a.horaFim));
     setEditIsGrupo(Boolean(a.isGrupo));
-    setEditTurno(a.turno || "Matutino");
     setEditPeriodoInicio(ymdForInput(a.periodoInicio));
     setEditPeriodoFim(ymdForInput(a.periodoFim));
     setEditPresenca(a.presenca || "Nao informado");
@@ -202,7 +211,7 @@ export function ConsultasClient(props: {
         horaInicio: editHoraInicio,
         horaFim: editHoraFim,
         isGrupo: editIsGrupo,
-        turno: editTurno || "Matutino",
+        turno: editTurno,
         periodoInicio: editPeriodoInicio || null,
         periodoFim: editPeriodoFim || null,
         presenca: editPresenca || "Nao informado",
@@ -581,17 +590,13 @@ export function ConsultasClient(props: {
                   onChange={(e) => setEditHoraFim(e.target.value)}
                 />
               </label>
-              <label className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <span className="font-semibold text-gray-700">Turno</span>
-                <select
-                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={editTurno}
-                  onChange={(e) => setEditTurno(e.target.value)}
-                >
-                  <option value="Matutino">Matutino</option>
-                  <option value="Vespertino">Vespertino</option>
-                </select>
-              </label>
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600">
+                  {editTurno}
+                </p>
+                <span className="text-xs text-gray-500">Definido pelo horário de início.</span>
+              </div>
               <label className="inline-flex items-center gap-2 self-end pb-2 text-gray-700">
                 <input
                   type="checkbox"
@@ -601,24 +606,18 @@ export function ConsultasClient(props: {
                 />
                 <span>Sessão em grupo</span>
               </label>
-              <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Período - inicio</span>
-                <input
-                  type="date"
-                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={editPeriodoInicio}
-                  onChange={(e) => setEditPeriodoInicio(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col gap-2">
-                <span className="font-semibold text-gray-700">Período - fim</span>
-                <input
-                  type="date"
-                  className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
-                  value={editPeriodoFim}
-                  onChange={(e) => setEditPeriodoFim(e.target.value)}
-                />
-              </label>
+              {editPeriodoInicio || editPeriodoFim ? (
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <span className="font-semibold text-gray-700">Período do agendamento em lote</span>
+                  <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600">
+                    {dataBr(editPeriodoInicio)} até {dataBr(editPeriodoFim)}
+                  </p>
+                  <span className="text-xs text-gray-500">
+                    Somente leitura. As alterações acima valem apenas para este dia; os demais dias
+                    do período não são afetados.
+                  </span>
+                </div>
+              ) : null}
               <label className="flex flex-col gap-2">
                 <span className="font-semibold text-gray-700">Presença</span>
                 <select

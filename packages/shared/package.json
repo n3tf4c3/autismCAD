@@ -8,7 +8,8 @@
     "./normalize": "./src/normalize.ts",
     "./errors": "./src/errors.ts",
     "./plano-ensino": "./src/plano-ensino.ts",
-    "./policy": "./src/policy.ts"
+    "./policy": "./src/policy.ts",
+    "./pg-errors": "./src/pg-errors.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
