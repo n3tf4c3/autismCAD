@@ -63,7 +63,7 @@ const state = {
   requirePermissionUser: { id: 101, role: "profissional" } as SessionUser,
   assertPacienteAccessError: null as unknown,
   assertPacienteAccessProfissionalId: null as number | null,
-  hasConsultasEditPermissionResult: true,
+  isAdminAccessResult: true,
   listarAtendimentosPorUsuarioResult: [] as unknown[],
   salvarAtendimentoResult: 999,
   criarRecorrentesResult: {
@@ -88,7 +88,7 @@ function resetState() {
   state.requirePermissionUser = { id: 101, role: "profissional" };
   state.assertPacienteAccessError = null;
   state.assertPacienteAccessProfissionalId = null;
-  state.hasConsultasEditPermissionResult = true;
+  state.isAdminAccessResult = true;
   state.listarAtendimentosPorUsuarioResult = [];
   state.salvarAtendimentoResult = 999;
   state.criarRecorrentesResult = {
@@ -129,7 +129,7 @@ const deps: ConsultasActionsDeps = {
       profissionalId: state.assertPacienteAccessProfissionalId,
     };
   },
-  hasConsultasEditPermission: () => state.hasConsultasEditPermissionResult,
+  isAdminAccess: () => state.isAdminAccessResult,
   atendimentosQuerySchema: { parse: (input) => input },
   excluirDiaSchema: { parse: (input) => input as { pacienteId: number } },
   recorrenteSchema: { parse: (input) => input as { pacienteId: number } },
@@ -212,7 +212,7 @@ test("salvarAtendimentoAction valida acesso do paciente antes de salvar", async 
   const result = await actions.salvarAtendimentoAction(33, payload);
 
   assert.equal(result.ok, true);
-  assert.deepEqual(calls.requirePermission, [["consultas:edit", "consultas:presence"]]);
+  assert.deepEqual(calls.requirePermission, ["consultas:edit"]);
   assert.equal(calls.assertPacienteAccess.length, 1);
   assert.deepEqual(calls.assertPacienteAccess[0], {
     user: { id: 101, role: "profissional" },
@@ -411,8 +411,8 @@ test("salvarAtendimentoAction bloqueia profissional de reatribuir atendimento pa
   assert.equal(calls.salvarAtendimento.length, 0);
 });
 
-test("salvarAtendimentoAction preserva campos de agenda quando usuario tem apenas consultas:presence", async () => {
-  state.hasConsultasEditPermissionResult = false;
+test("salvarAtendimentoAction bloqueia edicao para usuario que nao e administrador", async () => {
+  state.isAdminAccessResult = false;
   state.getAtendimentoByIdResult = atendimentoExistente({
     id: 33,
     pacienteId: 17,
@@ -437,25 +437,13 @@ test("salvarAtendimentoAction preserva campos de agenda quando usuario tem apena
     observacoes: null,
   });
 
-  assert.equal(result.ok, true);
-  assert.equal(calls.salvarAtendimento.length, 1);
-  assert.deepEqual(calls.salvarAtendimento[0], {
-    input: {
-      pacienteId: 17,
-      profissionalId: 5,
-      data: "2026-04-06",
-      horaInicio: "08:00:00",
-      horaFim: "09:00:00",
-      isGrupo: false,
-      turno: "Matutino",
-      periodoInicio: null,
-      periodoFim: null,
-      presenca: "Ausente",
-      motivo: "Paciente doente",
-      observacoes: null,
-    },
-    id: 33,
-  });
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.equal(calls.getAtendimentoById.length, 0);
+  assert.equal(calls.salvarAtendimento.length, 0);
 });
 
 test("criarAtendimentoAction bloqueia profissional de criar atendimento para outro profissional", async () => {
