@@ -1,6 +1,12 @@
 "use server";
 
 import { requirePermission } from "@/server/auth/auth";
+import type { UserAccess } from "@/server/auth/access";
+import { ADMIN_ROLES } from "@/server/auth/permissions";
+import {
+  criarAtendimentoAction,
+  criarAtendimentosRecorrentesAction,
+} from "@/app/(protected)/consultas/consultas.actions";
 import {
   criarBloqueios,
   excluirBloqueio,
@@ -36,6 +42,33 @@ function actionErrorResult(error: unknown): ActionError {
   };
 }
 
+function assertAdminAccess(access?: UserAccess): void {
+  const role = access?.canonicalRole ?? access?.role;
+  if (!role || !ADMIN_ROLES.has(role)) {
+    throw new AppError("Acesso restrito a administradores", 403, "FORBIDDEN");
+  }
+}
+
+export async function criarAtendimentoNoCalendarioAction(input: unknown) {
+  try {
+    const { access } = await requirePermission("consultas:create");
+    assertAdminAccess(access);
+    return await criarAtendimentoAction(input);
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
+export async function criarAtendimentosRecorrentesNoCalendarioAction(input: unknown) {
+  try {
+    const { access } = await requirePermission("consultas:create");
+    assertAdminAccess(access);
+    return await criarAtendimentosRecorrentesAction(input);
+  } catch (error) {
+    return actionErrorResult(error);
+  }
+}
+
 export async function listarBloqueiosAction(
   input: unknown
 ): Promise<ActionResult<{ items: Awaited<ReturnType<typeof listarBloqueios>> }>> {
@@ -53,7 +86,8 @@ export async function criarBloqueiosAction(
   input: unknown
 ): Promise<ActionResult<{ criados: number }>> {
   try {
-    const { user } = await requirePermission("consultas:create");
+    const { user, access } = await requirePermission("consultas:create");
+    assertAdminAccess(access);
     const parsed = criarBloqueiosSchema.parse(input ?? {});
     const result = await criarBloqueios(parsed, Number(user.id));
     return { ok: true, data: result };
@@ -70,7 +104,8 @@ export async function excluirBloqueioAction(
     if (!Number.isFinite(parsedId) || parsedId <= 0) {
       throw new AppError("Bloqueio invalido", 400, "INVALID_INPUT");
     }
-    await requirePermission("consultas:cancel");
+    const { access } = await requirePermission("consultas:cancel");
+    assertAdminAccess(access);
     const result = await excluirBloqueio(parsedId);
     return { ok: true, data: result };
   } catch (error) {

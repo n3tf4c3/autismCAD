@@ -8,10 +8,7 @@ export default async function ConsultasPage() {
   const { user, access } = await requirePermission("consultas:view");
   const accessRole = access.canonicalRole ?? access.role;
   const isAdmin = accessRole ? ADMIN_ROLES.has(accessRole) : false;
-  const canEditAtendimento =
-    isAdmin ||
-    hasPermissionKey(access.permissions, "consultas:edit") ||
-    hasPermissionKey(access.permissions, "consultas:presence");
+  const canEditAtendimento = isAdmin;
   const canCreateAtendimento = isAdmin || hasPermissionKey(access.permissions, "consultas:create");
   const canDeleteAtendimento = isAdmin || hasPermissionKey(access.permissions, "consultas:cancel");
   const canEditRepasse = isAdmin || hasPermissionKey(access.permissions, "evolucoes:create");
