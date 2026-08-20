@@ -54,7 +54,7 @@ export function TopbarClient(props: { userName: string; userRole?: string | null
   const shell = useShell();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between bg-white px-4 shadow-sm md:px-8">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between bg-white px-4 shadow-sm md:px-8 print:hidden">
       <div className="flex items-center gap-3">
         <button
           type="button"

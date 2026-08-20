@@ -258,7 +258,7 @@ export function SidebarClient(props: {
 
   return (
     <>
-      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white md:flex">
+      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white md:flex print:hidden">
         <SidebarBgArt />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.14),transparent_42%)]" />
         <div className="relative z-10 flex flex-col items-center gap-4 px-6 py-8">
@@ -281,7 +281,7 @@ export function SidebarClient(props: {
         </div>
       </aside>
 
-      <div className="md:hidden">
+      <div className="md:hidden print:hidden">
         <div
           className={[
             "fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity",

@@ -67,21 +67,23 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
 
   return (
     <ShellProvider>
-      <div className="min-h-screen bg-[var(--cinza)] text-[var(--texto)]">
-        <div className="min-h-screen flex">
+      {/* print:* zera o chrome do app (sidebar, topbar, respiro) para que qualquer
+          tela protegida imprima so o conteudo. */}
+      <div className="min-h-screen bg-[var(--cinza)] text-[var(--texto)] print:min-h-0 print:bg-white">
+        <div className="min-h-screen flex print:block print:min-h-0">
           <SidebarClient
             isResponsavel={isResponsavel}
             isAdminGeral={isAdminGeral}
             nav={nav}
           />
 
-          <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+          <div className="flex min-w-0 flex-1 flex-col md:ml-64 print:ml-0 print:block">
             <TopbarClient
               userName={userName}
               userRole={session.user.role}
               initials={initials}
             />
-            <div className="relative z-10 p-4 md:p-8">{children}</div>
+            <div className="relative z-10 p-4 md:p-8 print:p-0">{children}</div>
           </div>
         </div>
       </div>

@@ -97,9 +97,31 @@ export function AssiduidadeClient(props: {
     }
   }
 
+  const profissionalSelecionado = profissionais.find(
+    (item) => String(item.id) === profissionalId
+  );
+
   return (
-    <main className="space-y-6">
-      <section className="rounded-xl bg-white p-6 shadow-sm">
+    <main className="space-y-6 print:space-y-3">
+      {/* Cabecalho que so existe no papel: a topbar do app fica print:hidden, entao
+          o documento impresso precisa carregar por si o que foi filtrado. */}
+      {report ? (
+        <header className="hidden print:block">
+          <h1 className="text-xl font-bold text-[var(--marrom)]">
+            Relatório de assiduidade e presença
+          </h1>
+          <p className="mt-1 text-sm text-gray-700">
+            Período: {fmtDate(report.periodo.from)} a {fmtDate(report.periodo.to)}
+          </p>
+          <p className="text-sm text-gray-700">
+            Paciente: {report.filtros.pacienteNome || "todos"} · Profissional:{" "}
+            {profissionalSelecionado?.nome || "todos"} · Presença:{" "}
+            {report.filtros.presenca || "todas"}
+          </p>
+        </header>
+      ) : null}
+
+      <section className="rounded-xl bg-white p-6 shadow-sm print:hidden">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="text-2xl">AS</div>
@@ -195,13 +217,22 @@ export function AssiduidadeClient(props: {
           >
             Limpar
           </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            disabled={!report}
+            className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+            title={report ? undefined : "Gere o relatório antes de imprimir"}
+          >
+            Imprimir / Salvar PDF
+          </button>
         </div>
 
         {msg ? <p className="mt-3 text-sm text-red-600">{msg}</p> : null}
         {loading ? <p className="mt-3 text-sm text-gray-600">Carregando...</p> : null}
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <section className="relatorio-print-resumo grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Atendimentos no período</p>
           <p className="text-2xl font-bold text-[var(--marrom)]">{report?.resumo.total ?? 0}</p>
@@ -233,7 +264,7 @@ export function AssiduidadeClient(props: {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="relatorio-print-tabela overflow-hidden rounded-xl bg-white shadow-sm">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
             <h3 className="text-lg font-bold text-[var(--marrom)]">Assiduidade por paciente</h3>
@@ -286,13 +317,67 @@ export function AssiduidadeClient(props: {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-6 shadow-sm">
+      <section className="rounded-xl bg-white p-6 shadow-sm print:hidden">
         <h4 className="text-base font-semibold text-[var(--marrom)]">Contexto clinico</h4>
         <p className="mt-2 text-sm text-gray-600">
           Assiduidade consistente e um marcador importante. Use este painel para identificar quedas
           de presença, investigar motivos registrados e agir junto à família.
         </p>
       </section>
+
+      <style jsx global>{`
+        @page {
+          /* A tabela tem 8 colunas; retrato espremeria os nomes de profissional. */
+          size: A4 landscape;
+          margin: 10mm;
+        }
+
+        @media print {
+          html,
+          body {
+            background: #ffffff !important;
+          }
+
+          /* Numeros do resumo e taxa perdem o sentido em cinza. */
+          .relatorio-print-resumo,
+          .relatorio-print-tabela {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .relatorio-print-resumo > div,
+          .relatorio-print-tabela {
+            border: 1px solid #e5e7eb;
+            box-shadow: none !important;
+            break-inside: avoid;
+          }
+
+          .relatorio-print-resumo {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+          }
+
+          .relatorio-print-tabela .overflow-x-auto {
+            overflow: visible !important;
+          }
+
+          /* Cabecalho da tabela se repete a cada pagina do recorte. */
+          .relatorio-print-tabela thead {
+            display: table-header-group;
+          }
+
+          .relatorio-print-tabela tr {
+            break-inside: avoid;
+          }
+
+          .relatorio-print-tabela th,
+          .relatorio-print-tabela td {
+            padding: 4px 8px !important;
+            font-size: 10px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
