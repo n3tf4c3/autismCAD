@@ -6,7 +6,7 @@ memoria duravel de **qual numero ja foi usado** e **qual o status de cada achado
 
 - **Fonte de verdade da numeracao**: o maior numero entre este ledger e os commits
   (`git log --grep=achado -i`). Proximo achado = esse maximo + 1. Nunca reiniciar em 1.
-- **Proximo numero livre: 135.**
+- **Proximo numero livre: 147.**
 - Mantido pelas skills `auditoria-tecnica` (cria achados novos como ABERTO) e
   `resolver-auditoria` (atualiza o status apos a correcao). Toda mensagem de commit
   cita o numero do achado.
@@ -64,7 +64,7 @@ Revisao 2026-08-03 (analise de pendencias, sem relatorio formal em `relatorios/`
 
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
-| 129 | `npm audit` regrediu de 0 para 5 vulns (next-auth critical, next/postcss/sharp/brace-expansion high) por CVEs publicados apos 2026-07-08 | Alta | RESOLVIDO |
+| 129 | `npm audit` regrediu de 0 para vulnerabilidades critical/high por CVEs publicados apos a resolucao anterior | Alta | RESOLVIDO — reincidencia de 2026-08-23 fechada com Expo 57/RN 0.86.2, NanoID corrigido, 0 high/critical e gate de audit no CI; 10 moderadas do toolchain Expo permanecem sem correcao compativel |
 | 130 | Politica de privacidade publica com `TODO(clinica)` visivel ao titular, operador Neon ausente da lista e transferencia internacional de dado sensivel nao declarada (LGPD art. 33) | Alta | RESOLVIDO |
 
 Verificacao de seguranca 2026-08-04 (`relatorios/seguranca-2026-08-04-022911.md`),
@@ -76,6 +76,24 @@ commit do veredito `a841ce9`. Gate REPROVADO: 20 PASS, 3 PARCIAL, 1 FALHA, 7 N-A
 | 132 | CSP ausente (quesito D1); demais headers e HSTS confirmados na resposta de producao | Media | ABERTO (aceito) — CSP implantada em enforce; `'unsafe-inline'` em script-src/style-src aceito porque nonce exigiria middleware em todas as rotas, tornando dinamicas as paginas hoje estaticas (landing, /login, /privacidade). D1 segue PARCIAL por esse criterio |
 | 133 | Fail-open do rate limit de login sem politica de degradacao escrita por rota nem controle compensatorio independente | Media | DOCUMENTADO — politica por operacao em `docs/seguranca-decisoes-auditoria.md`: login degrada, demais negam; o store e o proprio Postgres da app, entao nao ha caminho em que o contador caia com o login de pe |
 | 134 | Lookup de role usa `ilike` com input nao escapado (`role` = `%` casa qualquer slug e o `limit(1)` sem `order by` escolhe arbitrario); exige admin-geral, entao e integridade e nao escalada | Baixa | RESOLVIDO |
+
+Auditoria 2026-08-23 (relatorio externo
+`C:\Codes\relatorios\autismcad\auditoria-2026-08-23-082111.md`).
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 135 | Seed troca senha de admin existente sem incrementar `tokenVersion` | Media | ABERTO |
+| 136 | Seed privilegiado aceita banco remoto sem confirmacao explicita | Media | ABERTO |
+| 137 | Limite de 20 MB e aplicado somente depois do upload ao R2 | Media | ABERTO |
+| 138 | Primitivos mobile omitem semantica essencial de acessibilidade | Media | ABERTO |
+| 139 | `API_V1_CORS_ORIGIN` esta fora do contrato central de configuracao | Baixa | ABERTO |
+| 140 | Filtro recorrente de pacientes nao excluidos nao tem indice parcial dedicado | Baixa (potencial) | ABERTO |
+| 141 | Runner/actions, Node e EAS CLI permanecem mutaveis ou abertos | Baixa | ABERTO |
+| 142 | Texto branco sobre cores de marca falha contraste WCAG AA | Media | ABERTO |
+| 143 | Campos de evolucao e dialogos nao completam nome/foco/teclado acessiveis | Media | ABERTO |
+| 144 | Engajamento e fechado na UI, mas backend aceita texto livre e relatorio ignora valores desconhecidos | Media (potencial) | ABERTO |
+| 145 | Expo Doctor aponta drift, duplicidade nativa e regressao de memoria do Hermes | Media (potencial) | RESOLVIDO — Expo 57.0.15/RN 0.86.2, dependencias deduplicadas, config obsoleta removida, `expo install --check` e Doctor 21/21 verdes |
+| 146 | Preview sem override explicito herda a API de producao | Media (potencial) | RESOLVIDO — perfil EAS usa ambiente preview e app config falha fechado sem URL ou quando ela coincide com producao; 4 testes e bundle Android validam o isolamento |
 
 ## Historico resolvido (achados 1-101)
 
@@ -113,7 +131,8 @@ grupo; os relatorios originais nao sao versionados. Status RESOLVIDO salvo indic
 | 76, 86, 87, 88, 100, 101 | `7ca2d38` | constraints de banco e validacao real de data/horario | RESOLVIDO |
 | 77 | `20b9ee3` | mobile: dia padrao usa "hoje" da clinica | RESOLVIDO |
 | 79 | `fb26c6d` | contrato compartilhado da API v1 web<->mobile | RESOLVIDO |
-| 80, 99 | `ac071c8` | aceitos em 2026-06-16; RESOLVIDOS em 2026-07-08 (80: store de refresh tokens com rotacao/revogacao; 99: npm audit zerado via overrides, junto com o 119) | RESOLVIDO |
+| 80 | `ac071c8` | store de refresh tokens com rotacao/revogacao | REABERTO (PARCIAL) — claim concorrente e atomico, mas claim do token antigo e INSERT do novo JTI ainda nao formam uma transacao unica |
+| 99 | `ac071c8` | npm audit zerado via overrides, junto com o 119 | RESOLVIDO |
 | 81 | `ac071c8` | decisao de seguranca aceita (CORS coringa so fora de producao; documentada) | ABERTO (aceito) |
 | 84, 97 | `301889d` | mobile: guarda central de rotas autenticadas | RESOLVIDO |
 | 93, 94 | `cf7cdf8` | web: UI de pacientes/profissionais por permissao efetiva | RESOLVIDO |

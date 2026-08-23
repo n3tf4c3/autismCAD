@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "scheme": "autismcad",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "icon": "./store-assets/icon/icon-1024.png",
     "android": {
       "package": "com.autismcad.app",
@@ -21,7 +20,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "extra": {
       "apiBaseUrl": "https://www.girassois.com.br",
