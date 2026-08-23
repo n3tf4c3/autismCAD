@@ -29,6 +29,16 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Dependency advisories
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Mobile compatibility
+        env:
+          EXPO_NO_DOTENV: "1"
+        run: |
+          npm run check:dependencies -w @autismcad/mobile
+          npm run doctor -w @autismcad/mobile
+
       - name: Lint
         run: npm run lint
 
@@ -41,6 +51,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Tests
+        run: npm run test
 
       - name: Drizzle Check
         # drizzle-kit check e offline (compara snapshots, nao conecta). Como o achado 107
