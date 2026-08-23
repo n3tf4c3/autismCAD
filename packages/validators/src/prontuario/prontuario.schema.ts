@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { isCalendarDate } from "../common/datetime";
+import {
+  engajamentoValueSchema,
+  normalizeEngajamento,
+} from "./engajamento";
 
 export const DOC_TYPES = [
   "ANAMNESE",
@@ -91,6 +95,44 @@ const evolucaoItemSchema = z
     }
   });
 
+const evolucaoItemV2Schema = z
+  .object({
+    ensino: evolucaoTextoSchema,
+    habilidade: evolucaoTextoSchema,
+    opcao: engajamentoValueSchema.optional().nullable(),
+    desempenho: evolucaoTextoSchema,
+    tipoAjuda: evolucaoTextoSchema,
+    tentativas: z.union([z.number(), z.string()]).optional().nullable(),
+    acertos: z.union([z.number(), z.string()]).optional().nullable(),
+    reforcador: evolucaoTextoSchema,
+  })
+  .strict()
+  .superRefine((item, ctx) => {
+    const tentativas = parseContagem(item.tentativas);
+    const acertos = parseContagem(item.acertos);
+    if (tentativas != null && (!Number.isInteger(tentativas) || tentativas < 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["tentativas"],
+        message: "Tentativas deve ser um inteiro maior ou igual a 0",
+      });
+    }
+    if (acertos != null && (!Number.isInteger(acertos) || acertos < 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acertos"],
+        message: "Acertos deve ser um inteiro maior ou igual a 0",
+      });
+    }
+    if (tentativas != null && acertos != null && acertos > tentativas) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acertos"],
+        message: "Acertos nao pode exceder tentativas",
+      });
+    }
+  });
+
 const comportamentoPayloadSchema = z
   .object({
     resultado: evolucaoTextoSchema,
@@ -121,6 +163,61 @@ export const evolucaoPayloadSchema = z
   })
   .passthrough();
 
+export const EVOLUCAO_PAYLOAD_SCHEMA_VERSION = 2 as const;
+
+// Achado 144: contrato de novas gravacoes. A versao 2 aceita apenas as chaves
+// canonicas do item e limita engajamento a sim/nao; o schema acima permanece como
+// leitor compativel para payloads historicos sem versao.
+export const evolucaoPayloadV2Schema = z
+  .object({
+    schemaVersion: z.literal(EVOLUCAO_PAYLOAD_SCHEMA_VERSION),
+    titulo: evolucaoTextoSchema,
+    conduta: evolucaoTextoSchema,
+    descricao: evolucaoTextoSchema,
+    metas: z.array(z.string().trim()).optional(),
+    itensDesempenho: z.array(evolucaoItemV2Schema).optional(),
+    itens: z.never().optional(),
+    comportamentos: comportamentoPayloadSchema.optional().nullable(),
+    comportamento: comportamentoPayloadSchema.optional().nullable(),
+  })
+  .passthrough();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function invalidEngajamentoCounts(payload: unknown): Map<string, number> {
+  if (!isRecord(payload)) return new Map();
+  const items = [
+    ...(Array.isArray(payload.itensDesempenho) ? payload.itensDesempenho : []),
+    ...(Array.isArray(payload.itens) ? payload.itens : []),
+  ];
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (!isRecord(item)) continue;
+    const raw = item.opcao ?? item.meta;
+    if (typeof raw !== "string" || !raw.trim() || normalizeEngajamento(raw)) continue;
+    const value = raw.trim();
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return counts;
+}
+
+// Updates de registros legados podem preservar valores antigos, mas nao introduzir
+// novos textos livres. Um payload v2 nunca pode sofrer downgrade para o contrato legado.
+export function isEvolucaoPayloadUpdateAllowed(current: unknown, next: unknown): boolean {
+  if (evolucaoPayloadV2Schema.safeParse(next).success) return true;
+  if (!isRecord(next) || Object.hasOwn(next, "schemaVersion")) return false;
+  if (isRecord(current) && Object.hasOwn(current, "schemaVersion")) return false;
+
+  const currentInvalid = invalidEngajamentoCounts(current);
+  const nextInvalid = invalidEngajamentoCounts(next);
+  for (const [value, count] of nextInvalid) {
+    if (count > (currentInvalid.get(value) ?? 0)) return false;
+  }
+  return true;
+}
+
 export const criarEvolucaoSchema = z.object({
   // Achado 109: quando informada, a data deve ser de calendario real (ou vazio = usa hoje).
   data: z
@@ -130,10 +227,14 @@ export const criarEvolucaoSchema = z.object({
     .optional(),
   atendimentoId: z.coerce.number().int().positive().optional().nullable(),
   profissionalId: evolucaoProfissionalIdSchema,
-  payload: evolucaoPayloadSchema.optional().default({}),
+  payload: evolucaoPayloadV2Schema.optional().default({
+    schemaVersion: EVOLUCAO_PAYLOAD_SCHEMA_VERSION,
+  }),
 });
 
 export type CriarEvolucaoInput = z.infer<typeof criarEvolucaoSchema>;
 
-export const atualizarEvolucaoSchema = criarEvolucaoSchema.partial();
+export const atualizarEvolucaoSchema = criarEvolucaoSchema.partial().extend({
+  payload: evolucaoPayloadSchema.optional(),
+});
 export type AtualizarEvolucaoInput = z.infer<typeof atualizarEvolucaoSchema>;

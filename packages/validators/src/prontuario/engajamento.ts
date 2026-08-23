@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // Engajamento das metas da evolucao: so admite Sim / Nao. Fica aqui para web,
 // mobile e os relatorios usarem a mesma lista e a mesma normalizacao.
 //
@@ -6,7 +8,9 @@
 // anteriores ao rename continuam com esse conteudo; `normalizeEngajamento`
 // devolve null para eles, e cabe a cada tela decidir o que fazer.
 
-export type EngajamentoValue = "sim" | "nao";
+export const ENGAJAMENTO_VALUES = ["sim", "nao"] as const;
+export const engajamentoValueSchema = z.enum(ENGAJAMENTO_VALUES);
+export type EngajamentoValue = z.infer<typeof engajamentoValueSchema>;
 
 export const ENGAJAMENTO_OPTIONS: ReadonlyArray<{ value: EngajamentoValue; label: string }> = [
   { value: "sim", label: "Sim" },

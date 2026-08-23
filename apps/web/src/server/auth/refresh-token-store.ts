@@ -2,17 +2,21 @@ import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { apiRefreshTokens } from "@autismcad/db/schema";
+import type { DbExecutor } from "@/server/db/transaction";
 
 // Achado 80: store dos refresh tokens mobile (tabela api_refresh_tokens). Guarda apenas
 // o jti — o JWT continua assinado, entao vazamento do banco nao permite forjar token;
 // o store so decide se um token emitido ainda vale (rotacao no refresh, revogacao no logout).
 
-export async function registerRefreshToken(params: {
-  userId: number;
-  jti: string;
-  expiresAt: Date;
-}): Promise<void> {
-  await db.insert(apiRefreshTokens).values({
+export async function registerRefreshToken(
+  params: {
+    userId: number;
+    jti: string;
+    expiresAt: Date;
+  },
+  executor: DbExecutor = db
+): Promise<void> {
+  await executor.insert(apiRefreshTokens).values({
     userId: params.userId,
     jti: params.jti,
     expiresAt: params.expiresAt,
@@ -23,11 +27,14 @@ export async function registerRefreshToken(params: {
 // refreshes concorrentes com o mesmo token nao conseguem ambos rotacionar (o segundo
 // recebe false e o cliente refaz login). Retorna false para jti desconhecido (inclui
 // tokens legados sem registro), ja revogado ou expirado.
-export async function claimRefreshToken(params: {
-  userId: number;
-  jti: string;
-}): Promise<boolean> {
-  const rows = await db
+export async function claimRefreshToken(
+  params: {
+    userId: number;
+    jti: string;
+  },
+  executor: DbExecutor = db
+): Promise<boolean> {
+  const rows = await executor
     .update(apiRefreshTokens)
     .set({ revokedAt: sql`now()` })
     .where(

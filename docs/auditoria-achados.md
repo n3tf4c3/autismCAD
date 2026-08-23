@@ -91,7 +91,7 @@ Auditoria 2026-08-23 (relatorio externo
 | 141 | Runner/actions, Node e EAS CLI permanecem mutaveis ou abertos | Baixa | ABERTO |
 | 142 | Texto branco sobre cores de marca falha contraste WCAG AA | Media | ABERTO |
 | 143 | Campos de evolucao e dialogos nao completam nome/foco/teclado acessiveis | Media | ABERTO |
-| 144 | Engajamento e fechado na UI, mas backend aceita texto livre e relatorio ignora valores desconhecidos | Media (potencial) | ABERTO |
+| 144 | Engajamento e fechado na UI, mas backend aceita texto livre e relatorio ignora valores desconhecidos | Media (potencial) | RESOLVIDO — payload v2 exige `sim|nao` nas novas gravacoes web/API/mobile; updates legados so preservam valores existentes e o relatorio exibe a contagem ignorada |
 | 145 | Expo Doctor aponta drift, duplicidade nativa e regressao de memoria do Hermes | Media (potencial) | RESOLVIDO — Expo 57.0.15/RN 0.86.2, dependencias deduplicadas, config obsoleta removida, `expo install --check` e Doctor 21/21 verdes |
 | 146 | Preview sem override explicito herda a API de producao | Media (potencial) | RESOLVIDO — perfil EAS usa ambiente preview e app config falha fechado sem URL ou quando ela coincide com producao; 4 testes e bundle Android validam o isolamento |
 
@@ -131,7 +131,7 @@ grupo; os relatorios originais nao sao versionados. Status RESOLVIDO salvo indic
 | 76, 86, 87, 88, 100, 101 | `7ca2d38` | constraints de banco e validacao real de data/horario | RESOLVIDO |
 | 77 | `20b9ee3` | mobile: dia padrao usa "hoje" da clinica | RESOLVIDO |
 | 79 | `fb26c6d` | contrato compartilhado da API v1 web<->mobile | RESOLVIDO |
-| 80 | `ac071c8` | store de refresh tokens com rotacao/revogacao | REABERTO (PARCIAL) — claim concorrente e atomico, mas claim do token antigo e INSERT do novo JTI ainda nao formam uma transacao unica |
+| 80 | `ac071c8` | store de refresh tokens com rotacao/revogacao | RESOLVIDO — claim + INSERT do novo JTI usam transacao obrigatoria; regressao comprova rollback do claim quando o INSERT falha e a politica pos-commit esta documentada |
 | 99 | `ac071c8` | npm audit zerado via overrides, junto com o 119 | RESOLVIDO |
 | 81 | `ac071c8` | decisao de seguranca aceita (CORS coringa so fora de producao; documentada) | ABERTO (aceito) |
 | 84, 97 | `301889d` | mobile: guarda central de rotas autenticadas | RESOLVIDO |

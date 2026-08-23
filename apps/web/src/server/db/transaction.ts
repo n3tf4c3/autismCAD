@@ -15,6 +15,8 @@ type DbTransactionOptions = {
   operation?: string;
 };
 
+export type DbExecutor = typeof db;
+
 const warnedFallbackOperations = new Set<string>();
 
 export async function runDbTransaction<T>(

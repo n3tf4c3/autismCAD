@@ -312,7 +312,8 @@ export function EvolucaoFormClient(props: {
       .map((r) => {
         const ensino = r.ensino.trim();
         const habilidade = r.habilidade.trim();
-        const opcao = r.opcao.trim();
+        const opcaoRaw = r.opcao.trim();
+        const opcao = normalizeEngajamento(opcaoRaw) ?? opcaoRaw;
         const reforcador = r.reforcador.trim();
         const tent = toIntOrNull(r.tentativas);
         const acertos = toIntOrNull(r.acertos);
@@ -379,6 +380,17 @@ export function EvolucaoFormClient(props: {
     merged.descricao = descricao.trim();
     merged.metas = metas;
     merged.itensDesempenho = itensDesempenho;
+    delete merged.itens;
+
+    const hasLegacyEngajamento = itensDesempenho.some((item) => {
+      const value = pickString(item.opcao).trim();
+      return Boolean(value && !normalizeEngajamento(value));
+    });
+    if (hasLegacyEngajamento) {
+      delete merged.schemaVersion;
+    } else {
+      merged.schemaVersion = 2;
+    }
 
     if (comportamentos) merged.comportamentos = comportamentos;
     else delete merged.comportamentos;
@@ -1093,6 +1105,4 @@ export function EvolucaoFormClient(props: {
     </section>
   );
 }
-
-
 

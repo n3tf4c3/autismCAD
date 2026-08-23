@@ -21,6 +21,7 @@ import {
   CriarEvolucaoInput,
   DOC_STATUS,
   DOC_TYPES,
+  isEvolucaoPayloadUpdateAllowed,
   SalvarDocumentoInput,
 } from "@autismcad/validators/prontuario/prontuario.schema";
 import { getPlanoEnsinoTitulo, sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
@@ -550,7 +551,18 @@ export async function atualizarEvolucao(
   if (!current) throw new AppError("Evolucao nao encontrada", 404, "NOT_FOUND");
 
   const dataVal = toIsoDate(input.data ?? current.data ?? ymdNowInClinicTz());
-  const payload = sanitizeEvolucaoPayload(input.payload ?? current.payload ?? {}).payload;
+  const nextPayload = input.payload ?? current.payload ?? {};
+  if (
+    input.payload !== undefined &&
+    !isEvolucaoPayloadUpdateAllowed(current.payload, nextPayload)
+  ) {
+    throw new AppError(
+      "Engajamento invalido: use somente sim ou nao; valores legados podem apenas ser preservados",
+      400,
+      "INVALID_INPUT"
+    );
+  }
+  const payload = sanitizeEvolucaoPayload(nextPayload).payload;
 
   const atendimentoRaw = input.atendimentoId ?? null;
   const atendimentoId = atendimentoRaw
