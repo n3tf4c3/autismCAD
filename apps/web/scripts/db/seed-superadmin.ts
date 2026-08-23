@@ -10,6 +10,10 @@ import {
   roles,
   users,
 } from "@autismcad/db/schema";
+import {
+  assertSeedWriteConfirmed,
+  buildExistingSuperAdminUpdate,
+} from "./_seed-superadmin";
 
 function readEnv(key: string): string | undefined {
   const value = process.env[key];
@@ -60,6 +64,10 @@ async function main() {
   if (!databaseUrl) {
     throw new Error("DATABASE_URL nao configurado.");
   }
+
+  // Achado 136: exibe somente host/banco e exige confirmacao antes de qualquer
+  // escrita quando o alvo nao e local.
+  assertSeedWriteConfirmed(databaseUrl);
 
   const email = readEnv("SEED_SUPERADMIN_EMAIL") ?? readEnv("ADMIN_SEED_EMAIL");
   const password =
@@ -183,13 +191,7 @@ async function main() {
   if (existing) {
     await db
       .update(users)
-      .set({
-        nome,
-        senhaHash,
-        role: "admin-geral",
-        ativo: true,
-        updatedAt: new Date(),
-      })
+      .set(buildExistingSuperAdminUpdate({ nome, senhaHash }))
       .where(eq(users.id, existing.id));
     console.log(`Super admin atualizado: ${email}`);
     console.log(`RBAC seed aplicado com ${allPermissions.length} permissoes.`);
