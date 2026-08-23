@@ -1,5 +1,6 @@
 import { requirePermission } from "@/server/auth/auth";
-import { hasPermission } from "@/server/auth/access";
+import { ADMIN_ROLES } from "@/server/auth/permissions";
+import { listarPacientesPorUsuario } from "@/server/modules/pacientes/pacientes.service";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { CalendarioClient } from "@/app/(protected)/calendario/calendario.client";
 
@@ -14,20 +15,9 @@ function normalizeDateParam(value?: string): string | undefined {
 export default async function CalendarioPage(props: {
   searchParams: Promise<{ profissionalId?: string; data?: string }>;
 }) {
-  const { access } = await requirePermission("consultas:view");
-
-  // A agenda e somente leitura para atendimento: marcar consulta acontece na tela
-  // do paciente. Aqui sobra o bloqueio de horario, que usa a mesma permissao.
-  let canBloquearHorario = false;
-  try {
-    await requirePermission("consultas:create");
-    canBloquearHorario = true;
-  } catch {
-    canBloquearHorario = false;
-  }
-
-  // Desbloquear remove bloqueio (consultas:cancel), permissao distinta de criar (achado 43).
-  const canDeleteBloqueio = hasPermission(access, "consultas:cancel");
+  const { user, access } = await requirePermission("consultas:view");
+  const accessRole = access.canonicalRole ?? access.role;
+  const isAdmin = accessRole ? ADMIN_ROLES.has(accessRole) : false;
 
   let profissionais: Array<{ id: number; nome: string; especialidade?: string | null }> = [];
   try {
@@ -40,6 +30,17 @@ export default async function CalendarioPage(props: {
     }));
   } catch {
     profissionais = [];
+  }
+
+  let pacientes: Array<{ id: number; nome: string }> = [];
+  if (isAdmin) {
+    try {
+      await requirePermission("pacientes:view");
+      const pacientesRows = await listarPacientesPorUsuario(user.id, {});
+      pacientes = pacientesRows.map((item) => ({ id: item.id, nome: item.nome }));
+    } catch {
+      pacientes = [];
+    }
   }
 
   const searchParams = await props.searchParams;
@@ -57,10 +58,11 @@ export default async function CalendarioPage(props: {
   return (
     <CalendarioClient
       initialProfissionais={profissionais}
+      initialPacientes={pacientes}
       initialProfissionalId={initialProfissionalId || undefined}
       initialData={normalizeDateParam(searchParams.data)}
-      canBloquearHorario={canBloquearHorario}
-      canDeleteBloqueio={canDeleteBloqueio}
+      canCreateAtendimento={isAdmin}
+      canDeleteBloqueio={isAdmin}
     />
   );
 }
