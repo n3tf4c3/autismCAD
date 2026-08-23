@@ -82,8 +82,8 @@ Auditoria 2026-08-23 (relatorio externo
 
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
-| 135 | Seed troca senha de admin existente sem incrementar `tokenVersion` | Media | ABERTO |
-| 136 | Seed privilegiado aceita banco remoto sem confirmacao explicita | Media | ABERTO |
+| 135 | Seed troca senha de admin existente sem incrementar `tokenVersion` | Media | RESOLVIDO — update do superadmin incrementa a versao na mesma escrita e revoga sessoes anteriores; regressao valida o SQL gerado |
+| 136 | Seed privilegiado aceita banco remoto sem confirmacao explicita | Media | RESOLVIDO — alvo e mascarado e banco remoto exige `--yes-prod` ou `SEED_CONFIRM=1` antes de conexao/escrita; alias raiz encaminha a flag |
 | 137 | Limite de 20 MB e aplicado somente depois do upload ao R2 | Media | ABERTO |
 | 138 | Primitivos mobile omitem semantica essencial de acessibilidade | Media | ABERTO |
 | 139 | `API_V1_CORS_ORIGIN` esta fora do contrato central de configuracao | Baixa | ABERTO |
