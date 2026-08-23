@@ -580,8 +580,11 @@ export function EvolucaoFormClient(props: {
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[var(--marrom)]">Data</label>
+            <label htmlFor="evolucao-data" className="text-sm font-semibold text-[var(--marrom)]">
+              Data
+            </label>
             <input
+              id="evolucao-data"
               type="date"
               value={data}
               onChange={(e) => setData(e.target.value)}
@@ -589,8 +592,11 @@ export function EvolucaoFormClient(props: {
             />
           </div>
           <div className="flex flex-col gap-1 md:col-span-2">
-            <label className="text-sm font-semibold text-[var(--marrom)]">Atendimento</label>
+            <label htmlFor="evolucao-atendimento" className="text-sm font-semibold text-[var(--marrom)]">
+              Atendimento
+            </label>
             <select
+              id="evolucao-atendimento"
               value={atendimentoId}
               onChange={(e) => setAtendimentoId(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2"
@@ -616,9 +622,12 @@ export function EvolucaoFormClient(props: {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[var(--marrom)]">Título da sessão</label>
+            <label htmlFor="evolucao-titulo" className="text-sm font-semibold text-[var(--marrom)]">
+              Título da sessão
+            </label>
             <div className="flex flex-col gap-2">
               <select
+                id="evolucao-titulo"
                 value={showTituloCustom ? "__outro__" : tituloIsKnown ? titulo.trim() : ""}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -642,6 +651,7 @@ export function EvolucaoFormClient(props: {
               </select>
               {showTituloCustom ? (
                 <input
+                  aria-label="Título da sessão personalizado"
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
@@ -651,8 +661,11 @@ export function EvolucaoFormClient(props: {
             </div>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[var(--marrom)]">Conduta / Plano imediato</label>
+            <label htmlFor="evolucao-conduta" className="text-sm font-semibold text-[var(--marrom)]">
+              Conduta / Plano imediato
+            </label>
             <input
+              id="evolucao-conduta"
               value={conduta}
               onChange={(e) => setConduta(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
@@ -676,8 +689,11 @@ export function EvolucaoFormClient(props: {
               </div>
             ) : (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--marrom)]">Profissional (quando sem atendimento)</label>
+                <label htmlFor="evolucao-profissional" className="text-sm font-semibold text-[var(--marrom)]">
+                  Profissional (quando sem atendimento)
+                </label>
                 <select
+                  id="evolucao-profissional"
                   value={profissionalId}
                   onChange={(e) => setProfissionalId(e.target.value)}
                   disabled={busy}
@@ -700,8 +716,11 @@ export function EvolucaoFormClient(props: {
         )}
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-[var(--marrom)]">Descrição clínica</label>
+          <label htmlFor="evolucao-descricao" className="text-sm font-semibold text-[var(--marrom)]">
+            Descrição clínica
+          </label>
           <textarea
+            id="evolucao-descricao"
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             rows={4}
@@ -741,8 +760,11 @@ export function EvolucaoFormClient(props: {
                 className="grid grid-cols-1 items-start gap-3 rounded-xl border border-amber-100 bg-white p-3 shadow-sm md:grid-cols-12 md:items-center md:gap-2"
               >
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <p className="text-xs font-semibold text-gray-600">Objetivo</p>
+                  <label htmlFor={`meta-${row.id}-objetivo`} className="text-xs font-semibold text-gray-600">
+                    Objetivo
+                  </label>
                   <input
+                    id={`meta-${row.id}-objetivo`}
                     value={row.ensino}
                     onChange={(e) => updateMetaRow(row.id, { ensino: e.target.value })}
                     className="rounded-lg border px-3 py-2 text-sm"
@@ -750,8 +772,11 @@ export function EvolucaoFormClient(props: {
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <p className="text-xs font-semibold text-gray-600">Habilidade</p>
+                  <label htmlFor={`meta-${row.id}-habilidade`} className="text-xs font-semibold text-gray-600">
+                    Habilidade
+                  </label>
                   <input
+                    id={`meta-${row.id}-habilidade`}
                     value={row.habilidade}
                     onChange={(e) => updateMetaRow(row.id, { habilidade: e.target.value })}
                     className="rounded-lg border px-3 py-2 text-sm"
@@ -759,8 +784,11 @@ export function EvolucaoFormClient(props: {
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <p className="text-xs font-semibold text-gray-600">Engajamento</p>
+                  <label htmlFor={`meta-${row.id}-engajamento`} className="text-xs font-semibold text-gray-600">
+                    Engajamento
+                  </label>
                   <select
+                    id={`meta-${row.id}-engajamento`}
                     value={normalizeEngajamento(row.opcao) ?? row.opcao}
                     onChange={(e) => updateMetaRow(row.id, { opcao: e.target.value })}
                     className="rounded-lg border bg-white px-3 py-2 text-sm"
@@ -779,8 +807,11 @@ export function EvolucaoFormClient(props: {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <p className="text-xs font-semibold text-gray-600">Desempenho</p>
+                  <label htmlFor={`meta-${row.id}-desempenho`} className="text-xs font-semibold text-gray-600">
+                    Desempenho
+                  </label>
                   <select
+                    id={`meta-${row.id}-desempenho`}
                     value={row.desempenho}
                     onChange={(e) => updateMetaRow(row.id, { desempenho: e.target.value as DesempenhoChoice })}
                     className="rounded-lg border bg-white px-3 py-2 text-sm"
@@ -794,8 +825,11 @@ export function EvolucaoFormClient(props: {
                 </div>
 
                 <div className="flex flex-col gap-1 md:col-span-3 md:col-start-1">
-                  <p className="text-xs font-semibold text-gray-600">Tipo de ajuda</p>
+                  <label htmlFor={`meta-${row.id}-ajuda`} className="text-xs font-semibold text-gray-600">
+                    Tipo de ajuda
+                  </label>
                   <select
+                    id={`meta-${row.id}-ajuda`}
                     value={row.tipoAjuda}
                     onChange={(e) => updateMetaRow(row.id, { tipoAjuda: e.target.value as AjudaChoice })}
                     className="rounded-lg border bg-white px-3 py-2 text-sm"
@@ -809,8 +843,11 @@ export function EvolucaoFormClient(props: {
                 </div>
 
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <p className="text-xs font-semibold text-gray-600">Tentativas</p>
+                  <label htmlFor={`meta-${row.id}-tentativas`} className="text-xs font-semibold text-gray-600">
+                    Tentativas
+                  </label>
                   <input
+                    id={`meta-${row.id}-tentativas`}
                     type="number"
                     min={0}
                     value={row.tentativas}
@@ -820,8 +857,11 @@ export function EvolucaoFormClient(props: {
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <p className="text-xs font-semibold text-gray-600">Acertos</p>
+                  <label htmlFor={`meta-${row.id}-acertos`} className="text-xs font-semibold text-gray-600">
+                    Acertos
+                  </label>
                   <input
+                    id={`meta-${row.id}-acertos`}
                     type="number"
                     min={0}
                     value={row.acertos}
@@ -831,8 +871,11 @@ export function EvolucaoFormClient(props: {
                   />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
-                  <p className="text-xs font-semibold text-gray-600">Reforcador</p>
+                  <label htmlFor={`meta-${row.id}-reforcador`} className="text-xs font-semibold text-gray-600">
+                    Reforcador
+                  </label>
                   <input
+                    id={`meta-${row.id}-reforcador`}
                     value={row.reforcador}
                     onChange={(e) => updateMetaRow(row.id, { reforcador: e.target.value })}
                     className="w-full rounded-lg border px-3 py-2 text-sm"
@@ -900,6 +943,7 @@ export function EvolucaoFormClient(props: {
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap gap-2">
                   <select
+                    aria-label="Comportamento negativo"
                     value={negSelect}
                     onChange={(e) => {
                       setNegSelect(e.target.value);
@@ -917,6 +961,7 @@ export function EvolucaoFormClient(props: {
                   </select>
                   {negSelect === "__outro__" ? (
                     <input
+                      aria-label="Outro comportamento negativo"
                       value={negCustom}
                       onChange={(e) => setNegCustom(e.target.value)}
                       className="min-w-[180px] flex-1 rounded-lg border bg-white px-3 py-2 text-sm"
@@ -924,6 +969,7 @@ export function EvolucaoFormClient(props: {
                     />
                   ) : null}
                   <input
+                    aria-label="Quantidade do comportamento negativo"
                     type="number"
                     min={1}
                     max={50}
@@ -936,7 +982,7 @@ export function EvolucaoFormClient(props: {
                   <button
                     type="button"
                     onClick={() => addBehavior("negativo")}
-                    className="rounded-md bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#e6961f]"
+                    className="rounded-md bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] shadow-sm hover:bg-[#e6961f]"
                   >
                     Adicionar
                   </button>
@@ -950,6 +996,7 @@ export function EvolucaoFormClient(props: {
                       <span className="text-sm font-medium text-[var(--marrom)]">{it.label}</span>
                       <div className="flex items-center gap-2">
                         <input
+                          aria-label={`Quantidade de ${it.label}`}
                           type="number"
                           min={1}
                           max={50}
@@ -984,6 +1031,7 @@ export function EvolucaoFormClient(props: {
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap gap-2">
                   <select
+                    aria-label="Comportamento positivo"
                     value={posSelect}
                     onChange={(e) => {
                       setPosSelect(e.target.value);
@@ -1001,6 +1049,7 @@ export function EvolucaoFormClient(props: {
                   </select>
                   {posSelect === "__outro__" ? (
                     <input
+                      aria-label="Outro comportamento positivo"
                       value={posCustom}
                       onChange={(e) => setPosCustom(e.target.value)}
                       className="min-w-[180px] flex-1 rounded-lg border bg-white px-3 py-2 text-sm"
@@ -1008,6 +1057,7 @@ export function EvolucaoFormClient(props: {
                     />
                   ) : null}
                   <input
+                    aria-label="Quantidade do comportamento positivo"
                     type="number"
                     min={1}
                     max={50}
@@ -1020,7 +1070,7 @@ export function EvolucaoFormClient(props: {
                   <button
                     type="button"
                     onClick={() => addBehavior("positivo")}
-                    className="rounded-md bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#e6961f]"
+                    className="rounded-md bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] shadow-sm hover:bg-[#e6961f]"
                   >
                     Adicionar
                   </button>
@@ -1034,6 +1084,7 @@ export function EvolucaoFormClient(props: {
                       <span className="text-sm font-medium text-[var(--marrom)]">{it.label}</span>
                       <div className="flex items-center gap-2">
                         <input
+                          aria-label={`Quantidade de ${it.label}`}
                           type="number"
                           min={1}
                           max={50}
@@ -1065,8 +1116,11 @@ export function EvolucaoFormClient(props: {
           </div>
 
           <div className="mt-5 flex flex-col gap-2">
-            <p className="text-sm font-semibold text-[var(--marrom)]">Descrição do comportamento</p>
+            <label htmlFor="comportamento-descricao" className="text-sm font-semibold text-[var(--marrom)]">
+              Descrição do comportamento
+            </label>
             <textarea
+              id="comportamento-descricao"
               value={compDescricao}
               onChange={(e) => setCompDescricao(e.target.value)}
               rows={3}
@@ -1092,7 +1146,7 @@ export function EvolucaoFormClient(props: {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+            className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
           >
             {isEdit ? "Atualizar evolução" : "Salvar evolução"}
           </button>
@@ -1105,4 +1159,3 @@ export function EvolucaoFormClient(props: {
     </section>
   );
 }
-

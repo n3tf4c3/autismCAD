@@ -451,7 +451,7 @@ export function DevolutivaMensalClient(props: {
                 type="button"
                 onClick={() => void consultar()}
                 disabled={loading}
-                className="min-h-10 rounded-xl bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-h-10 rounded-xl bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Consultar período
               </button>

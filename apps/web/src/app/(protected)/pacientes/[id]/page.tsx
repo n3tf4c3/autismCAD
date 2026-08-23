@@ -161,7 +161,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 {canEdit ? (
                   <Link
                     href={`/pacientes/${paciente.id}/editar`}
-                    className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                    className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
                   >
                     Editar
                   </Link>
@@ -182,7 +182,7 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 {canViewProntuario ? (
                   <Link
                     href={`/prontuario/${paciente.id}`}
-                    className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f]"
+                    className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
                   >
                     Abrir Prontuário
                   </Link>

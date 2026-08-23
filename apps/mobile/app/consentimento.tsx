@@ -40,7 +40,12 @@ export default function Consentimento() {
         O Girassóis+ trata dados pessoais e de saúde para o acompanhamento clínico. Para
         continuar, leia e concorde com a nossa Política de Privacidade.
       </Muted>
-      <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} style={{ paddingVertical: 8 }}>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="Ler a Política de Privacidade"
+        onPress={() => Linking.openURL(PRIVACY_URL)}
+        style={{ paddingVertical: 8 }}
+      >
         <Text style={{ color: theme.accent, fontSize: 14, fontWeight: "700" }}>
           Ler a Política de Privacidade
         </Text>

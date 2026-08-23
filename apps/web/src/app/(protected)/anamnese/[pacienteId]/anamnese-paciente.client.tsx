@@ -536,7 +536,7 @@ export default function AnamnesePacienteClient(props: { pacienteId: number }) {
               type="button"
               onClick={() => void save()}
               disabled={saving || deletingFicha || deletingVersion !== null}
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
             >
               {saving ? "Salvando..." : "Salvar"}
             </button>

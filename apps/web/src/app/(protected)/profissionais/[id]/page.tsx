@@ -137,7 +137,7 @@ export default async function ProfissionalDetalhePage(props: PageProps) {
               {canEdit ? (
                 <Link
                   href={`/profissionais/${row.id}/editar`}
-                  className="rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                  className="rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
                 >
                   Editar
                 </Link>

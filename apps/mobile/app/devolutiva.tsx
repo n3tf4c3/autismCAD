@@ -202,13 +202,25 @@ function DevolutivaContent() {
       <Card>
         <SegmentedToggle options={MODE_OPTIONS} value={mode} onChange={setMode} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Pressable onPress={() => step(-1)} hitSlop={12} style={navBtnStyle}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Período anterior"
+            onPress={() => step(-1)}
+            hitSlop={12}
+            style={navBtnStyle}
+          >
             <Text style={navArrowStyle}>{"◀"}</Text>
           </Pressable>
           <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600", textTransform: "capitalize" }}>
             {periodo.label}
           </Text>
-          <Pressable onPress={() => step(1)} hitSlop={12} style={navBtnStyle}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Próximo período"
+            onPress={() => step(1)}
+            hitSlop={12}
+            style={navBtnStyle}
+          >
             <Text style={navArrowStyle}>{"▶"}</Text>
           </Pressable>
         </View>

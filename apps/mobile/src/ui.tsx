@@ -88,11 +88,11 @@ export function Card({ children }: { children: React.ReactNode }) {
 }
 
 export function H1({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.h1}>{children}</Text>;
+  return <Text accessibilityRole="header" style={styles.h1}>{children}</Text>;
 }
 
 export function H2({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.h2}>{children}</Text>;
+  return <Text accessibilityRole="header" style={styles.h2}>{children}</Text>;
 }
 
 export function Muted({ children }: { children: React.ReactNode }) {
@@ -109,11 +109,12 @@ export function SectionLabel({ children }: { children: string }) {
 }
 
 export function Field(props: TextInputProps & { label?: string }) {
-  const { label, style, ...rest } = props;
+  const { label, style, accessibilityLabel, ...rest } = props;
   return (
     <View style={{ gap: 4 }}>
       {label ? <Label>{label}</Label> : null}
       <TextInput
+        accessibilityLabel={accessibilityLabel ?? label}
         placeholderTextColor={theme.muted}
         style={[styles.input, style]}
         {...rest}
@@ -128,17 +129,25 @@ export function Button({
   variant = "primary",
   loading,
   disabled,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   title: string;
   onPress: () => void;
   variant?: "primary" | "ghost" | "danger";
   loading?: boolean;
   disabled?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const isPrimary = variant === "primary";
   const isDanger = variant === "danger";
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [
@@ -278,6 +287,9 @@ export function SegmentedToggle<T extends string>({
         return (
           <Pressable
             key={opt.value}
+            accessibilityRole="radio"
+            accessibilityLabel={opt.label}
+            accessibilityState={{ selected: active }}
             onPress={() => onChange(opt.value)}
             style={[styles.segmentItem, active && { backgroundColor: theme.accent }]}
           >
@@ -310,6 +322,10 @@ export function DayStrip({
         return (
           <Pressable
             key={d.toISOString()}
+            accessibilityRole="button"
+            accessibilityLabel={`${WEEKDAY_ABBR[d.getDay()]}, dia ${d.getDate()}`}
+            accessibilityHint="Seleciona este dia"
+            accessibilityState={{ selected: active }}
             onPress={() => onSelect(d)}
             style={[styles.dayPill, active && { backgroundColor: theme.accent, borderColor: theme.accent }]}
           >
@@ -375,6 +391,9 @@ export function OptionRow<T extends string>({
         return (
           <Pressable
             key={opt.value}
+            accessibilityRole="radio"
+            accessibilityLabel={opt.label}
+            accessibilityState={{ selected: active }}
             onPress={() => onChange(opt.value)}
             style={[styles.chip, active && { backgroundColor: theme.accent, borderColor: theme.accent }]}
           >
@@ -388,7 +407,7 @@ export function OptionRow<T extends string>({
 
 export function ErrorText({ children }: { children: React.ReactNode }) {
   if (!children) return null;
-  return <Text style={{ color: theme.danger }}>{children}</Text>;
+  return <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ color: theme.danger }}>{children}</Text>;
 }
 
 const styles = StyleSheet.create({

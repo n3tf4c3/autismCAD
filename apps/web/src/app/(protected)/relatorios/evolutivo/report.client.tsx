@@ -155,7 +155,7 @@ export function EvolutivoReportClient(props: {
           <button
             type="button"
             onClick={() => void gerar()}
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+            className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
             disabled={loading}
           >
             Gerar relatório

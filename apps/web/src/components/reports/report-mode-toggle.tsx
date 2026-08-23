@@ -10,7 +10,7 @@ type ReportModeToggleProps = {
 
 function getLinkClass(active: boolean): string {
   if (active) {
-    return "bg-[var(--laranja)] text-white shadow-sm";
+    return "bg-[var(--laranja)] text-[var(--texto-sobre-acao)] shadow-sm";
   }
 
   return "text-gray-700 hover:bg-white hover:text-[var(--marrom)]";

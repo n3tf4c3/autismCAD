@@ -72,7 +72,7 @@ export default async function ProntuarioPacientePage(props: {
             {canCreateEvolucao ? (
               <Link
                 href={`/prontuario/${paciente.id}/evolucao/nova`}
-                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
               >
                 Nova Evolução
               </Link>
