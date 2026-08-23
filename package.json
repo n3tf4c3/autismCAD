@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "npm@11.7.0",
+  "engines": {
+    "node": "^22.22.0 || ^24.11.0",
+    "npm": "11.7.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"

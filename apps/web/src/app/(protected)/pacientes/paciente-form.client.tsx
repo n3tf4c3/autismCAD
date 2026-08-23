@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isValidUploadSize } from "@/lib/uploads/upload-limits";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -170,11 +171,15 @@ async function openSignedUrl(pacienteId: number, kind: Kind) {
 }
 
 async function presignUpload(pacienteId: number, kind: Kind, file: File) {
+  if (!isValidUploadSize(file.size)) {
+    throw new Error("O arquivo deve ter entre 1 byte e 20 MB.");
+  }
   const data = unwrapAction(
     await prepararUploadArquivoPacienteAction(pacienteId, {
       kind,
       filename: file.name,
       contentType: file.type || "application/octet-stream",
+      size: file.size,
     })
   );
   const key = data.key;

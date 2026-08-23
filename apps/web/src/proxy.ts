@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { resolveCorsAllowOrigin } from "@/lib/api/cors-origin";
+import { env } from "@/lib/env";
 
 // CORS apenas para a API mobile (/api/v1/*). Autenticacao e por Bearer (sem cookies).
 // O app Expo nativo nao envia Origin (CORS irrelevante); isto serve Expo web/dev e tooling.
 // Achado 106: em producao nao emitimos "*" por padrao — exige API_V1_CORS_ORIGIN explicito.
 const ALLOW_ORIGIN = resolveCorsAllowOrigin({
-  configured: process.env.API_V1_CORS_ORIGIN,
-  isProduction: process.env.NODE_ENV === "production",
+  configured: env.API_V1_CORS_ORIGIN,
+  isProduction: env.NODE_ENV === "production",
 });
 
 const CORS_HEADERS: Record<string, string> = {

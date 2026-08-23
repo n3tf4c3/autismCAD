@@ -176,6 +176,7 @@ const allowedContentTypesByKind: Record<z.infer<typeof arquivoKindSchema>, Reado
 const presignArquivoSchema = z.object({
   kind: arquivoKindSchema,
   filename: z.string().trim().min(1).max(180),
+  size: z.number().int().min(1).max(MAX_UPLOAD_BYTES),
   contentType: z
     .string()
     .trim()
@@ -303,6 +304,7 @@ export async function prepararUploadArquivoPacienteAction(
     const url = await createSignedWriteUrl({
       key,
       contentType: parsed.contentType,
+      contentLength: parsed.size,
       expiresInSeconds: 300,
     });
 

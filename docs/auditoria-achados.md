@@ -84,11 +84,11 @@ Auditoria 2026-08-23 (relatorio externo
 |---|--------|-----------|--------|
 | 135 | Seed troca senha de admin existente sem incrementar `tokenVersion` | Media | RESOLVIDO — update do superadmin incrementa a versao na mesma escrita e revoga sessoes anteriores; regressao valida o SQL gerado |
 | 136 | Seed privilegiado aceita banco remoto sem confirmacao explicita | Media | RESOLVIDO — alvo e mascarado e banco remoto exige `--yes-prod` ou `SEED_CONFIRM=1` antes de conexao/escrita; alias raiz encaminha a flag |
-| 137 | Limite de 20 MB e aplicado somente depois do upload ao R2 | Media | ABERTO |
+| 137 | Limite de 20 MB e aplicado somente depois do upload ao R2 | Media | RESOLVIDO — presign exige tamanho entre 1 byte e 20 MB e inclui `content-length` na assinatura SigV4; clientes enviam `File.size` e a verificacao real no commit permanece como defesa adicional |
 | 138 | Primitivos mobile omitem semantica essencial de acessibilidade | Media | RESOLVIDO — primitivos e chamadas `Pressable`/`Field` expoem nome, papel, selecao, disabled/busy e anuncios de erro; regressao estatica cobre todos os controles mobile |
-| 139 | `API_V1_CORS_ORIGIN` esta fora do contrato central de configuracao | Baixa | ABERTO |
+| 139 | `API_V1_CORS_ORIGIN` esta fora do contrato central de configuracao | Baixa | RESOLVIDO — origem entrou no schema Zod central, proxy tipado, `.env.example` e `turbo.globalEnv`, preservando o fail-closed de producao |
 | 140 | Filtro recorrente de pacientes nao excluidos nao tem indice parcial dedicado | Baixa (potencial) | ABERTO |
-| 141 | Runner/actions, Node e EAS CLI permanecem mutaveis ou abertos | Baixa | ABERTO |
+| 141 | Runner/actions, Node e EAS CLI permanecem mutaveis ou abertos | Baixa | RESOLVIDO — Ubuntu, actions por SHA, Node, npm e EAS CLI foram fixados; engines e `.nvmrc` documentam as linhas Node suportadas e regressao protege o contrato |
 | 142 | Texto branco sobre cores de marca falha contraste WCAG AA | Media | RESOLVIDO — token `#333333` substitui texto branco nas acoes laranja e gradientes claros; teste de luminancia confirma pelo menos 4,5:1 nos sete fundos/estados versionados |
 | 143 | Campos de evolucao e dialogos nao completam nome/foco/teclado acessiveis | Media | RESOLVIDO — campos receberam rotulos associados e dialog compartilhado implementa nome acessivel, foco inicial, trap/restauracao, Escape e fechamento por backdrop |
 | 144 | Engajamento e fechado na UI, mas backend aceita texto livre e relatorio ignora valores desconhecidos | Media (potencial) | RESOLVIDO — payload v2 exige `sim|nao` nas novas gravacoes web/API/mobile; updates legados so preservam valores existentes e o relatorio exibe a contagem ignorada |
