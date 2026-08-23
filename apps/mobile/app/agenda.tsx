@@ -189,6 +189,8 @@ function AgendaContent() {
         {items.map((a) => (
           <Pressable
             key={a.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Abrir evolução de ${a.pacienteNome ?? `paciente ${a.pacienteId ?? "não identificado"}`}`}
             onPress={() =>
               router.push({
                 pathname: "/evolucao",

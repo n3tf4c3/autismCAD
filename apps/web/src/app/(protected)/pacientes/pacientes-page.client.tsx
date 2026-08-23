@@ -5,6 +5,7 @@ import Link from "next/link";
 import { listarPacientesAction } from "@/app/(protected)/pacientes/paciente.actions";
 import { criarAtendimentosRecorrentesAction } from "@/app/(protected)/consultas/consultas.actions";
 import { derivarTurno } from "@autismcad/validators/atendimentos/atendimentos.schema";
+import { AccessibleDialog } from "@/components/ui/accessible-dialog";
 
 type Paciente = {
   id: number;
@@ -191,7 +192,7 @@ export function PacientesPageClient(props: {
           {canCreatePaciente ? (
             <Link
               href="/pacientes/novo"
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
             >
               Novo paciente
             </Link>
@@ -229,7 +230,7 @@ export function PacientesPageClient(props: {
           <button
             type="button"
             onClick={() => void loadPacientes({ nome, cpf })}
-            className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-white hover:bg-[#e6961f]"
+            className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
           >
             Filtrar
           </button>
@@ -307,19 +308,15 @@ export function PacientesPageClient(props: {
       </div>
 
       {consultaOpen && consultaPaciente ? (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) fecharConsulta();
-          }}
+        <AccessibleDialog
+          titleId="agendar-periodo-title"
+          onClose={fecharConsulta}
+          className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl"
         >
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-500">Novo atendimento (por periodo)</p>
-                <h3 className="text-lg font-bold text-[var(--marrom)]">
+                <h3 id="agendar-periodo-title" className="text-lg font-bold text-[var(--marrom)]">
                   {consultaPaciente.nome} <span className="text-gray-500">#{consultaPaciente.id}</span>
                 </h3>
               </div>
@@ -469,14 +466,13 @@ export function PacientesPageClient(props: {
               <button
                 type="button"
                 onClick={() => void salvarConsultaPorPeriodo()}
-                className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
                 disabled={consultaBusy}
               >
                 {consultaBusy ? "Salvando..." : "Salvar atendimento"}
               </button>
             </div>
-          </div>
-        </div>
+        </AccessibleDialog>
       ) : null}
     </main>
   );

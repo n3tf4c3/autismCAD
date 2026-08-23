@@ -40,7 +40,7 @@ export function ReportFilters(props: ReportFiltersProps) {
             type="button"
             onClick={props.onSubmit}
             disabled={props.loading}
-            className={`rounded-xl bg-[var(--laranja)] px-4 text-sm font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60 ${compact ? "min-h-10 py-2" : "min-h-11 py-2"}`}
+            className={`rounded-xl bg-[var(--laranja)] px-4 text-sm font-semibold text-[var(--texto-sobre-acao)] transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-60 ${compact ? "min-h-10 py-2" : "min-h-11 py-2"}`}
           >
             {props.buttonLabel}
           </button>

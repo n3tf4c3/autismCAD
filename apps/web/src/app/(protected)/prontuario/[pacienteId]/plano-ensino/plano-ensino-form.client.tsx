@@ -319,7 +319,7 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
             type="button"
             disabled={busy}
             onClick={() => submit()}
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+            className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
           >
             Salvar
           </button>

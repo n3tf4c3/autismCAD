@@ -54,6 +54,8 @@ export default function Login() {
       <ErrorText>{error}</ErrorText>
       <Button title="Entrar" onPress={onSubmit} loading={busy} disabled={!email || !password} />
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Esqueci minha senha"
         onPress={() =>
           Alert.alert(
             "Esqueci minha senha",

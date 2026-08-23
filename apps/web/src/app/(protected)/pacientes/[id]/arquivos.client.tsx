@@ -214,7 +214,7 @@ export function PacienteArquivosClient(props: { pacienteId: number; existing: Ex
                   type="button"
                   disabled={!selected[row.kind] || busy}
                   onClick={() => void upload(row.kind)}
-                  className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-50"
+                  className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-50"
                 >
                   {busy ? "Enviando..." : "Enviar"}
                 </button>

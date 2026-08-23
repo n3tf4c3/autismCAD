@@ -210,7 +210,7 @@ export function SidebarClient(props: {
 
   function renderItem(item: NavItem) {
     if (item.kind === "separator") {
-      return <div key={item.key} className="my-2 border-t border-white/20" />;
+      return <div key={item.key} className="my-2 border-t border-black/20" />;
     }
 
     const active = item.activeWhen ? item.activeWhen(pathname) : false;
@@ -218,8 +218,8 @@ export function SidebarClient(props: {
       "sidebar-link flex w-full items-center gap-3 rounded-md px-3 py-2 text-base font-semibold transition";
     const cls = joinClass(
       base,
-      active ? "bg-white/10" : "bg-transparent",
-      "text-white hover:bg-white hover:text-[var(--laranja)] hover:translate-x-[2px]"
+      active ? "bg-black/10" : "bg-transparent",
+      "text-[var(--texto-sobre-acao)] hover:translate-x-[2px] hover:bg-white/70 hover:text-[#333333]"
     );
 
     const content = (
@@ -258,7 +258,7 @@ export function SidebarClient(props: {
 
   return (
     <>
-      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white md:flex print:hidden">
+      <aside className="fixed inset-y-0 z-30 hidden w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-[var(--texto-sobre-acao)] md:flex print:hidden">
         <SidebarBgArt />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.14),transparent_42%)]" />
         <div className="relative z-10 flex flex-col items-center gap-4 px-6 py-8">
@@ -270,14 +270,14 @@ export function SidebarClient(props: {
             className="h-24 w-24 rounded-xl bg-white p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
             priority
           />
-          <h1 className="text-lg font-bold tracking-wide text-white">Clínica Girassóis</h1>
+          <h1 className="text-lg font-bold tracking-wide text-[var(--texto-sobre-acao)]">Clínica Girassóis</h1>
         </div>
 
         <nav className="relative z-10 flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
 
-        <div className="relative z-10 p-4 text-xs text-white/90">
+        <div className="relative z-10 p-4 text-xs text-[var(--texto-sobre-acao)]/90">
           <p className="font-semibold">Suporte</p>
-          <p className="text-sm font-bold text-white">girassoisclinica@gmail.com</p>
+          <p className="text-sm font-bold text-[var(--texto-sobre-acao)]">girassoisclinica@gmail.com</p>
         </div>
       </aside>
 
@@ -294,7 +294,7 @@ export function SidebarClient(props: {
 
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-white shadow-xl transition-transform duration-200 ease-out",
+            "fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden bg-gradient-to-b from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] text-[var(--texto-sobre-acao)] shadow-xl transition-transform duration-200 ease-out",
             shell.sidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
@@ -310,11 +310,11 @@ export function SidebarClient(props: {
                 className="h-12 w-12 rounded-xl bg-white p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
                 priority
               />
-              <p className="text-sm font-bold tracking-wide text-white">Clínica Girassóis</p>
+              <p className="text-sm font-bold tracking-wide text-[var(--texto-sobre-acao)]">Clínica Girassóis</p>
             </div>
             <button
               type="button"
-              className="text-2xl leading-none text-white/90 hover:text-white"
+              className="text-2xl leading-none text-[var(--texto-sobre-acao)]/90 hover:text-[#111111]"
               onClick={shell.closeSidebar}
               aria-label="Fechar menu"
             >
@@ -324,9 +324,9 @@ export function SidebarClient(props: {
 
           <nav className="relative z-10 flex-1 space-y-1 px-3">{items.map(renderItem)}</nav>
 
-          <div className="relative z-10 p-4 text-xs text-white/90">
+          <div className="relative z-10 p-4 text-xs text-[var(--texto-sobre-acao)]/90">
             <p className="font-semibold">Suporte</p>
-            <p className="text-sm font-bold text-white">girassoisclinica@gmail.com</p>
+            <p className="text-sm font-bold text-[var(--texto-sobre-acao)]">girassoisclinica@gmail.com</p>
           </div>
         </aside>
       </div>

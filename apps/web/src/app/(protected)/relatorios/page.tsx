@@ -51,7 +51,7 @@ export default async function RelatoriosIndexPage(props: {
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/relatorios/devolutiva-dia?pacienteId=${paciente.id}`}
-                      className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                      className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
                     >
                       Devolutiva diária
                     </Link>
@@ -121,7 +121,7 @@ export default async function RelatoriosIndexPage(props: {
           <div className="mt-4">
             <Link
               href="/relatorios/assiduidade"
-              className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              className="inline-flex rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
             >
               Abrir Assiduidade
             </Link>
@@ -148,7 +148,7 @@ export default async function RelatoriosIndexPage(props: {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
             >
               Buscar
             </button>
@@ -190,7 +190,7 @@ export default async function RelatoriosIndexPage(props: {
                     <div className="flex flex-wrap gap-2">
                       <Link
                         href={`/relatorios/evolutivo?pacienteId=${row.id}`}
-                        className="inline-flex rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                        className="inline-flex rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
                       >
                         Relatório Evolutivo
                       </Link>

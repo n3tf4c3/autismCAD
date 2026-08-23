@@ -170,7 +170,7 @@ export default async function DashboardPage() {
     presenca: a.presenca,
   }));
   const ctaButtonClass =
-    "mt-auto inline-block w-full rounded-lg bg-gradient-to-r from-[var(--laranja)] to-[#ffcc66] py-2.5 text-center font-semibold text-white shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#7FB3FF]/30";
+    "mt-auto inline-block w-full rounded-lg bg-gradient-to-r from-[var(--laranja)] to-[#ffcc66] py-2.5 text-center font-semibold text-[var(--texto-sobre-acao)] shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#7FB3FF]/30";
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">

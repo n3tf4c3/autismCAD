@@ -10,6 +10,7 @@ import {
   listarAtendimentosAction,
   salvarAtendimentoAction,
 } from "@/app/(protected)/consultas/consultas.actions";
+import { AccessibleDialog } from "@/components/ui/accessible-dialog";
 
 type Atendimento = {
   id: number;
@@ -399,7 +400,7 @@ export function ConsultasClient(props: {
               <button
                 type="button"
                 onClick={openNovo}
-                className="rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e6961f]"
+                className="rounded-lg bg-[var(--laranja)] px-3 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
               >
                 Novo atendimento
               </button>
@@ -467,7 +468,7 @@ export function ConsultasClient(props: {
             <button
               type="button"
               onClick={() => void loadAtendimentos()}
-              className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-white hover:bg-[#e6961f]"
+              className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
             >
               Filtrar
             </button>
@@ -612,19 +613,17 @@ export function ConsultasClient(props: {
       </section>
 
       {novoOpen ? (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeNovo();
-          }}
+        <AccessibleDialog
+          titleId="novo-atendimento-title"
+          onClose={closeNovo}
+          className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl"
         >
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-500">Novo atendimento</p>
-                <h3 className="text-lg font-bold text-[var(--marrom)]">Atendimento avulso</h3>
+                <h3 id="novo-atendimento-title" className="text-lg font-bold text-[var(--marrom)]">
+                  Atendimento avulso
+                </h3>
                 <p className="mt-1 text-sm text-gray-600">
                   Encaixe ou reposição em uma data única. Para agendar um período recorrente, use a
                   tela do paciente.
@@ -751,31 +750,28 @@ export function ConsultasClient(props: {
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                className="rounded-lg bg-[var(--laranja)] px-4 py-2 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
                 onClick={() => void submitNovo()}
                 disabled={novoBusy}
               >
                 {novoBusy ? "Salvando..." : "Criar atendimento"}
               </button>
             </div>
-          </div>
-        </div>
+        </AccessibleDialog>
       ) : null}
 
       {editOpen && editItem ? (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeEdit();
-          }}
+        <AccessibleDialog
+          titleId="editar-atendimento-title"
+          onClose={closeEdit}
+          className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl"
         >
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-500">Editar atendimento</p>
-                <h3 className="text-lg font-bold text-[var(--marrom)]">{editItem.pacienteNome}</h3>
+                <h3 id="editar-atendimento-title" className="text-lg font-bold text-[var(--marrom)]">
+                  {editItem.pacienteNome}
+                </h3>
               </div>
               <button
                 type="button"
@@ -896,27 +892,24 @@ export function ConsultasClient(props: {
               <button
                 type="button"
                 onClick={() => void submitEdit()}
-                className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
                 disabled={editBusy}
               >
                 {editBusy ? "Salvando..." : "Salvar alteracoes"}
               </button>
             </div>
-          </div>
-        </div>
+        </AccessibleDialog>
       ) : null}
 
       {delOpen && delItem ? (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeDelete();
-          }}
+        <AccessibleDialog
+          titleId="excluir-atendimento-title"
+          onClose={closeDelete}
+          className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
         >
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-[var(--marrom)]">Excluir atendimento</h3>
+            <h3 id="excluir-atendimento-title" className="text-lg font-bold text-[var(--marrom)]">
+              Excluir atendimento
+            </h3>
             <p className="mt-2 text-sm text-gray-700">
               Deseja excluir o atendimento de{" "}
               <span className="font-semibold text-[var(--marrom)]">{delItem.pacienteNome}</span>?
@@ -939,21 +932,16 @@ export function ConsultasClient(props: {
                 {delBusy ? "Excluindo..." : "Excluir"}
               </button>
             </div>
-          </div>
-        </div>
+        </AccessibleDialog>
       ) : null}
 
       {periodoOpen && periodoItem ? (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeExcluirPorPeriodo();
-          }}
+        <AccessibleDialog
+          titleId="excluir-periodo-title"
+          onClose={closeExcluirPorPeriodo}
+          className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
         >
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-[var(--marrom)]">
+            <h3 id="excluir-periodo-title" className="text-lg font-bold text-[var(--marrom)]">
               Excluir atendimentos por período
             </h3>
             <p className="mt-2 text-sm text-gray-700">
@@ -1027,8 +1015,7 @@ export function ConsultasClient(props: {
                 {periodoBusy ? "Excluindo..." : "Excluir"}
               </button>
             </div>
-          </div>
-        </div>
+        </AccessibleDialog>
       ) : null}
     </main>
   );

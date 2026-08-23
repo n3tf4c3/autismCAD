@@ -533,7 +533,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
                 <button
                   type="submit"
                   disabled={busy}
-                  className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+                  className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
                 >
                   {busy ? "Salvando..." : "Salvar profissional"}
                 </button>

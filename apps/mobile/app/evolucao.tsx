@@ -191,7 +191,7 @@ function EvolucaoFormContent() {
     return (
       <Screen>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} hitSlop={12}>
             <Text style={{ color: theme.accent, fontSize: 30, fontWeight: "800", lineHeight: 32 }}>‹</Text>
           </Pressable>
           <H1>Editar evolução</H1>
@@ -211,7 +211,7 @@ function EvolucaoFormContent() {
   return (
     <Screen>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} hitSlop={12}>
           <Text style={{ color: theme.accent, fontSize: 30, fontWeight: "800", lineHeight: 32 }}>‹</Text>
         </Pressable>
         <H1>{isEdit ? "Editar evolução" : "Nova evolução"}</H1>
@@ -232,13 +232,18 @@ function EvolucaoFormContent() {
             setTitulo(v);
           }}
         />
-        <Pressable onPress={() => { setTituloCustom(true); setTitulo(""); }}>
+        <Pressable
+          accessibilityRole="radio"
+          accessibilityLabel="Outro título"
+          accessibilityState={{ selected: tituloCustom }}
+          onPress={() => { setTituloCustom(true); setTitulo(""); }}
+        >
           <Text style={{ color: tituloCustom ? theme.accent : theme.muted, fontSize: 13 }}>
             Outro (especifique)
           </Text>
         </Pressable>
         {tituloCustom ? (
-          <Field value={titulo} onChangeText={setTitulo} placeholder="Titulo personalizado" />
+          <Field accessibilityLabel="Título da sessão personalizado" value={titulo} onChangeText={setTitulo} placeholder="Titulo personalizado" />
         ) : null}
 
         <Field
@@ -265,7 +270,11 @@ function EvolucaoFormContent() {
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <Label>Linha {i + 1}</Label>
             {metaRows.length > 1 ? (
-              <Pressable onPress={() => removeMeta(i)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Remover linha ${i + 1}`}
+                onPress={() => removeMeta(i)}
+              >
                 <Text style={{ color: theme.danger, fontSize: 13 }}>Remover</Text>
               </Pressable>
             ) : null}
@@ -377,6 +386,9 @@ function BehaviorPicker({
           return (
             <Pressable
               key={o.value}
+              accessibilityRole="checkbox"
+              accessibilityLabel={o.label}
+              accessibilityState={{ checked: active }}
               onPress={() => (active ? onRemove(tipo, o.value) : onAdd(tipo, o.value, o.label))}
               style={{
                 borderWidth: 1,
@@ -396,12 +408,17 @@ function BehaviorPicker({
         <View key={it.value} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Text style={{ color: theme.text, flex: 1, fontSize: 13 }}>{it.label}</Text>
           <Field
+            accessibilityLabel={`Quantidade de ${it.label}`}
             value={String(it.qty)}
             onChangeText={(v) => onQty(tipo, it.value, Math.max(1, Number(v) || 1))}
             keyboardType="number-pad"
             style={{ width: 64 }}
           />
-          <Pressable onPress={() => onRemove(tipo, it.value)}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Remover ${it.label}`}
+            onPress={() => onRemove(tipo, it.value)}
+          >
             <Text style={{ color: theme.danger, fontSize: 13 }}>x</Text>
           </Pressable>
         </View>

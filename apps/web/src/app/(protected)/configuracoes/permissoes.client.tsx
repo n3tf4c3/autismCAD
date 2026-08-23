@@ -608,7 +608,7 @@ export function ConfiguracoesPermissoesClient() {
               type="button"
               disabled={creatingUser}
               onClick={() => void createUser()}
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Criar usuario
             </button>
@@ -773,7 +773,7 @@ export function ConfiguracoesPermissoesClient() {
                             type="button"
                             disabled={busy}
                             onClick={() => void saveUser(u.id)}
-                            className="inline-flex items-center justify-center rounded-md bg-[var(--laranja)] px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-md bg-[var(--laranja)] px-3 py-1 text-xs font-semibold text-[var(--texto-sobre-acao)] disabled:opacity-50"
                           >
                             Salvar
                           </button>
@@ -830,7 +830,7 @@ export function ConfiguracoesPermissoesClient() {
             type="button"
             disabled={savingPerms || !roleSelected || isProtectedRole}
             onClick={() => void savePermissions()}
-            className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] transition hover:bg-[#e6961f] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Salvar Permissões
           </button>

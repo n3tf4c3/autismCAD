@@ -570,7 +570,7 @@ export function CalendarioClient(props: {
             </label>
             <button
               type="button"
-              className="mt-1 w-full rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+              className="mt-1 w-full rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
               onClick={() => void bloquear()}
               disabled={
                 !profissionalId || saving || (bloqueioModo === "periodo" && !diasSemana.size)

@@ -58,6 +58,8 @@ function PacientesContent() {
         {items.map((p) => (
           <Pressable
             key={p.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Abrir devolutiva de ${p.nome}`}
             onPress={() =>
               router.push({
                 pathname: "/devolutiva",

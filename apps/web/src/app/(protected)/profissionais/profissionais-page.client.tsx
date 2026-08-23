@@ -72,7 +72,7 @@ export function ProfissionaisPageClient(props: {
           {canCreate ? (
             <Link
               href="/profissionais/novo"
-              className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f]"
+              className="rounded-lg bg-[var(--laranja)] px-4 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
             >
               + Novo cadastro
             </Link>
@@ -119,7 +119,7 @@ export function ProfissionaisPageClient(props: {
           <button
             type="button"
             onClick={() => void loadProfissionais({ nome, cpf, especialidade })}
-            className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-white hover:bg-[#e6961f]"
+            className="w-full rounded-lg bg-[var(--laranja)] px-3 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f]"
           >
             Filtrar
           </button>

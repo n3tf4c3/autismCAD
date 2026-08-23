@@ -35,7 +35,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--cinza)] px-4 text-[var(--texto)]">
       <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-lg md:grid-cols-2">
-        <section className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] p-10 text-white">
+        <section className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#FFD966] via-[#7FB3FF] to-[#6DD3C7] p-10 text-[var(--texto-sobre-acao)]">
           <svg
             aria-hidden="true"
             viewBox="0 0 520 520"
@@ -85,14 +85,14 @@ export default function LoginPage() {
               className="h-20 w-20 rounded-2xl bg-white p-3 shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
             />
             <h1 className="mt-6 text-3xl font-bold">Clínica Girassóis</h1>
-            <p className="mt-4 font-medium leading-relaxed text-white/95">
+            <p className="mt-4 font-medium leading-relaxed text-[var(--texto-sobre-acao)]/95">
               Plataforma de cuidado e desenvolvimento.
             </p>
-            <p className="mt-2 max-w-xs leading-relaxed text-white/90">
+            <p className="mt-2 max-w-xs leading-relaxed text-[var(--texto-sobre-acao)]/90">
               Acompanhe cada passo da evolução com carinho e precisão.
             </p>
           </div>
-          <p className="relative z-10 text-base font-bold text-white">Suporte: girassoisclinica@gmail.com</p>
+          <p className="relative z-10 text-base font-bold text-[var(--texto-sobre-acao)]">Suporte: girassoisclinica@gmail.com</p>
         </section>
 
         <section className="bg-white p-10">
@@ -134,7 +134,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-gradient-to-r from-[var(--laranja)] to-[#ffcc66] py-2.5 font-semibold text-white shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-60"
+              className="w-full rounded-lg bg-gradient-to-r from-[var(--laranja)] to-[#ffcc66] py-2.5 font-semibold text-[var(--texto-sobre-acao)] shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-60"
             >
               {loading ? "Entrando..." : "Entrar"}
             </button>

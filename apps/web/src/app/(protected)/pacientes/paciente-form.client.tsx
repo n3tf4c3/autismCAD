@@ -669,7 +669,7 @@ export function PacienteFormClient(props: {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#e6961f] disabled:opacity-60"
+            className="rounded-lg bg-[var(--laranja)] px-5 py-2.5 text-sm font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
           >
             {busy ? "Salvando..." : submitLabel}
           </button>
