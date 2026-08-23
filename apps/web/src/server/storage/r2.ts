@@ -12,7 +12,11 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 import { env } from "@/lib/env";
+import { isValidUploadSize } from "@/lib/uploads/upload-limits";
+import { createBoundedUploadCommand } from "@/server/storage/r2-upload-command";
 import { AppError } from "@/server/shared/errors";
+
+export { MAX_UPLOAD_BYTES } from "@/lib/uploads/upload-limits";
 
 const globalR2 = globalThis as unknown as {
   r2Client?: S3Client;
@@ -29,9 +33,6 @@ export const ALLOWED_UPLOAD_CONTENT_TYPES = new Set([
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
-
-// Limite de tamanho aplicado na consolidacao do upload (achado 44).
-export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 export function normalizeUploadContentType(contentType: string): string {
   return String(contentType || "")
@@ -315,19 +316,28 @@ export async function createSignedReadUrl(key: string, expiresInSeconds = 300) {
 export async function createSignedWriteUrl(params: {
   key: string;
   contentType: string;
+  contentLength: number;
   expiresInSeconds?: number;
 }) {
   const normalizedContentType = normalizeUploadContentType(params.contentType);
   if (!isAllowedUploadContentType(normalizedContentType)) {
     throw new AppError("Tipo de arquivo nao permitido", 400, "INVALID_CONTENT_TYPE");
   }
+  if (!isValidUploadSize(params.contentLength)) {
+    throw new AppError(
+      "Arquivo excede o tamanho maximo permitido (20 MB)",
+      400,
+      "UPLOAD_TOO_LARGE"
+    );
+  }
   const client = getR2Client();
   return getSignedUrl(
     client,
-    new PutObjectCommand({
-      Bucket: env.R2_BUCKET!,
-      Key: params.key,
-      ContentType: normalizedContentType,
+    createBoundedUploadCommand({
+      bucket: env.R2_BUCKET!,
+      key: params.key,
+      contentType: normalizedContentType,
+      contentLength: params.contentLength,
     }),
     { expiresIn: params.expiresInSeconds ?? 300 }
   );

@@ -7,6 +7,7 @@ import {
   obterArquivoPacienteReadUrlAction,
   prepararUploadArquivoPacienteAction,
 } from "@/app/(protected)/pacientes/paciente.actions";
+import { isValidUploadSize } from "@/lib/uploads/upload-limits";
 
 type Kind = "foto" | "laudo" | "documento";
 
@@ -50,11 +51,15 @@ async function openSignedUrl(pacienteId: number, kind: Kind) {
 }
 
 async function presignUpload(pacienteId: number, kind: Kind, file: File) {
+  if (!isValidUploadSize(file.size)) {
+    throw new Error("O arquivo deve ter entre 1 byte e 20 MB.");
+  }
   const data = unwrapAction(
     await prepararUploadArquivoPacienteAction(pacienteId, {
       kind,
       filename: file.name,
       contentType: file.type || "application/octet-stream",
+      size: file.size,
     })
   );
   const key = data.key;

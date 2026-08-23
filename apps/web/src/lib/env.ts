@@ -17,6 +17,7 @@ const envSchema = z.object({
   POSTGRES_PRISMA_URL: z.string().url().optional(),
   POSTGRES_URL_NON_POOLING: z.string().url().optional(),
   BCRYPT_COST: z.coerce.number().int().min(8).max(15).default(12),
+  API_V1_CORS_ORIGIN: z.string().url().optional(),
 
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
