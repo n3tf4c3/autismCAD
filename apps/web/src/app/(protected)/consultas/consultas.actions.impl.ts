@@ -74,7 +74,7 @@ export type ConsultasActionsDeps<
     pacienteId: number,
     access?: UserAccess
   ) => Promise<PacienteAccessInfo>;
-  hasConsultasEditPermission: (access?: UserAccess) => boolean;
+  isAdminAccess: (access?: UserAccess) => boolean;
   atendimentosQuerySchema: ZodSchemaLike<TAtendimentosFilters>;
   excluirDiaSchema: ZodSchemaLike<TExcluirDiaInput>;
   recorrenteSchema: ZodSchemaLike<TRecorrenteInput>;
@@ -178,7 +178,14 @@ export function buildConsultasActions<
       input: unknown
     ): Promise<ActionResult<{ id: number }>> {
       try {
-        const { user, access } = await deps.requirePermission(["consultas:edit", "consultas:presence"]);
+        const { user, access } = await deps.requirePermission("consultas:edit");
+        if (!deps.isAdminAccess(access)) {
+          throw new deps.AppError(
+            "Acesso restrito a administradores",
+            403,
+            "FORBIDDEN"
+          );
+        }
         const idNum = Number(atendimentoId);
         if (!Number.isFinite(idNum) || idNum <= 0) {
           throw new deps.AppError("Atendimento invalido", 400, "INVALID_INPUT");
@@ -208,24 +215,8 @@ export function buildConsultasActions<
             "FORBIDDEN"
           );
         }
-        // Quem tem apenas consultas:presence altera presenca/motivo/observacoes;
-        // os campos de agenda sao preservados do registro existente.
-        const inputEfetivo = deps.hasConsultasEditPermission(access)
-          ? parsed
-          : ({
-              ...parsed,
-              pacienteId: atendimento.pacienteId,
-              profissionalId: atendimento.profissionalId,
-              data: atendimento.data,
-              horaInicio: atendimento.horaInicio,
-              horaFim: atendimento.horaFim,
-              isGrupo: atendimento.isGrupo,
-              turno: atendimento.turno ?? undefined,
-              periodoInicio: atendimento.periodoInicio,
-              periodoFim: atendimento.periodoFim,
-            } as TSaveAtendimentoInput);
-        assertProfissionalAtribuido(profissionalProprio, inputEfetivo.profissionalId, deps.AppError);
-        const savedId = await deps.salvarAtendimento(inputEfetivo, idNum);
+        assertProfissionalAtribuido(profissionalProprio, parsed.profissionalId, deps.AppError);
+        const savedId = await deps.salvarAtendimento(parsed, idNum);
         return { ok: true, data: { id: savedId } };
       } catch (error) {
         return actionErrorResult(error, deps.toAppError);
