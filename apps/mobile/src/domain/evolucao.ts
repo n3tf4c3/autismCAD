@@ -159,7 +159,8 @@ export function buildEvolucaoPayload(state: EvolucaoFormState): Record<string, u
     .map((r) => {
       const ensino = r.ensino.trim();
       const habilidade = r.habilidade.trim();
-      const opcao = r.opcao.trim();
+      const opcaoRaw = r.opcao.trim();
+      const opcao = normalizeEngajamento(opcaoRaw) || opcaoRaw;
       const reforcador = r.reforcador.trim();
       const tent = toIntOrNull(r.tentativas);
       const acertos = toIntOrNull(r.acertos);
@@ -210,6 +211,11 @@ export function buildEvolucaoPayload(state: EvolucaoFormState): Record<string, u
     metas,
     itensDesempenho,
   };
+  const hasLegacyEngajamento = itensDesempenho.some((item) => {
+    const value = String(item.opcao ?? "").trim();
+    return Boolean(value && !normalizeEngajamento(value));
+  });
+  if (!hasLegacyEngajamento) payload.schemaVersion = 2;
   if (temComp) {
     payload.comportamentos = {
       resultado: compRes,

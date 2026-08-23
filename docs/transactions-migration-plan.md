@@ -27,7 +27,8 @@ Referencias:
 ## Politica atual no codigo
 
 - A maior parte das mutacoes de dominio esta com `mode: "required"`, inclusive:
-  - pacientes, profissionais, atendimentos, agenda/bloqueios, anamnese, prontuario, users.
+  - pacientes, profissionais, atendimentos, agenda/bloqueios, anamnese, prontuario, users;
+  - `auth.rotateRefreshToken`: claim do JTI anterior + registro do novo JTI.
 - Excecao intencional:
   - `accessLogs.recordLoginAttemptAccess` usa `mode: "allow-fallback"` para nao bloquear login por indisponibilidade de transacao.
 
@@ -52,6 +53,13 @@ Referencias:
 ### 5) `pacientes.arquivos.commit.action`
 - Path: `apps/web/src/app/(protected)/pacientes/paciente.actions.ts`
 - Esperado: troca de chave de arquivo com leitura/escrita consistente e sem ponteiro invalido.
+
+### 6) `auth.rotateRefreshToken`
+- Path: `apps/web/src/app/api/v1/auth/refresh/route.ts`
+- Esperado: falha ao inserir o novo JTI desfaz o claim do refresh anterior, permitindo retry.
+- Politica para perda da resposta apos commit: nao ha janela de graca nem replay do token
+  anterior. O cliente exige novo login nesse caso raro; aceitar o JTI antigo novamente
+  reabriria replay concorrente, e idempotencia duravel exigiria um protocolo/estado adicional.
 
 ## Rollout recomendado de ambiente
 
