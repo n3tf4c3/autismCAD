@@ -1,5 +1,6 @@
 ﻿import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermission } from "@/server/auth/access";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { listarProfissionais } from "@/server/modules/profissionais/profissionais.service";
 import { AssiduidadeClient } from "@/app/(protected)/relatorios/assiduidade/assiduidade.client";
@@ -8,6 +9,7 @@ export default async function RelatorioAssiduidadePage() {
   const { user, access } = await requirePermission("relatorios_admin:view");
   const roleCanon = resolveEffectiveRoleCanon(user, access);
   const canChooseProfissional = roleCanon !== "PROFISSIONAL";
+  const canCreateEvolucao = hasPermission(access, "evolucoes:create");
   let profissionais: Array<{ id: number; nome: string }> = [];
 
   if (canChooseProfissional) {
@@ -36,6 +38,7 @@ export default async function RelatorioAssiduidadePage() {
 
       <AssiduidadeClient
         canChooseProfissional={canChooseProfissional}
+        canCreateEvolucao={canCreateEvolucao}
         initialProfissionais={profissionais}
       />
     </div>

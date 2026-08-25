@@ -23,6 +23,7 @@ import {
 } from "@/server/modules/relatorios/intervalo";
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { getPacientesVinculadosByUserId } from "@/server/modules/pacientes/paciente-vinculos.service";
+import { consolidarPendenciasDevolutiva } from "@/server/modules/relatorios/devolutivas-pendentes";
 import { sanitizeEvolucaoPayload } from "@/lib/prontuario/evolucao-payload";
 import { isEspecialidadeQuadroAdministrativo } from "@autismcad/validators/profissionais/especialidades";
 import {
@@ -829,7 +830,15 @@ export async function consolidateAssiduidadeReport(params: {
         presenca: params.query.presenca ?? null,
         role: roleCanon,
       },
-      resumo: { total: 0, presentes: 0, faltas: 0, semRegistro: 0, taxa: 0 },
+      resumo: {
+        total: 0,
+        presentes: 0,
+        faltas: 0,
+        semRegistro: 0,
+        devolutivasPendentes: 0,
+        taxa: 0,
+      },
+      pendenciasDevolutiva: [],
       linhas: [],
     };
   }
@@ -855,12 +864,20 @@ export async function consolidateAssiduidadeReport(params: {
       paciente_id: atendimentos.pacienteId,
       paciente_nome: pacientes.nome,
       data: atendimentos.data,
+      hora_inicio: atendimentos.horaInicio,
+      hora_fim: atendimentos.horaFim,
       presenca: atendimentos.presenca,
+      profissional_id: atendimentos.profissionalId,
       profissional_nome: profissionaisTabela.nome,
+      evolucao_id: evolucoes.id,
     })
     .from(atendimentos)
     .innerJoin(pacientes, and(eq(pacientes.id, atendimentos.pacienteId), isNull(pacientes.deletedAt)))
     .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, atendimentos.profissionalId))
+    .leftJoin(
+      evolucoes,
+      and(eq(evolucoes.atendimentoId, atendimentos.id), isNull(evolucoes.deletedAt))
+    )
     .where(and(...where));
 
   const rows = await baseFrom.orderBy(desc(atendimentos.data), desc(atendimentos.id));
@@ -872,6 +889,7 @@ export async function consolidateAssiduidadeReport(params: {
   const semRegistro = rows.filter((a) => a.presenca !== "Presente" && a.presenca !== "Ausente").length;
   const denominador = presentes + faltas;
   const taxa = denominador ? Math.round((presentes / denominador) * 100) : 0;
+  const pendenciasDevolutiva = consolidarPendenciasDevolutiva(rows);
 
   // Per patient
   const mapa = new Map<number, {
@@ -933,7 +951,15 @@ export async function consolidateAssiduidadeReport(params: {
       presenca: params.query.presenca ?? null,
       role: roleCanon,
     },
-    resumo: { total, presentes, faltas, semRegistro, taxa },
+    resumo: {
+      total,
+      presentes,
+      faltas,
+      semRegistro,
+      devolutivasPendentes: pendenciasDevolutiva.length,
+      taxa,
+    },
+    pendenciasDevolutiva,
     linhas,
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { gerarRelatorioAssiduidadeAction } from "@/app/(protected)/relatorios/relatorios.actions";
 import {
@@ -22,8 +23,19 @@ type Report = {
     presentes: number;
     faltas: number;
     semRegistro: number;
+    devolutivasPendentes: number;
     taxa: number;
   };
+  pendenciasDevolutiva: Array<{
+    atendimentoId: number;
+    pacienteId: number;
+    pacienteNome: string;
+    data: string;
+    horaInicio: string;
+    horaFim: string;
+    profissionalId: number | null;
+    profissionalNome: string;
+  }>;
   linhas: Array<{
     pacienteNome: string;
     total: number;
@@ -62,6 +74,7 @@ function fmtDate(value?: string | null): string {
 
 export function AssiduidadeClient(props: {
   canChooseProfissional: boolean;
+  canCreateEvolucao: boolean;
   initialProfissionais: Profissional[];
 }) {
   const [pacienteNome, setPacienteNome] = useState("");
@@ -73,11 +86,13 @@ export function AssiduidadeClient(props: {
   const [profissionais] = useState<Profissional[]>(() => props.initialProfissionais);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
 
   async function gerar() {
     setLoading(true);
     setMsg(null);
+    setCopyMsg(null);
     setReport(null);
     try {
       const filters = {
@@ -100,6 +115,27 @@ export function AssiduidadeClient(props: {
   const profissionalSelecionado = profissionais.find(
     (item) => String(item.id) === profissionalId
   );
+
+  async function copiarPendencias() {
+    if (!report?.pendenciasDevolutiva.length) return;
+    const linhas = [
+      `Pendências de devolutivas — ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`,
+      ...report.pendenciasDevolutiva.map((item) => {
+        const horario = item.horaInicio
+          ? `, ${item.horaInicio}${item.horaFim ? `-${item.horaFim}` : ""}`
+          : "";
+        return `- ${item.profissionalNome}: ${fmtDate(item.data)}${horario} — ${item.pacienteNome}`;
+      }),
+    ];
+
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard indisponível");
+      await navigator.clipboard.writeText(linhas.join("\n"));
+      setCopyMsg("Lista copiada. Agora você pode encaminhá-la aos terapeutas.");
+    } catch {
+      setCopyMsg("Não foi possível copiar automaticamente. Use Imprimir / Salvar PDF.");
+    }
+  }
 
   return (
     <main className="space-y-6 print:space-y-3">
@@ -212,6 +248,7 @@ export function AssiduidadeClient(props: {
               setPresenca("");
               setReport(null);
               setMsg(null);
+              setCopyMsg(null);
             }}
             className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
@@ -232,7 +269,7 @@ export function AssiduidadeClient(props: {
         {loading ? <p className="mt-3 text-sm text-gray-600">Carregando...</p> : null}
       </section>
 
-      <section className="relatorio-print-resumo grid grid-cols-1 gap-4 md:grid-cols-4">
+      <section className="relatorio-print-resumo grid grid-cols-1 gap-4 md:grid-cols-5">
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Atendimentos no período</p>
           <p className="text-2xl font-bold text-[var(--marrom)]">{report?.resumo.total ?? 0}</p>
@@ -249,7 +286,13 @@ export function AssiduidadeClient(props: {
           <p className="text-sm text-gray-500">Sem registro</p>
           <p className="text-2xl font-bold text-gray-600">{report?.resumo.semRegistro ?? 0}</p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-2">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <p className="text-sm text-amber-800">Devolutivas pendentes</p>
+          <p className="text-2xl font-bold text-amber-800">
+            {report?.resumo.devolutivasPendentes ?? 0}
+          </p>
+        </div>
+        <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-3">
           <p className="text-sm text-gray-500">Taxa de presença</p>
           <p className="text-2xl font-bold text-[var(--marrom)]">{report?.resumo.taxa ?? 0}%</p>
           <p className="text-xs text-gray-500">
@@ -261,6 +304,88 @@ export function AssiduidadeClient(props: {
           <p className="text-sm font-semibold text-[var(--marrom)]">
             {report ? `${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}` : "-"}
           </p>
+        </div>
+      </section>
+
+      <section className="relatorio-print-tabela overflow-hidden rounded-xl bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+          <div>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">
+              Controle de devolutivas pendentes
+            </h3>
+            <p className="text-sm text-gray-600">
+              Presenças confirmadas que ainda não possuem evolução vinculada.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void copiarPendencias()}
+            disabled={!report?.pendenciasDevolutiva.length}
+            className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50 print:hidden"
+          >
+            Copiar lista para repassar
+          </button>
+        </div>
+        {copyMsg ? (
+          <p className="px-6 pb-3 text-sm text-gray-700 print:hidden" role="status">
+            {copyMsg}
+          </p>
+        ) : null}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-amber-50 text-left text-xs font-semibold uppercase tracking-wide text-amber-900">
+              <tr>
+                <th className="px-6 py-3">Profissional</th>
+                <th className="px-6 py-3">Data</th>
+                <th className="px-6 py-3">Horário</th>
+                <th className="px-6 py-3">Paciente</th>
+                <th className="px-6 py-3">Situação</th>
+                <th className="px-6 py-3 print:hidden">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {report?.pendenciasDevolutiva.length ? (
+                report.pendenciasDevolutiva.map((item) => (
+                  <tr key={item.atendimentoId}>
+                    <td className="px-6 py-3 font-semibold text-[var(--marrom)]">
+                      {item.profissionalNome}
+                    </td>
+                    <td className="px-6 py-3 text-gray-700">{fmtDate(item.data)}</td>
+                    <td className="px-6 py-3 text-gray-700">
+                      {item.horaInicio || "-"}
+                      {item.horaFim ? ` - ${item.horaFim}` : ""}
+                    </td>
+                    <td className="px-6 py-3 text-gray-700">{item.pacienteNome}</td>
+                    <td className="px-6 py-3">
+                      <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">
+                        Falta lançamento
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 print:hidden">
+                      {props.canCreateEvolucao ? (
+                        <Link
+                          href={`/prontuario/${item.pacienteId}/evolucao/nova?atendimentoId=${item.atendimentoId}`}
+                          className="text-sm font-semibold text-[var(--laranja)] hover:underline"
+                        >
+                          Registrar
+                        </Link>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-6 py-5 text-center text-gray-500" colSpan={6}>
+                    {report
+                      ? "Nenhuma devolutiva pendente no recorte selecionado."
+                      : "Use os filtros acima para gerar o controle de devolutivas."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -354,7 +479,7 @@ export function AssiduidadeClient(props: {
 
           .relatorio-print-resumo {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 6px;
           }
 
