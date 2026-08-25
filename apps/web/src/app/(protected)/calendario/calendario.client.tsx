@@ -33,6 +33,7 @@ type BloqueioAgenda = {
   data: string;
   horaInicio: string;
   horaFim: string;
+  tipo: "BLOQUEADO" | "LIVRE";
   observacoes?: string | null;
 };
 
@@ -136,6 +137,7 @@ export function CalendarioClient(props: {
   const [isGrupo, setIsGrupo] = useState(false);
   const [observacoes, setObservacoes] = useState<string>("");
   const [bloquearHorario, setBloquearHorario] = useState(false);
+  const [horarioLivre, setHorarioLivre] = useState(false);
 
   const rangeLabel = useMemo(() => {
     const start = weekMonday(weekStart);
@@ -206,7 +208,7 @@ export function CalendarioClient(props: {
 
   async function reservar() {
     if (!profissionalId || !inicio || !fim) return;
-    if (!bloquearHorario && !pacienteId) return;
+    if (!bloquearHorario && !horarioLivre && !pacienteId) return;
     if (reservaModo === "dia" && !data) return;
     if (reservaModo === "periodo" && (!periodoInicio || !periodoFim || !diasSemana.size)) return;
     setSaving(true);
@@ -220,13 +222,15 @@ export function CalendarioClient(props: {
         throw new Error("Horário inicial deve ser menor que o final");
       }
 
-      const bloqueiosProfissional = bloqueios.filter((b) => b.profissionalId === profissionalNum);
+      const bloqueiosProfissional = bloqueios.filter(
+        (b) => b.profissionalId === profissionalNum && b.tipo === "BLOQUEADO"
+      );
       const hasBlockConflict = (dateStr: string) =>
         bloqueiosProfissional.some(
           (b) => b.data === dateStr && overlaps(inicio, fim, b.horaInicio, b.horaFim)
         );
 
-      if (bloquearHorario) {
+      if (bloquearHorario || horarioLivre) {
         const datas: string[] = [];
         if (reservaModo === "dia") {
           datas.push(data);
@@ -243,7 +247,7 @@ export function CalendarioClient(props: {
         }
 
         if (!datas.length) {
-          throw new Error("Nenhum bloqueio gerado para o periodo e dias selecionados");
+          throw new Error("Nenhuma marcacao gerada para o periodo e dias selecionados");
         }
         unwrapAction(
           await criarBloqueiosAction({
@@ -251,6 +255,7 @@ export function CalendarioClient(props: {
             datas,
             horaInicio: inicio,
             horaFim: fim,
+            tipo: horarioLivre ? "LIVRE" : "BLOQUEADO",
             observacoes: observacoes.trim() || null,
           })
         );
@@ -493,6 +498,35 @@ export function CalendarioClient(props: {
                               <div className="text-[11px] font-semibold text-indigo-700">Grupo</div>
                             ) : null}
                           </div>
+                        ) : entry.item.tipo === "LIVRE" ? (
+                          <div
+                            key={`l-${entry.item.id}`}
+                            className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="text-xs font-semibold text-emerald-800">
+                                  {entry.item.horaInicio} - {entry.item.horaFim}
+                                </div>
+                                <div className="text-xs font-bold text-emerald-700">LIVRE</div>
+                                {entry.item.observacoes ? (
+                                  <div className="mt-1 text-[11px] text-emerald-700">
+                                    {entry.item.observacoes}
+                                  </div>
+                                ) : null}
+                              </div>
+                              {props.canDeleteBloqueio ? (
+                                <button
+                                  type="button"
+                                  className="text-[11px] font-semibold text-emerald-700 hover:underline"
+                                  onClick={() => void removerBloqueio(entry.item.id)}
+                                  title="Remover horário livre"
+                                >
+                                  Remover
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
                         ) : (
                           <div
                             key={`b-${entry.item.id}`}
@@ -627,17 +661,40 @@ export function CalendarioClient(props: {
                 />
               </label>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <label className="inline-flex items-center gap-2 text-gray-700">
                 <input
                   type="checkbox"
                   className="rounded text-[var(--laranja)]"
                   checked={bloquearHorario}
-                  onChange={(e) => setBloquearHorario(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setBloquearHorario(checked);
+                    if (checked) {
+                      setHorarioLivre(false);
+                      setIsGrupo(false);
+                    }
+                  }}
                 />
                 <span>Bloquear horário (sem paciente)</span>
               </label>
-              {!bloquearHorario ? (
+              <label className="inline-flex items-center gap-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  className="rounded text-emerald-600"
+                  checked={horarioLivre}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHorarioLivre(checked);
+                    if (checked) {
+                      setBloquearHorario(false);
+                      setIsGrupo(false);
+                    }
+                  }}
+                />
+                <span className="font-semibold text-emerald-700">LIVRE</span>
+              </label>
+              {!bloquearHorario && !horarioLivre ? (
                 <label className="ml-auto inline-flex items-center gap-2 text-gray-700">
                   <input
                     type="checkbox"
@@ -654,7 +711,12 @@ export function CalendarioClient(props: {
                 Bloqueio salvo no sistema e visivel para todos os usuarios desta agenda.
               </p>
             ) : null}
-            {!bloquearHorario ? (
+            {horarioLivre ? (
+              <p className="text-xs text-emerald-700">
+                O horário será exibido como LIVRE e continuará disponível para receber pacientes.
+              </p>
+            ) : null}
+            {!bloquearHorario && !horarioLivre ? (
               <label className="block text-gray-700">
                 Paciente
                 <select
@@ -687,7 +749,7 @@ export function CalendarioClient(props: {
               onClick={() => void reservar()}
               disabled={
                 !profissionalId ||
-                (!bloquearHorario && !pacienteId) ||
+                (!bloquearHorario && !horarioLivre && !pacienteId) ||
                 saving ||
                 (reservaModo === "periodo" && !diasSemana.size)
               }
@@ -698,6 +760,10 @@ export function CalendarioClient(props: {
                   ? reservaModo === "periodo"
                     ? "Bloquear por periodo"
                     : "Bloquear horário"
+                  : horarioLivre
+                    ? reservaModo === "periodo"
+                      ? "Marcar períodos como LIVRES"
+                      : "Marcar como LIVRE"
                   : reservaModo === "periodo"
                     ? "Reservar por periodo"
                     : "Reservar"}

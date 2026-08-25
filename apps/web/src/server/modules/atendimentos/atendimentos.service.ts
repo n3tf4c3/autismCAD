@@ -269,6 +269,7 @@ async function existeConflitoHorario(executor: DbExecutor, params: {
       and(
         eq(agendaBloqueios.profissionalId, params.profissionalId),
         eq(agendaBloqueios.data, params.data),
+        eq(agendaBloqueios.tipo, "BLOQUEADO"),
         sql`${params.horaFim}::time > ${agendaBloqueios.horaInicio} AND ${params.horaInicio}::time < ${agendaBloqueios.horaFim}`
       )
     )

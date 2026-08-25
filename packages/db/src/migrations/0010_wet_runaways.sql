@@ -1,0 +1,2 @@
+ALTER TABLE "agenda_bloqueios" ADD COLUMN "tipo" varchar(16) DEFAULT 'BLOQUEADO' NOT NULL;--> statement-breakpoint
+ALTER TABLE "agenda_bloqueios" ADD CONSTRAINT "ck_agenda_bloqueios_tipo" CHECK ("agenda_bloqueios"."tipo" in ('BLOQUEADO', 'LIVRE'));

@@ -376,6 +376,7 @@ export const agendaBloqueios = pgTable(
     data: date("data").notNull(),
     horaInicio: time("hora_inicio").notNull(),
     horaFim: time("hora_fim").notNull(),
+    tipo: varchar("tipo", { length: 16 }).notNull().default("BLOQUEADO"),
     observacoes: text("observacoes"),
     createdByUserId: bigint("created_by_user_id", { mode: "number" }).references(() => users.id, {
       onDelete: "set null",
@@ -386,6 +387,10 @@ export const agendaBloqueios = pgTable(
     index("idx_agenda_bloqueios_prof_data").on(table.profissionalId, table.data),
     // Achado 86/100: garante ordem de horario no banco, alem dos validators.
     check("ck_agenda_bloqueios_hora_ordem", sql`${table.horaFim} > ${table.horaInicio}`),
+    check(
+      "ck_agenda_bloqueios_tipo",
+      sql`${table.tipo} in ('BLOQUEADO', 'LIVRE')`
+    ),
   ]
 );
 
