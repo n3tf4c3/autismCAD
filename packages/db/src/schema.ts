@@ -160,6 +160,7 @@ export const pacientes = pgTable(
     nomePai: varchar("nome_pai", { length: 120 }),
     sexo: varchar("sexo", { length: 20 }),
     dataInicio: date("data_inicio"),
+    observacao: text("observacao"),
     foto: varchar("foto", { length: 255 }),
     laudo: varchar("laudo", { length: 255 }),
     documento: varchar("documento", { length: 255 }),

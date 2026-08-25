@@ -52,6 +52,7 @@ export type PacienteDetalhe = {
   nomeMae: string | null;
   nomePai: string | null;
   sexo: string | null;
+  observacao: string | null;
   ativo: boolean;
   foto: string | null;
   laudo: string | null;
@@ -266,6 +267,7 @@ export async function obterPacienteDetalhe(id: number): Promise<PacienteDetalhe 
       nomeMae: pacientes.nomeMae,
       nomePai: pacientes.nomePai,
       sexo: pacientes.sexo,
+      observacao: pacientes.observacao,
       ativo: pacientes.ativo,
       foto: pacientes.foto,
       laudo: pacientes.laudo,
@@ -360,6 +362,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
             nomePai: normalizeOptionalText(input.nomePai),
             sexo: normalizeOptionalText(input.sexo),
             dataInicio: normalizeDateOnlyLoose(input.dataInicio),
+            observacao: normalizeOptionalText(input.observacao),
             foto: validarChaveArquivoPaciente(
               normalizeOptionalText(input.fotoAtual),
               atual.foto,
@@ -407,6 +410,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
             nomePai: normalizeOptionalText(input.nomePai),
             sexo: normalizeOptionalText(input.sexo),
             dataInicio: normalizeDateOnlyLoose(input.dataInicio),
+            observacao: normalizeOptionalText(input.observacao),
             // Na criacao nao ha chave final possivel: arquivos entram depois,
             // via commitArquivoPacienteAction.
             foto: null,

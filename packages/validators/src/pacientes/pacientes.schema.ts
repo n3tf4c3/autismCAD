@@ -44,6 +44,7 @@ export const savePacienteSchema = z.object({
   nomePai: nullableTrimmed,
   sexo: z.string().trim().min(1, "Selecione o sexo.").max(20),
   dataInicio: requiredDate("Informe a data de inicio."),
+  observacao: z.string().trim().max(4000).optional().nullable(),
   fotoAtual: z.string().trim().max(255).optional().nullable(),
   laudoAtual: z.string().trim().max(255).optional().nullable(),
   documentoAtual: z.string().trim().max(255).optional().nullable(),
