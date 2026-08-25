@@ -19,6 +19,7 @@ function toDto(row: {
   data: string;
   horaInicio: string;
   horaFim: string;
+  tipo: string;
   observacoes: string | null;
 }) {
   return {
@@ -27,6 +28,7 @@ function toDto(row: {
     data: String(row.data).slice(0, 10),
     horaInicio: String(row.horaInicio).slice(0, 5),
     horaFim: String(row.horaFim).slice(0, 5),
+    tipo: row.tipo === "LIVRE" ? ("LIVRE" as const) : ("BLOQUEADO" as const),
     observacoes: row.observacoes ?? null,
   };
 }
@@ -43,6 +45,7 @@ export async function listarBloqueios(input: ListarBloqueiosInput) {
       data: agendaBloqueios.data,
       horaInicio: agendaBloqueios.horaInicio,
       horaFim: agendaBloqueios.horaFim,
+      tipo: agendaBloqueios.tipo,
       observacoes: agendaBloqueios.observacoes,
     })
     .from(agendaBloqueios)
@@ -104,7 +107,8 @@ export async function criarBloqueios(input: CriarBloqueiosInput, createdByUserId
         );
       }
 
-      // Conflito com bloqueio existente.
+      // Uma marcacao da agenda nao pode se sobrepor a outra, independentemente
+      // de representar indisponibilidade ou um horario livre.
       const [conflitoBloqueio] = await tx
         .select({ data: agendaBloqueios.data })
         .from(agendaBloqueios)
@@ -118,7 +122,7 @@ export async function criarBloqueios(input: CriarBloqueiosInput, createdByUserId
         .limit(1);
       if (conflitoBloqueio) {
         throw new AppError(
-          `Ja existe bloqueio neste horario em ${String(conflitoBloqueio.data).slice(0, 10)}`,
+          `Ja existe uma marcacao neste horario em ${String(conflitoBloqueio.data).slice(0, 10)}`,
           409,
           "SCHEDULE_CONFLICT"
         );
@@ -132,6 +136,7 @@ export async function criarBloqueios(input: CriarBloqueiosInput, createdByUserId
             data,
             horaInicio: input.horaInicio,
             horaFim: input.horaFim,
+            tipo: input.tipo,
             observacoes: input.observacoes?.trim() || null,
             createdByUserId,
           }))

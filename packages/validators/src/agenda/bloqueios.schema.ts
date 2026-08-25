@@ -13,6 +13,9 @@ const horaHm = z
   .regex(/^\d{2}:\d{2}$/, "Hora invalida")
   .refine(isValidTimeOfDay, "Hora fora da faixa valida (00:00 a 23:59)");
 
+export const agendaMarcacaoTipos = ["BLOQUEADO", "LIVRE"] as const;
+export const agendaMarcacaoTipoSchema = z.enum(agendaMarcacaoTipos);
+
 export const listarBloqueiosSchema = z.object({
   profissionalId: z.coerce.number().int().positive(),
   dataIni: dataYmd.optional(),
@@ -25,6 +28,7 @@ export const criarBloqueiosSchema = z
     datas: z.array(dataYmd).min(1).max(120),
     horaInicio: horaHm,
     horaFim: horaHm,
+    tipo: agendaMarcacaoTipoSchema.default("BLOQUEADO"),
     observacoes: z.string().trim().max(500).optional().nullable(),
   })
   .superRefine((data, ctx) => {
