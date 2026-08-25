@@ -292,6 +292,12 @@ export default async function PacienteDetalhePage(props: { params: Promise<{ id:
                 {paciente.terapias.length ? paciente.terapias.join(", ") : "-"}
               </p>
             </div>
+            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm md:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Observação</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-[var(--texto)]">
+                {paciente.observacao || "-"}
+              </p>
+            </div>
           </div>
         </div>
       </section>

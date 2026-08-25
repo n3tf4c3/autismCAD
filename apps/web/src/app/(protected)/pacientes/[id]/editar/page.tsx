@@ -1,11 +1,9 @@
 ﻿import Link from "next/link";
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import { listarPacientes } from "@/server/modules/pacientes/pacientes.service";
+import { obterPacienteDetalhe } from "@/server/modules/pacientes/pacientes.service";
 import { toAppError } from "@/server/shared/errors";
 import { PacienteFormClient } from "@/app/(protected)/pacientes/paciente-form.client";
-
-type PacienteRow = Awaited<ReturnType<typeof listarPacientes>>[number];
 
 export default async function EditarPacientePage(props: {
   params: Promise<{ id: string }>;
@@ -32,8 +30,7 @@ export default async function EditarPacientePage(props: {
     );
   }
 
-  const rows = (await listarPacientes({ id: pacienteId })) as PacienteRow[];
-  const paciente = rows[0] ?? null;
+  const paciente = await obterPacienteDetalhe(pacienteId);
   if (!paciente) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
@@ -80,6 +77,7 @@ export default async function EditarPacientePage(props: {
           telefone2: paciente.telefone2,
           email: paciente.email,
           dataInicio: paciente.dataInicio,
+          observacao: paciente.observacao,
           ativo: paciente.ativo,
           terapias: paciente.terapias,
           foto: paciente.foto ?? null,

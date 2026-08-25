@@ -45,6 +45,7 @@ export type PacienteFormInitial = {
   telefone2?: string | null;
   email?: string | null;
   dataInicio?: string | null;
+  observacao?: string | null;
   ativo?: number | boolean | string | null;
   terapias?: string[] | null;
   foto?: string | null;
@@ -124,6 +125,7 @@ function buildFormValues(initial?: PacienteFormInitial): PacienteFormValues {
     telefone2: formatTelefone(String(initial?.telefone2 ?? "")),
     email: String(initial?.email ?? ""),
     dataInicio: ymd(initial?.dataInicio ?? null),
+    observacao: String(initial?.observacao ?? ""),
     ativo: ativo === 0 || ativo === "0" || ativo === false ? "0" : "1",
     terapias: normalizeTerapias(initial?.terapias),
     fotoAtual: initial?.foto ?? null,
@@ -292,6 +294,8 @@ export function PacienteFormClient(props: {
           nomePai: typeof values.nomePai === "string" ? values.nomePai.trim() || null : null,
           sexo: typeof values.sexo === "string" ? values.sexo : "",
           dataInicio: typeof values.dataInicio === "string" ? values.dataInicio : null,
+          observacao:
+            typeof values.observacao === "string" ? values.observacao.trim() || null : null,
           ativo: values.ativo === "0" ? 0 : 1,
           terapias: normalizeTerapias(values.terapias),
           fotoAtual,
@@ -543,6 +547,20 @@ export function PacienteFormClient(props: {
           />
           {readFieldError(errors.dataInicio?.message) ? (
             <p className="text-xs text-red-600">{readFieldError(errors.dataInicio?.message)}</p>
+          ) : null}
+        </label>
+
+        <label className="flex flex-col gap-2 md:col-span-2">
+          <span className="text-sm font-semibold text-[var(--marrom)]">Observação</span>
+          <textarea
+            rows={4}
+            maxLength={4000}
+            {...register("observacao")}
+            className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:border-[var(--laranja)] focus:ring-2 focus:ring-[var(--laranja)]/30"
+            placeholder="Observações adicionais sobre o paciente"
+          />
+          {readFieldError(errors.observacao?.message) ? (
+            <p className="text-xs text-red-600">{readFieldError(errors.observacao?.message)}</p>
           ) : null}
         </label>
 
