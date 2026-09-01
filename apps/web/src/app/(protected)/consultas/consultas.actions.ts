@@ -2,8 +2,6 @@
 
 import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
-import type { UserAccess } from "@/server/auth/access";
-import { ADMIN_ROLES } from "@/server/auth/permissions";
 import {
   atendimentosQuerySchema,
   excluirDiaSchema,
@@ -21,16 +19,9 @@ import {
 import { AppError, toAppError } from "@/server/shared/errors";
 import { buildConsultasActions } from "@/app/(protected)/consultas/consultas.actions.impl";
 
-function isAdminAccess(access?: UserAccess) {
-  if (!access) return false;
-  const role = access.canonicalRole ?? access.role;
-  return Boolean(role && ADMIN_ROLES.has(role));
-}
-
 const actions = buildConsultasActions({
   requirePermission,
   assertPacienteAccess,
-  isAdminAccess,
   atendimentosQuerySchema,
   excluirDiaSchema,
   recorrenteSchema,

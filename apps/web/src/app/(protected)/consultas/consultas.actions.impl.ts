@@ -74,7 +74,6 @@ export type ConsultasActionsDeps<
     pacienteId: number,
     access?: UserAccess
   ) => Promise<PacienteAccessInfo>;
-  isAdminAccess: (access?: UserAccess) => boolean;
   atendimentosQuerySchema: ZodSchemaLike<TAtendimentosFilters>;
   excluirDiaSchema: ZodSchemaLike<TExcluirDiaInput>;
   recorrenteSchema: ZodSchemaLike<TRecorrenteInput>;
@@ -179,13 +178,6 @@ export function buildConsultasActions<
     ): Promise<ActionResult<{ id: number }>> {
       try {
         const { user, access } = await deps.requirePermission("consultas:edit");
-        if (!deps.isAdminAccess(access)) {
-          throw new deps.AppError(
-            "Acesso restrito a administradores",
-            403,
-            "FORBIDDEN"
-          );
-        }
         const idNum = Number(atendimentoId);
         if (!Number.isFinite(idNum) || idNum <= 0) {
           throw new deps.AppError("Atendimento invalido", 400, "INVALID_INPUT");
