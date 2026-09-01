@@ -255,7 +255,20 @@ export function buildConsultasActions<
         if (!atendimento) {
           throw new deps.AppError("Atendimento nao encontrado", 404, "NOT_FOUND");
         }
-        await deps.assertPacienteAccess(user, atendimento.pacienteId, access);
+        const acesso = await deps.assertPacienteAccess(user, atendimento.pacienteId, access);
+        // Mesma posse exigida na edicao: papel efetivo PROFISSIONAL so remove atendimento
+        // proprio, nunca o de um colega que atende o mesmo paciente.
+        const profissionalProprio = acesso.profissionalId;
+        if (
+          profissionalProprio != null &&
+          Number(atendimento.profissionalId) !== Number(profissionalProprio)
+        ) {
+          throw new deps.AppError(
+            "Atendimento pertence a outro profissional",
+            403,
+            "FORBIDDEN"
+          );
+        }
         const result = await deps.softDeleteAtendimento(
           atendimento.id,
           atendimento.pacienteId,

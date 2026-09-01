@@ -60,7 +60,7 @@ const ACTION_LABEL: Record<string, string> = {
   edit: "Editar",
   edit_self: "Editar próprio",
   delete: "Excluir",
-  cancel: "Cancelar",
+  cancel: "Excluir atendimento",
   presence: "Presença",
   version: "Versionar",
   finalize: "Finalizar",

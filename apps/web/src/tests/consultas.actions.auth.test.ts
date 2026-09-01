@@ -500,6 +500,21 @@ test("excluirAtendimentoAction valida acesso ao paciente do atendimento antes de
   ]);
 });
 
+test("excluirAtendimentoAction bloqueia profissional de excluir atendimento de outro profissional", async () => {
+  state.requirePermissionUser = { id: 555, role: "profissional" };
+  state.assertPacienteAccessProfissionalId = 5;
+  state.getAtendimentoByIdResult = atendimentoExistente({ id: 88, pacienteId: 17, profissionalId: 9 });
+
+  const result = await actions.excluirAtendimentoAction(88);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "FORBIDDEN");
+    assert.equal(result.status, 403);
+  }
+  assert.equal(calls.softDeleteAtendimento.length, 0);
+});
+
 test("excluirAtendimentoAction bloqueia exclusao quando acesso ao paciente e negado", async () => {
   state.requirePermissionUser = { id: 321, role: "profissional" };
   state.getAtendimentoByIdResult = atendimentoExistente({ id: 55, pacienteId: 44 });
