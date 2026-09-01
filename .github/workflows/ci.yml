@@ -35,13 +35,6 @@ jobs:
       - name: Dependency advisories
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Mobile compatibility
-        env:
-          EXPO_NO_DOTENV: "1"
-        run: |
-          npm run check:dependencies -w @autismcad/mobile
-          npm run doctor -w @autismcad/mobile
-
       - name: Lint
         run: npm run lint
 
@@ -67,3 +60,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # O drift de patch do Expo nao pode mascarar as checagens do web: este passo roda
+      # por ultimo para que Lint/Typecheck/Tests/Build sempre tenham rodado antes dele.
+      - name: Mobile compatibility
+        env:
+          EXPO_NO_DOTENV: "1"
+        run: |
+          npm run check:dependencies -w @autismcad/mobile
+          npm run doctor -w @autismcad/mobile
