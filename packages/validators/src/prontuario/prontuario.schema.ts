@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isCalendarDate } from "../common/datetime";
+import { normalizeClinicalCounts } from "./contagens";
 import {
   engajamentoValueSchema,
   normalizeEngajamento,
@@ -227,7 +228,7 @@ export const criarEvolucaoSchema = z.object({
     .optional(),
   atendimentoId: z.coerce.number().int().positive().optional().nullable(),
   profissionalId: evolucaoProfissionalIdSchema,
-  payload: evolucaoPayloadV2Schema.optional().default({
+  payload: evolucaoPayloadV2Schema.transform(normalizeClinicalCounts).optional().default({
     schemaVersion: EVOLUCAO_PAYLOAD_SCHEMA_VERSION,
   }),
 });
@@ -235,6 +236,6 @@ export const criarEvolucaoSchema = z.object({
 export type CriarEvolucaoInput = z.infer<typeof criarEvolucaoSchema>;
 
 export const atualizarEvolucaoSchema = criarEvolucaoSchema.partial().extend({
-  payload: evolucaoPayloadSchema.optional(),
+  payload: evolucaoPayloadSchema.transform(normalizeClinicalCounts).optional(),
 });
 export type AtualizarEvolucaoInput = z.infer<typeof atualizarEvolucaoSchema>;

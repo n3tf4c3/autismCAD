@@ -1,232 +1,184 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { apiRequest, ApiError, type ApiRequest } from "@/api/client";
+import { SessionLifecycle } from "./session-lifecycle";
 
 export type AuthUser = {
-  id: number;
-  nome: string;
-  email: string;
-  role: string;
-  consentRequired?: boolean;
+  id: number; nome: string; email: string; role: string; consentRequired?: boolean;
 };
-
-type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  user: AuthUser;
-};
-
-type RefreshResponse = {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  // Achado 74: papel/usuario EFETIVO devolvido pelo refresh para manter a role
-  // persistida (usada no roteamento) atualizada sem novo login.
-  user?: Pick<AuthUser, "id" | "nome" | "email" | "role"> | null;
-};
-
+type LoginResponse = { accessToken: string; refreshToken: string; expiresIn: number; user: AuthUser };
+type RefreshResponse = Omit<LoginResponse, "user"> & { user?: Pick<AuthUser, "id" | "nome" | "email" | "role"> | null };
 type AuthState = {
-  user: AuthUser | null;
-  loading: boolean;
+  user: AuthUser | null; loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  // marca o consentimento como aceito localmente (após o POST /consentimento dar certo).
   markConsentAccepted: () => Promise<void>;
-  // fetch autenticado com refresh automatico em 401 (uma tentativa).
   authFetch: <T>(path: string, options?: ApiRequest) => Promise<T>;
 };
-
+type Snapshot = { user: AuthUser | null; accessToken: string | null; refreshToken: string | null };
+const emptySnapshot = (): Snapshot => ({ user: null, accessToken: null, refreshToken: null });
 const ACCESS_KEY = "autismcad.accessToken";
 const REFRESH_KEY = "autismcad.refreshToken";
 const USER_KEY = "autismcad.user";
-
 const AuthContext = createContext<AuthState | null>(null);
 
-// Papel canonico (UPPER) a partir do role do usuario, para decidir o fluxo.
 export function roleCanon(role: string | null | undefined): string {
   return String(role ?? "").trim().toUpperCase();
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const lifecycle = useRef(new SessionLifecycle());
+  const snapshot = useRef<Snapshot>(emptySnapshot());
+  const refreshInFlight = useRef<{ generation: number; promise: Promise<RefreshResponse> } | null>(null);
+
+  const publish = useCallback((next: Snapshot) => {
+    snapshot.current = next;
+    setUser(next.user);
+  }, []);
+  const assertCurrent = useCallback((generation: number) => {
+    if (!lifecycle.current.current(generation)) throw new ApiError("Sessao encerrada.", 0, "ABORTED");
+  }, []);
+
+  const clearStorage = useCallback(async (generation: number) => {
+    await lifecycle.current.enqueue(generation, async () => {
+      await Promise.all([ACCESS_KEY, REFRESH_KEY, USER_KEY].map((key) => SecureStore.deleteItemAsync(key)));
+    });
+  }, []);
 
   useEffect(() => {
-    (async () => {
+    const session = lifecycle.current;
+    const generation = session.generation;
+    void session.enqueue(generation, async () => {
       try {
-        const [a, r, u] = await Promise.all([
-          SecureStore.getItemAsync(ACCESS_KEY),
-          SecureStore.getItemAsync(REFRESH_KEY),
-          SecureStore.getItemAsync(USER_KEY),
-        ]);
-        if (a && r && u) {
-          setAccessToken(a);
-          setRefreshToken(r);
-          setUser(JSON.parse(u) as AuthUser);
+        const [a, r, u] = await Promise.all([ACCESS_KEY, REFRESH_KEY, USER_KEY].map((key) => SecureStore.getItemAsync(key)));
+        if (a && r && u && session.current(generation)) {
+          const restored: AuthUser = JSON.parse(u);
+          publish({ accessToken: a, refreshToken: r, user: restored });
         }
+      } catch {
+        await Promise.all([ACCESS_KEY, REFRESH_KEY, USER_KEY].map((key) => SecureStore.deleteItemAsync(key)));
       } finally {
-        setLoading(false);
+        if (session.current(generation)) setLoading(false);
       }
-    })();
-  }, []);
+    });
+    return () => { session.invalidate(); };
+  }, [publish]);
 
-  const persist = useCallback(
-    async (tokens: { accessToken: string; refreshToken: string }, nextUser?: AuthUser) => {
-      setAccessToken(tokens.accessToken);
-      setRefreshToken(tokens.refreshToken);
+  const persist = useCallback(async (tokens: { accessToken: string; refreshToken: string }, generation: number, fresh?: AuthUser | null) => {
+    await lifecycle.current.enqueue(generation, async () => {
+      const nextUser = fresh ? { ...snapshot.current.user, ...fresh } : snapshot.current.user;
       await SecureStore.setItemAsync(ACCESS_KEY, tokens.accessToken);
       await SecureStore.setItemAsync(REFRESH_KEY, tokens.refreshToken);
-      if (nextUser) {
-        setUser(nextUser);
-        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
-      }
-    },
-    []
-  );
+      if (nextUser) await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
+      if (lifecycle.current.current(generation)) publish({ ...tokens, user: nextUser });
+    });
+    assertCurrent(generation);
+  }, [assertCurrent, publish]);
+
+  const requestForSession = useCallback(async <T,>(path: string, options: ApiRequest, generation: number): Promise<T> => {
+    assertCurrent(generation);
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    const signals = [lifecycle.current.controller.signal, options.signal].filter((signal): signal is AbortSignal => !!signal);
+    for (const signal of signals) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener("abort", abort, { once: true });
+    }
+    try {
+      const result = await apiRequest<T>(path, { ...options, signal: controller.signal });
+      assertCurrent(generation);
+      return result;
+    } finally {
+      for (const signal of signals) signal.removeEventListener("abort", abort);
+    }
+  }, [assertCurrent]);
 
   const logout = useCallback(async () => {
-    // Achado 80: revoga o refresh token no servidor (best-effort — offline/erro nao
-    // bloqueia o logout local; o token expira ou e revogado num proximo uso).
-    const currentRefresh = refreshToken;
-    if (currentRefresh) {
-      void apiRequest("/api/v1/auth/logout", {
-        method: "POST",
-        body: { refreshToken: currentRefresh },
-      }).catch(() => {});
+    const previousRefresh = snapshot.current.refreshToken;
+    const generation = lifecycle.current.invalidate();
+    refreshInFlight.current = null;
+    publish(emptySnapshot());
+    setLoading(false);
+    if (previousRefresh) {
+      void apiRequest("/api/v1/auth/logout", { method: "POST", body: { refreshToken: previousRefresh } }).catch(() => {});
     }
-    setUser(null);
-    setAccessToken(null);
-    setRefreshToken(null);
-    await Promise.all([
-      SecureStore.deleteItemAsync(ACCESS_KEY),
-      SecureStore.deleteItemAsync(REFRESH_KEY),
-      SecureStore.deleteItemAsync(USER_KEY),
-    ]);
-  }, [refreshToken]);
+    await clearStorage(generation);
+  }, [clearStorage, publish]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const res = await apiRequest<LoginResponse>("/api/v1/auth/login", {
-        method: "POST",
-        body: { email, password },
-      });
-      await persist(res, res.user);
-    },
-    [persist]
-  );
+  const login = useCallback(async (email: string, password: string) => {
+    const generation = lifecycle.current.invalidate();
+    refreshInFlight.current = null;
+    publish(emptySnapshot());
+    setLoading(false);
+    await clearStorage(generation);
+    const result = await requestForSession<LoginResponse>("/api/v1/auth/login", { method: "POST", body: { email, password } }, generation);
+    await persist(result, generation, result.user);
+  }, [clearStorage, persist, publish, requestForSession]);
+
+  const markConsent = useCallback(async (required: boolean, generation: number) => {
+    await lifecycle.current.enqueue(generation, async () => {
+      const current = snapshot.current;
+      if (!current.user) return;
+      const nextUser = { ...current.user, consentRequired: required };
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
+      if (lifecycle.current.current(generation)) publish({ ...current, user: nextUser });
+    });
+  }, [publish]);
 
   const markConsentAccepted = useCallback(async () => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, consentRequired: false };
-      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+    await markConsent(false, lifecycle.current.generation);
+  }, [markConsent]);
 
-  // Achado 122: o servidor passou a exigir reconsentimento (403 CONSENT_REQUIRED) — reativa
-  // o gate localmente para o AuthGuard redirecionar à tela de consentimento.
-  const markConsentRequired = useCallback(async () => {
-    setUser((prev) => {
-      if (!prev || prev.consentRequired) return prev;
-      const next = { ...prev, consentRequired: true };
-      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const runRefresh = useCallback((token: string, generation: number): Promise<RefreshResponse> => {
+    assertCurrent(generation);
+    const existing = refreshInFlight.current;
+    if (existing?.generation === generation) return existing.promise;
+    const pending = {
+      generation,
+      promise: (async () => {
+        const result = await requestForSession<RefreshResponse>("/api/v1/auth/refresh", { method: "POST", body: { refreshToken: token } }, generation);
+        await persist(result, generation, result.user);
+        return result;
+      })(),
+    };
+    refreshInFlight.current = pending;
+    void pending.promise.finally(() => {
+      if (refreshInFlight.current === pending) refreshInFlight.current = null;
+    }).catch(() => {});
+    return pending.promise;
+  }, [assertCurrent, persist, requestForSession]);
 
-  // Achado 112: serializa a renovacao. Chamadas concorrentes que recebem 401 aguardam
-  // a MESMA promise de refresh, em vez de cada uma chamar /auth/refresh — evita
-  // renovacoes simultaneas e logout indevido (relevante se houver rotacao de token).
-  const refreshInFlight = useRef<Promise<RefreshResponse> | null>(null);
-
-  const runRefresh = useCallback(
-    (currentRefreshToken: string): Promise<RefreshResponse> => {
-      if (!refreshInFlight.current) {
-        refreshInFlight.current = (async () => {
-          try {
-            const refreshed = await apiRequest<RefreshResponse>("/api/v1/auth/refresh", {
-              method: "POST",
-              body: { refreshToken: currentRefreshToken },
-            });
-            await persist(refreshed);
-            // Achado 74: atualiza a role persistida com o papel efetivo do refresh,
-            // preservando o consentRequired gerido pelo fluxo de consentimento.
-            if (refreshed.user) {
-              const fresh = refreshed.user;
-              setUser((prev) => {
-                const next = prev
-                  ? { ...prev, ...fresh }
-                  : { ...fresh, consentRequired: false };
-                void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
-                return next;
-              });
-            }
-            return refreshed;
-          } finally {
-            refreshInFlight.current = null;
-          }
-        })();
-      }
-      return refreshInFlight.current;
-    },
-    [persist]
-  );
-
-  const authFetch = useCallback(
-    async <T,>(path: string, options: ApiRequest = {}): Promise<T> => {
+  const authFetch = useCallback(async <T,>(path: string, options: ApiRequest = {}): Promise<T> => {
+    const generation = lifecycle.current.generation;
+    const current = snapshot.current;
+    try {
       try {
-        try {
-          return await apiRequest<T>(path, { ...options, token: accessToken });
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 401 && refreshToken) {
-            let refreshed: RefreshResponse;
-            try {
-              refreshed = await runRefresh(refreshToken);
-            } catch (refreshError) {
-              // Achado 123: desloga apenas quando o refresh foi de fato rejeitado por auth
-              // (401/403). Timeout/offline/5xx sao transitorios: preserva a sessao para retry.
-              if (
-                refreshError instanceof ApiError &&
-                (refreshError.status === 401 || refreshError.status === 403)
-              ) {
-                await logout();
-                throw error;
-              }
-              throw refreshError;
-            }
-            return await apiRequest<T>(path, { ...options, token: refreshed.accessToken });
-          }
-          throw error;
-        }
+        return await requestForSession<T>(path, { ...options, token: current.accessToken }, generation);
       } catch (error) {
-        // Achado 122: o servidor exige (re)consentimento — reativa o gate para o AuthGuard
-        // levar a /consentimento, independentemente de a falha ter vindo do retry pos-refresh.
-        if (error instanceof ApiError && error.code === "CONSENT_REQUIRED") {
-          await markConsentRequired();
+        assertCurrent(generation);
+        if (!(error instanceof ApiError) || error.status !== 401 || !current.refreshToken) throw error;
+        let refreshed: RefreshResponse;
+        try {
+          refreshed = await runRefresh(current.refreshToken, generation);
+        } catch (refreshError) {
+          assertCurrent(generation);
+          // Falhas de rede/timeout/5xx preservam a sessao para retry.
+          if (refreshError instanceof ApiError && (refreshError.status === 401 || refreshError.status === 403)) await logout();
+          throw refreshError;
         }
-        throw error;
+        return await requestForSession<T>(path, { ...options, token: refreshed.accessToken }, generation);
       }
-    },
-    [accessToken, refreshToken, runRefresh, logout, markConsentRequired]
-  );
+    } catch (error) {
+      assertCurrent(generation);
+      if (error instanceof ApiError && error.code === "CONSENT_REQUIRED") await markConsent(true, generation);
+      throw error;
+    }
+  }, [assertCurrent, logout, markConsent, requestForSession, runRefresh]);
 
-  const value = useMemo<AuthState>(
-    () => ({ user, loading, login, logout, markConsentAccepted, authFetch }),
-    [user, loading, login, logout, markConsentAccepted, authFetch]
-  );
-
+  const value = useMemo<AuthState>(() => ({ user, loading, login, logout, markConsentAccepted, authFetch }),
+    [user, loading, login, logout, markConsentAccepted, authFetch]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

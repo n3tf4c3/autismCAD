@@ -1,6 +1,8 @@
 import "server-only";
 
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import { loadPdfFonts } from "./pdf-fonts";
 import { env } from "@/lib/env";
 
 export type EvolutivoReport = {
@@ -48,7 +50,11 @@ function wrapText(text: string, maxWidth: number, measure: (t: string) => number
       continue;
     }
     if (cur) lines.push(cur);
-    cur = w;
+    cur = "";
+    for (const char of w) {
+      if (cur && measure(cur + char) > maxWidth) { lines.push(cur); cur = ""; }
+      cur += char;
+    }
   }
   if (cur) lines.push(cur);
   return lines.length ? lines : [""];
@@ -56,8 +62,21 @@ function wrapText(text: string, maxWidth: number, measure: (t: string) => number
 
 export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  pdf.registerFontkit(fontkit);
+  const [regularBytes, boldBytes] = await loadPdfFonts();
+  const font = await pdf.embedFont(regularBytes, { subset: true });
+  const fontBold = await pdf.embedFont(boldBytes, { subset: true });
+  const regularGlyphs = new Set(font.getCharacterSet());
+  const boldGlyphs = new Set(fontBold.getCharacterSet());
+  const missing = new Set<string>();
+  const printable = (text: string) => Array.from(text.normalize("NFC"), (char) => {
+    const code = char.codePointAt(0)!;
+    if (regularGlyphs.has(code) && boldGlyphs.has(code)) return char;
+    if (/\s/u.test(char)) return " ";
+    const label = `U+${code.toString(16).toUpperCase().padStart(4, "0")}`;
+    missing.add(label);
+    return `[${label}]`;
+  }).join("");
 
   const pageSize: [number, number] = [595.28, 841.89]; // A4
   const margin = 40;
@@ -69,8 +88,11 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   const drawLine = (text: string, opts?: { bold?: boolean; size?: number; color?: ReturnType<typeof rgb> }) => {
     const size = opts?.size ?? 11;
     const f = opts?.bold ? fontBold : font;
-    page.drawText(text, { x: margin, y, size, font: f, color: opts?.color });
-    y -= size + 4;
+    for (const line of wrapText(printable(text), pageSize[0] - margin * 2, (value) => f.widthOfTextAtSize(value, size))) {
+      ensureSpace(size + 4);
+      page.drawText(line, { x: margin, y, size, font: f, color: opts?.color });
+      y -= size + 4;
+    }
   };
 
   const ensureSpace = (need: number) => {
@@ -106,7 +128,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   drawLine("Resumo automático", { bold: true, size: 13 });
   const resumo = String(report.resumoAutomatico?.texto || "").trim() || "-";
   const resumoLines = resumo.split("\n").flatMap((line) => {
-    const measure = (t: string) => font.widthOfTextAtSize(t, 11);
+    const measure = (t: string) => font.widthOfTextAtSize(printable(t), 11);
     return wrapText(line, contentWidth, measure);
   });
   for (const l of resumoLines) {
@@ -128,12 +150,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
     for (const o of obs) {
       const prefix = `${o.data} - ${o.profissional_nome || "Profissional"}: `;
       const text = `${prefix}${o.texto || ""}`.trim();
-      const measure = (t: string) => font.widthOfTextAtSize(t, 11);
-      const lines = wrapText(text, contentWidth, measure);
-      for (const l of lines) {
-        ensureSpace(lineH + 6);
-        drawLine(`- ${l}`);
-      }
+      drawLine(`- ${text}`);
     }
   }
   y -= 6;
@@ -158,11 +175,11 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
     for (const a of atend.slice(0, 40)) {
       const obsText = (a.observacoes || a.resumo_repasse || a.motivo || "").trim();
       const row = `${a.data} | ${(a.profissional_nome || "Profissional").trim()} | ${a.presenca} | ${a.duracao_min || 0} min | ${obsText}`;
-      const measure = (t: string) => font.widthOfTextAtSize(t, 9);
+      const measure = (t: string) => font.widthOfTextAtSize(printable(t), 9);
       const lines = wrapText(row, contentWidth, measure);
       for (const l of lines) {
         ensureSpace(12);
-        page.drawText(l, { x: margin, y, size: 9, font });
+        page.drawText(printable(l), { x: margin, y, size: 9, font });
         y -= 12;
       }
       y -= 2;
@@ -173,5 +190,8 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
     }
   }
 
+  if (missing.size) {
+    drawLine(`Caracteres sem glifo foram preservados por seu codigo Unicode: ${[...missing].join(", ")}.`, { size: 9 });
+  }
   return pdf.save();
 }

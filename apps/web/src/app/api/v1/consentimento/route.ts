@@ -9,6 +9,6 @@ export const runtime = "nodejs";
 // usuário pendente não conseguiria aceitar a política (laço).
 export const POST = withErrorHandlingNoContext(async (request: Request) => {
   const { user } = await requireApiUser(request, { skipConsentGate: true });
-  await acceptCurrentPolicy(Number(user.id));
+  await acceptCurrentPolicy(Number(user.id), user.tokenVersion ?? 0);
   return Response.json({ ok: true });
 });

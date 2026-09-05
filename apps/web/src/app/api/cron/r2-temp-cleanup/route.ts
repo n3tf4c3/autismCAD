@@ -40,9 +40,9 @@ async function handleCleanup(request: Request) {
   });
 
   return Response.json({
-    ok: true,
+    ok: result.failed === 0,
     ...result,
-  });
+  }, { status: result.failed ? 502 : 200 });
 }
 
 export const GET = withErrorHandlingNoContext(handleCleanup);

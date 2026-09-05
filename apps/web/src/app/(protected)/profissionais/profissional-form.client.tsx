@@ -29,7 +29,7 @@ type ViaCepResp = {
   erro?: boolean;
   logradouro?: string;
   bairro?: string;
-  localidade?: string;
+  cidade?: string;
 };
 
 type ProfissionalFormValues = z.input<typeof saveProfissionalSchema>;
@@ -186,7 +186,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const resp = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, {
+          const resp = await fetch(`/api/cep/${cepDigits}`, {
             signal: controller.signal,
           });
           const data = (await resp.json().catch(() => null)) as ViaCepResp | null;
@@ -200,7 +200,7 @@ export function ProfissionalFormClient(props: { mode: "create" | "edit"; initial
           const prev = lastAutoRef.current;
           const viacepLogradouro = String(data.logradouro ?? "").trim();
           const viacepBairro = String(data.bairro ?? "").trim();
-          const viacepCidade = String(data.localidade ?? "").trim();
+          const viacepCidade = String(data.cidade ?? "").trim();
 
           const currLogradouro = String(logradouro ?? "").trim();
           const currBairro = String(bairro ?? "").trim();

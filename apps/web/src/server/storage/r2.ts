@@ -164,23 +164,38 @@ export async function listObjectsInR2(params: {
   };
 }
 
-export async function deleteObjectsFromR2(keys: string[]): Promise<number> {
+export async function deleteObjectsFromR2(keys: string[]): Promise<{ deleted: number; failed: number; codes: string[] }> {
   const normalizedKeys = Array.from(
     new Set(keys.map((key) => String(key || "").trim()).filter(Boolean))
   );
-  if (!normalizedKeys.length) return 0;
+  if (!normalizedKeys.length) return { deleted: 0, failed: 0, codes: [] };
 
   const client = getR2Client();
-  await client.send(
-    new DeleteObjectsCommand({
+  let pending = normalizedKeys;
+  let deleted = 0;
+  const failures: string[] = [];
+  const transient = new Set(["InternalError", "ServiceUnavailable", "SlowDown", "RequestTimeout"]);
+  for (let attempt = 0; pending.length && attempt < 3; attempt++) {
+    if (attempt) await new Promise((resolve) => setTimeout(resolve, attempt * 100));
+    const result = await client.send(new DeleteObjectsCommand({
       Bucket: env.R2_BUCKET!,
       Delete: {
-        Objects: normalizedKeys.map((key) => ({ Key: key })),
+        Objects: pending.map((key) => ({ Key: key })),
         Quiet: true,
       },
-    })
-  );
-  return normalizedKeys.length;
+    }));
+    const ambiguousError = (result.Errors ?? []).some((error) => !error.Key || !pending.includes(error.Key));
+    const errors = new Map((result.Errors ?? []).map((error) => [error.Key, error.Code ?? "UnknownError"]));
+    const retry: string[] = [];
+    for (const key of pending) {
+      const code = errors.get(key) ?? (ambiguousError ? "UnattributedDeleteError" : undefined);
+      if (!code) deleted++;
+      else if (attempt < 2 && transient.has(code)) retry.push(key);
+      else failures.push(code);
+    }
+    pending = retry;
+  }
+  return { deleted, failed: failures.length, codes: [...new Set(failures)] };
 }
 
 export async function cleanupTempObjectsInR2(params?: {
@@ -192,6 +207,7 @@ export async function cleanupTempObjectsInR2(params?: {
   retentionHours: number;
   scanned: number;
   deleted: number;
+  failed: number;
   kept: number;
 }> {
   const prefix = String(params?.prefix || "pacientes/temp/").trim();
@@ -202,6 +218,7 @@ export async function cleanupTempObjectsInR2(params?: {
   let continuationToken: string | null = null;
   let scanned = 0;
   let deleted = 0;
+  let failed = 0;
   let kept = 0;
 
   do {
@@ -221,10 +238,13 @@ export async function cleanupTempObjectsInR2(params?: {
       .map((item) => item.key);
 
     kept += page.items.length - expiredKeys.length;
-    deleted += await deleteObjectsFromR2(expiredKeys);
+    const removal = await deleteObjectsFromR2(expiredKeys);
+    deleted += removal.deleted;
+    failed += removal.failed;
+    if (removal.failed) console.error("[r2] Exclusao parcial de temporarios", { failed: removal.failed, codes: removal.codes });
   } while (continuationToken);
 
-  return { prefix, retentionHours, scanned, deleted, kept };
+  return { prefix, retentionHours, scanned, deleted, failed, kept };
 }
 
 function encodeCopySourceKey(key: string): string {

@@ -44,6 +44,9 @@ function contentSecurityPolicy(): string {
 }
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/api/relatorios/evolutivo/pdf": ["./src/assets/fonts/*.ttf"],
+  },
   transpilePackages: ["@autismcad/shared", "@autismcad/validators", "@autismcad/db"],
   // Achado 128: headers de seguranca em todas as respostas. HSTS e responsabilidade do host
   // (Vercel, max-age=63072000). Achado 132: CSP incluida.

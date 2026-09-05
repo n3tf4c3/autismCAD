@@ -1,0 +1,22 @@
+diff --git a/node_modules/query-string/index.js b/node_modules/query-string/index.js
+--- a/node_modules/query-string/index.js
++++ b/node_modules/query-string/index.js
+@@ -1,5 +1,5 @@
+ 'use strict';
+ const strictUriEncode = require('strict-uri-encode');
+-const decodeComponent = require('decode-uri-component');
++const decodeComponent = require('decode-uri-component').default;
+ const splitOnFirst = require('split-on-first');
+ const filterObject = require('filter-obj');
+diff --git a/node_modules/query-string/package.json b/node_modules/query-string/package.json
+--- a/node_modules/query-string/package.json
++++ b/node_modules/query-string/package.json
+@@ -41,7 +41,7 @@
+ 		"filter"
+ 	],
+ 	"dependencies": {
+-		"decode-uri-component": "^0.2.2",
++		"decode-uri-component": "0.5.0",
+ 		"filter-obj": "^1.1.0",
+ 		"split-on-first": "^1.0.0",
+ 		"strict-uri-encode": "^2.0.0"

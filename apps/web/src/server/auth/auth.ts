@@ -8,6 +8,7 @@ import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
 import { assertSessionNotRevoked } from "@/server/auth/token-version";
 import { parseSessionUserId } from "@/server/auth/user-id";
+import { isPolicyConsentRequired } from "@/server/modules/consent/consent.service";
 
 export type AuthenticatedUser = {
   id: number;
@@ -35,7 +36,13 @@ function assertSessionCurrent(user: AuthenticatedUser, currentVersion: number): 
   assertSessionNotRevoked({ tokenVersion: user.tokenVersion ?? null, currentVersion });
 }
 
-export async function requireUser(): Promise<AuthenticatedUser> {
+async function assertPolicyConsent(userId: number): Promise<void> {
+  if (await isPolicyConsentRequired(userId)) {
+    throw new AppError("Consentimento da Politica de Privacidade pendente", 403, "CONSENT_REQUIRED");
+  }
+}
+
+export async function requireUser(options?: { skipConsentGate?: boolean }): Promise<AuthenticatedUser> {
   const user = await requireSessionUser();
   const [activeUser] = await db
     .select({ id: users.id, tokenVersion: users.tokenVersion })
@@ -52,6 +59,7 @@ export async function requireUser(): Promise<AuthenticatedUser> {
     throw new AppError("Usuario inativo ou removido", 401, "UNAUTHORIZED");
   }
   assertSessionCurrent(user, activeUser.tokenVersion);
+  if (!options?.skipConsentGate) await assertPolicyConsent(user.id);
   return user;
 }
 
@@ -80,6 +88,7 @@ export async function requireAdminGeral() {
   if (!isAdminGeral) {
     throw new AppError("Acesso restrito ao admin-geral", 403, "FORBIDDEN");
   }
+  await assertPolicyConsent(user.id);
   return { user, access };
 }
 
@@ -92,5 +101,6 @@ export async function requirePermission(permissionKey: string | string[]) {
   assertSessionCurrent(user, access.tokenVersion);
   const keys = Array.isArray(permissionKey) ? permissionKey : [permissionKey];
   assertHasPermission(access, keys);
+  await assertPolicyConsent(user.id);
   return { user, access };
 }

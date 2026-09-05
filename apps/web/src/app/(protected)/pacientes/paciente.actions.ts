@@ -8,6 +8,7 @@ import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { pacientes } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
+import { patientFinalKey, patientUploadFilename } from "@/server/storage/patient-file-key";
 import {
   pacientesQuerySchema,
   savePacienteSchema,
@@ -222,31 +223,6 @@ async function assertPacienteExists(pacienteId: number) {
   if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
 }
 
-function looksLikeR2Key(value: string): boolean {
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (trimmed.length > 1024) return false;
-  if (/^https?:\/\//i.test(trimmed)) return false;
-  if (trimmed.includes("..")) return false;
-  if (trimmed.startsWith("/") || trimmed.startsWith("\\")) return false;
-  if (trimmed.includes("\\") || /[\u0000-\u001F]/.test(trimmed)) return false;
-  return /^[A-Za-z0-9/_\-.]+$/.test(trimmed);
-}
-
-function isNotFoundR2Error(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const candidate = error as {
-    name?: string;
-    Code?: string;
-    code?: string;
-    $metadata?: { httpStatusCode?: number };
-  };
-  const status = candidate.$metadata?.httpStatusCode;
-  const code = String(candidate.name ?? candidate.Code ?? candidate.code ?? "");
-  return status === 404 || code === "NotFound" || code === "NoSuchKey";
-}
-
 export async function obterArquivoPacienteReadUrlAction(
   pacienteId: number,
   kind: unknown
@@ -300,7 +276,8 @@ export async function prepararUploadArquivoPacienteAction(
     await assertPacienteExists(idNum);
 
     const prefix = `pacientes/temp/${idNum}/${parsed.kind}`;
-    const key = buildObjectKey(prefix, parsed.filename);
+    const key = buildObjectKey(prefix, patientUploadFilename(idNum, parsed.kind, parsed.filename));
+    patientFinalKey(idNum, parsed.kind, key);
     const url = await createSignedWriteUrl({
       key,
       contentType: parsed.contentType,
@@ -314,6 +291,16 @@ export async function prepararUploadArquivoPacienteAction(
   }
 }
 
+// A limpeza tambem segura a linha: outra operacao nao pode referenciar a chave
+// entre a verificacao e o DELETE externo (inclusive depois de rollback).
+async function deleteUnreferencedFile(patientId: number, kind: "foto" | "laudo" | "documento", key: string) {
+  await runDbTransaction(async (tx) => {
+    const [row] = await tx.select({ value: pacientes[kind] }).from(pacientes)
+      .where(eq(pacientes.id, patientId)).limit(1).for("update");
+    if (row?.value !== key) await deleteObjectFromR2(key);
+  }, { mode: "required", operation: "pacientes.arquivos.cleanup" });
+}
+
 export async function commitArquivoPacienteAction(
   pacienteId: number,
   input: unknown
@@ -323,155 +310,51 @@ export async function commitArquivoPacienteAction(
     const parsed = commitArquivoSchema.parse(input ?? {});
     const { user, access } = await requirePermission("pacientes:edit");
     await assertPacienteAccess(user, idNum, access);
-
-    let nextKey: string | null = parsed.key ?? null;
-    let tempKeyToDelete: string | null = null;
-    let promotedKeyToRollback: string | null = null;
-
-    if (parsed.key) {
-      if (!looksLikeR2Key(parsed.key)) {
-        throw new AppError("Formato de arquivo invalido", 400, "INVALID_INPUT");
-      }
-
-      const tempPrefix = `pacientes/temp/${idNum}/${parsed.kind}/`;
-      const finalPrefix = `pacientes/${idNum}/${parsed.kind}/`;
-      const isTempKey = parsed.key.startsWith(tempPrefix);
-      const isFinalKey = parsed.key.startsWith(finalPrefix);
-
-      if (!isTempKey && !isFinalKey) {
-        throw new AppError("Arquivo invalido para este paciente", 403, "FORBIDDEN");
-      }
-
-      // Achado 44: valida metadados reais (tamanho/content-type) do objeto enviado
-      // antes de consolidar a chave. Feito antes de qualquer copia temp->final, de
-      // modo que uma rejeicao nao deixe objeto promovido orfao.
-      const meta = await headObjectMetadataInR2(parsed.key);
-      if (!meta) {
-        throw new AppError(
-          isTempKey
-            ? "Arquivo temporario nao encontrado ou expirado, envie novamente"
-            : "O upload na nuvem nao foi confirmado, tente novamente",
-          409,
-          isTempKey ? "UPLOAD_EXPIRED" : "UPLOAD_NOT_CONFIRMED"
-        );
-      }
-      if (meta.size <= 0 || meta.size > MAX_UPLOAD_BYTES) {
-        throw new AppError(
-          "Arquivo excede o tamanho maximo permitido (20 MB)",
-          400,
-          "UPLOAD_TOO_LARGE"
-        );
-      }
-      if (!allowedContentTypesByKind[parsed.kind].has(meta.contentType)) {
-        throw new AppError(
-          "Conteudo do arquivo nao corresponde ao tipo esperado",
-          400,
-          "INVALID_CONTENT_TYPE"
-        );
-      }
-
-      if (isTempKey) {
-        const fileName = parsed.key.split("/").pop() || `${parsed.kind}.bin`;
-        const promotedKey = buildObjectKey(`pacientes/${idNum}/${parsed.kind}`, fileName);
-        try {
-          await copyObjectInR2({
-            sourceKey: parsed.key,
-            destinationKey: promotedKey,
-          });
-        } catch (error) {
-          if (isNotFoundR2Error(error)) {
-            throw new AppError(
-              "Arquivo temporario nao encontrado ou expirado, envie novamente",
-              409,
-              "UPLOAD_EXPIRED"
-            );
-          }
-          throw new AppError(
-            "Falha ao consolidar upload na nuvem, tente novamente",
-            500,
-            "UPLOAD_FINALIZATION_FAILED"
-          );
-        }
-        nextKey = promotedKey;
-        tempKeyToDelete = parsed.key;
-        promotedKeyToRollback = promotedKey;
-      }
-      // Para chave final, a existencia ja foi confirmada pelo HEAD de metadados acima.
-    }
-
+    const nextKey = parsed.key ? patientFinalKey(idNum, parsed.kind, parsed.key) : null;
+    const tempKey = parsed.key?.startsWith(`pacientes/temp/${idNum}/${parsed.kind}/`) ? parsed.key : null;
+    let copiedKey: string | null = null;
     let previousKey: string | null = null;
     try {
-      const result = await runDbTransaction(
-        async (tx) => {
-          const pacienteAtivoWhere = and(eq(pacientes.id, idNum), isNull(pacientes.deletedAt));
-          const [row] = await tx
-            .select({
-              id: pacientes.id,
-              foto: pacientes.foto,
-              laudo: pacientes.laudo,
-              documento: pacientes.documento,
-            })
-            .from(pacientes)
-            .where(pacienteAtivoWhere)
-            .limit(1);
-          if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-
-          const previousKey =
-            parsed.kind === "foto"
-              ? row.foto
-              : parsed.kind === "laudo"
-                ? row.laudo
-                : row.documento;
-
-          if (parsed.kind === "foto") {
-            const [updated] = await tx
-              .update(pacientes)
-              .set({ foto: nextKey, updatedAt: sql`now()` })
-              .where(pacienteAtivoWhere)
-              .returning({ id: pacientes.id });
-            if (!updated) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-          } else if (parsed.kind === "laudo") {
-            const [updated] = await tx
-              .update(pacientes)
-              .set({ laudo: nextKey, updatedAt: sql`now()` })
-              .where(pacienteAtivoWhere)
-              .returning({ id: pacientes.id });
-            if (!updated) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-          } else {
-            const [updated] = await tx
-              .update(pacientes)
-              .set({ documento: nextKey, updatedAt: sql`now()` })
-              .where(pacienteAtivoWhere)
-              .returning({ id: pacientes.id });
-            if (!updated) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
-          }
-
-          return { previousKey };
-        },
-        { operation: "pacientes.arquivos.commit.action", mode: "required" }
-      );
-      previousKey = result.previousKey;
-      promotedKeyToRollback = null;
+      previousKey = await runDbTransaction(async (tx) => {
+        const active = and(eq(pacientes.id, idNum), isNull(pacientes.deletedAt));
+        const [row] = await tx.select({ value: pacientes[parsed.kind] }).from(pacientes)
+          .where(active).limit(1).for("update");
+        if (!row) throw new AppError("Paciente nao encontrado", 404, "NOT_FOUND");
+        if (parsed.key && !tempKey && parsed.key !== row.value) {
+          throw new AppError("Anexo alterado. Atualize o cadastro e envie novamente.", 409, "STALE_FILE");
+        }
+        // Repetir um commit bem-sucedido nao copia nem apaga o objeto vigente.
+        const alreadyCommitted = nextKey != null && nextKey === row.value;
+        const sourceKey = alreadyCommitted ? nextKey : parsed.key;
+        if (sourceKey) {
+          const meta = await headObjectMetadataInR2(sourceKey);
+          if (!meta) throw new AppError("Upload nao encontrado ou expirado, envie novamente", 409, "UPLOAD_EXPIRED");
+          if (meta.size <= 0 || meta.size > MAX_UPLOAD_BYTES) throw new AppError("Arquivo excede o tamanho permitido (20 MB)", 400, "UPLOAD_TOO_LARGE");
+          if (!allowedContentTypesByKind[parsed.kind].has(meta.contentType)) throw new AppError("Conteudo do arquivo nao corresponde ao tipo esperado", 400, "INVALID_CONTENT_TYPE");
+        }
+        if (alreadyCommitted) return null;
+        if (tempKey && nextKey) {
+          await copyObjectInR2({ sourceKey: tempKey, destinationKey: nextKey });
+          copiedKey = nextKey;
+        }
+        await tx.update(pacientes).set({ [parsed.kind]: nextKey, updatedAt: sql`now()` }).where(active);
+        return row.value;
+      }, { operation: "pacientes.arquivos.commit.action", mode: "required" });
     } catch (error) {
-      if (promotedKeyToRollback && looksLikeR2Key(promotedKeyToRollback)) {
-        await deleteObjectFromR2(promotedKeyToRollback).catch((rollbackError) => {
-          console.error("[r2] Falha no rollback de objeto promovido", {
-            key: promotedKeyToRollback,
-            error: rollbackError,
-          });
-          return null;
+      if (copiedKey) {
+        await deleteUnreferencedFile(idNum, parsed.kind, copiedKey).catch(() => {
+          console.error("[r2] Falha na limpeza apos rollback de anexo");
         });
       }
       throw error;
     }
-
-    if (previousKey && previousKey !== nextKey && looksLikeR2Key(previousKey)) {
-      await deleteObjectFromR2(previousKey).catch(() => null);
+    for (const key of [previousKey, tempKey]) {
+      if (key && key !== nextKey) {
+        await deleteUnreferencedFile(idNum, parsed.kind, key).catch(() => {
+          console.error("[r2] Falha na limpeza apos confirmar anexo");
+        });
+      }
     }
-    if (tempKeyToDelete && tempKeyToDelete !== nextKey && looksLikeR2Key(tempKeyToDelete)) {
-      await deleteObjectFromR2(tempKeyToDelete).catch(() => null);
-    }
-
     revalidatePath(`/pacientes/${idNum}`);
     revalidatePath(`/pacientes/${idNum}/editar`);
     revalidatePath("/pacientes");

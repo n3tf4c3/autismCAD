@@ -61,14 +61,18 @@ export async function apiRequest<T = unknown>(
     controller.abort();
   }, timeoutMs);
 
-  let response: Response;
   try {
-    response = await fetch(buildUrl(path, query), {
+    const response = await fetch(buildUrl(path, query), {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
+    const text = await response.text();
+    if (controller.signal.aborted) {
+      throw new ApiError("Requisicao cancelada.", 0, "ABORTED");
+    }
+    return parseResponse<T>(response, text, schema);
   } catch (error) {
     if (timedOut) {
       throw new ApiError("Tempo de conexao esgotado. Tente novamente.", 0, "TIMEOUT");
@@ -82,7 +86,9 @@ export async function apiRequest<T = unknown>(
     if (signal) signal.removeEventListener("abort", onExternalAbort);
   }
 
-  const text = await response.text();
+}
+
+function parseResponse<T>(response: Response, text: string, schema: ApiRequest["schema"]): T {
   const data = text ? safeJson(text) : null;
 
   if (!response.ok) {

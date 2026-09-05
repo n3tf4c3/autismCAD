@@ -1,7 +1,8 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@autismcad/db/schema";
+import { AppError } from "@/server/shared/errors";
 import {
   CURRENT_PRIVACY_POLICY_VERSION,
   isPolicyConsentAccepted,
@@ -19,13 +20,15 @@ export async function isPolicyConsentRequired(userId: number): Promise<boolean> 
   return !isPolicyConsentAccepted(row.versao);
 }
 
-export async function acceptCurrentPolicy(userId: number): Promise<void> {
-  await db
+export async function acceptCurrentPolicy(userId: number, tokenVersion: number): Promise<void> {
+  const [accepted] = await db
     .update(users)
     .set({
       politicaVersaoAceita: CURRENT_PRIVACY_POLICY_VERSION,
       politicaAceitaEm: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(users.id, userId));
+    .where(and(eq(users.id, userId), eq(users.ativo, true), isNull(users.deletedAt), eq(users.tokenVersion, tokenVersion)))
+    .returning({ id: users.id });
+  if (!accepted) throw new AppError("Sessao revogada ou usuario inativo", 401, "TOKEN_REVOKED");
 }

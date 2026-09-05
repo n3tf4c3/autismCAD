@@ -280,7 +280,6 @@ export function PacienteFormClient(props: {
       setMsg(null);
       try {
         const payload = {
-          ...values,
           nome: typeof values.nome === "string" ? values.nome.trim() : "",
           cpf: digitsOnly(String(values.cpf ?? "")).slice(0, 11),
           dataNascimento: typeof values.dataNascimento === "string" ? values.dataNascimento : null,
@@ -298,9 +297,6 @@ export function PacienteFormClient(props: {
             typeof values.observacao === "string" ? values.observacao.trim() || null : null,
           ativo: values.ativo === "0" ? 0 : 1,
           terapias: normalizeTerapias(values.terapias),
-          fotoAtual,
-          laudoAtual,
-          documentoAtual,
         };
 
         const isEdit = props.mode === "edit" && !!initialId;
