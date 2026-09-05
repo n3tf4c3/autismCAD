@@ -33,10 +33,11 @@ export const GET = withErrorHandling(async (
   try {
     const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     if (!resp.ok) return Response.json({ error: "CEP nao encontrado" }, { status: 502 });
 
-    const data = asViaCepResponse(await resp.json().catch(() => null));
+    const data = asViaCepResponse(await resp.json());
     if (!data || data.erro) return Response.json({ error: "CEP nao encontrado" }, { status: 404 });
 
     return Response.json({

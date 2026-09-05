@@ -61,6 +61,7 @@ export async function requireApiUser(
     role: access.role,
     name: access.user.nome,
     email: access.user.email,
+    tokenVersion,
   };
   return { user, access };
 }

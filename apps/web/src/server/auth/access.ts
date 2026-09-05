@@ -72,6 +72,7 @@ export async function loadUserAccess(userId: number): Promise<UserAccess> {
   const permissionsSet = new Set(
     permissionRows
       .filter((row) => row.resource && row.action)
+      .filter((row) => !(row.resource === "consultas" && row.action === "presence"))
       .map((row) => `${row.resource}:${row.action}`)
   );
 

@@ -1,6 +1,6 @@
 import "./_load-env";
 import { hash } from "bcryptjs";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import {
@@ -30,7 +30,6 @@ const permissionSeeds = [
   { resource: "consultas", action: "create" },
   { resource: "consultas", action: "edit" },
   { resource: "consultas", action: "cancel" },
-  { resource: "consultas", action: "presence" },
   { resource: "prontuario", action: "view" },
   { resource: "prontuario", action: "create" },
   { resource: "prontuario", action: "version" },
@@ -118,7 +117,8 @@ async function main() {
       resource: permissions.resource,
       action: permissions.action,
     })
-    .from(permissions);
+    .from(permissions)
+    .where(or(ne(permissions.resource, "consultas"), ne(permissions.action, "presence")));
 
   const permissionMap = new Map(
     allPermissions.map((item) => [`${item.resource}:${item.action}`, item.id])
@@ -134,7 +134,6 @@ async function main() {
       "consultas:create",
       "consultas:edit",
       "consultas:cancel",
-      "consultas:presence",
       "relatorios_admin:view",
       "relatorios_admin:export",
       "profissionais:view",
@@ -142,7 +141,6 @@ async function main() {
     profissional: [
       "pacientes:view",
       "consultas:view",
-      "consultas:presence",
       "prontuario:view",
       "prontuario:create",
       "prontuario:version",

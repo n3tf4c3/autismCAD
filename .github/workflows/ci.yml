@@ -17,6 +17,18 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       NODE_ENV: "test"
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: autismcad_audit_test
+          POSTGRES_USER: audit
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U audit -d autismcad_audit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
@@ -51,12 +63,23 @@ jobs:
       - name: Tests
         run: npm run test
 
+      - name: PostgreSQL concurrency and authorization boundaries
+        env:
+          AUDIT_ALLOW_DISPOSABLE_DB: "1"
+          TEST_DATABASE_URL: postgresql://audit:disposable-ci-only@127.0.0.1:5432/autismcad_audit_test
+        run: npm run test:integration
+
       - name: Drizzle Check
         # drizzle-kit check e offline (compara snapshots, nao conecta). Como o achado 107
         # fez o config falhar sem DATABASE_URL, usamos o opt-in de sandbox documentado.
         env:
           DB_LOCAL_FALLBACK: "1"
         run: npm run db:check -w @autismcad/db
+
+      - name: Browser boundary under enforced CSP
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
 
       - name: Build
         run: npm run build

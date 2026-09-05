@@ -30,6 +30,7 @@ import {
 import { runDbTransaction } from "@/server/db/transaction";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { blocksLastAdminGeralRemoval } from "@/server/modules/users/admin-geral-guard";
+import { lockAdminMembership } from "@/server/modules/users/admin-membership-lock";
 import { AppError } from "@/server/shared/errors";
 import { escapeLikePattern } from "@/server/shared/normalize";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
@@ -274,7 +275,7 @@ export async function createUser(input: CreateUserInput) {
 export async function updateUser(
   id: number,
   input: UpdateUserInput,
-  requesterUserId?: number | null
+  requesterUserId: number
 ) {
   const roleName = input.role.trim().toLowerCase();
   const [roleRow] = await db
@@ -321,6 +322,7 @@ export async function updateUser(
 
   await runDbTransaction(
     async (tx) => {
+      await lockAdminMembership(tx, requesterUserId);
       const [current] = await tx
         .select({ id: users.id, role: users.role })
         .from(users)
@@ -481,6 +483,7 @@ export async function deleteUser(id: number, requesterUserId: number) {
 
   const result = await runDbTransaction(
     async (tx) => {
+      await lockAdminMembership(tx, requesterUserId);
       const [current] = await tx
         .select({ id: users.id, role: users.role })
         .from(users)
@@ -590,6 +593,7 @@ export async function listPermissions() {
       action: permissions.action,
     })
     .from(permissions)
+    .where(sql`not (${permissions.resource} = 'consultas' and ${permissions.action} = 'presence')`)
     .orderBy(asc(permissions.resource), asc(permissions.action));
 }
 
@@ -611,7 +615,7 @@ export async function getRolePermissions(roleName: string) {
     })
     .from(rolePermissions)
     .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(eq(rolePermissions.role, roleName))
+    .where(and(eq(rolePermissions.role, roleName), sql`not (${permissions.resource} = 'consultas' and ${permissions.action} = 'presence')`))
     .orderBy(asc(permissions.resource), asc(permissions.action));
 
   return {
@@ -652,7 +656,7 @@ export async function updateRolePermissions(
     const valid = await db
       .select({ id: permissions.id })
       .from(permissions)
-      .where(inArray(permissions.id, permissionIds));
+      .where(and(inArray(permissions.id, permissionIds), sql`not (${permissions.resource} = 'consultas' and ${permissions.action} = 'presence')`));
     permissionIds = valid.map((item) => item.id);
   }
 

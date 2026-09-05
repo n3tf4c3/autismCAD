@@ -2,9 +2,8 @@ import Link from "next/link";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { getAuthSession } from "@/server/auth/session";
+import { requireUser } from "@/server/auth/auth";
 import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
-import { parseSessionUserId } from "@/server/auth/user-id";
 import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@autismcad/db/schema";
@@ -33,12 +32,8 @@ function formatBirthdayMonth(value: string): string {
 }
 
 export default async function DashboardPage() {
-  const session = await getAuthSession();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-  const userId = parseSessionUserId(session.user.id);
-  const user = { ...session.user, id: userId };
+  const user = await requireUser();
+  const userId = user.id;
   const access = await loadUserAccess(userId);
   if (!access.exists) {
     redirect("/login");

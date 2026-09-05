@@ -294,24 +294,6 @@ export async function obterPacienteDetalhe(id: number): Promise<PacienteDetalhe 
   };
 }
 
-// Campos de arquivo so aceitam: vazio, o valor ja persistido (inalterado) ou
-// chave R2 sob o prefixo final do paciente. Alteracoes de arquivo acontecem
-// exclusivamente via commitArquivoPacienteAction, que valida e promove a chave.
-function validarChaveArquivoPaciente(
-  valor: string | null,
-  atual: string | null,
-  pacienteId: number,
-  kind: "foto" | "laudo" | "documento"
-): string | null {
-  if (!valor) return null;
-  if (atual && valor === atual) return atual;
-  if (valor.startsWith(`pacientes/${pacienteId}/${kind}/`)) return valor;
-  throw new AppError(
-    `Arquivo de ${kind} invalido. Envie o arquivo pelo formulario do paciente.`,
-    400,
-    "INVALID_FILE_KEY"
-  );
-}
 
 export async function salvarPaciente(input: SavePacienteInput, id?: number | null) {
   const nome = input.nome.trim();
@@ -363,24 +345,7 @@ export async function salvarPaciente(input: SavePacienteInput, id?: number | nul
             sexo: normalizeOptionalText(input.sexo),
             dataInicio: normalizeDateOnlyLoose(input.dataInicio),
             observacao: normalizeOptionalText(input.observacao),
-            foto: validarChaveArquivoPaciente(
-              normalizeOptionalText(input.fotoAtual),
-              atual.foto,
-              pacienteId,
-              "foto"
-            ),
-            laudo: validarChaveArquivoPaciente(
-              normalizeOptionalText(input.laudoAtual),
-              atual.laudo,
-              pacienteId,
-              "laudo"
-            ),
-            documento: validarChaveArquivoPaciente(
-              normalizeOptionalText(input.documentoAtual),
-              atual.documento,
-              pacienteId,
-              "documento"
-            ),
+            // Campos legados fotoAtual/laudoAtual/documentoAtual nao alteram anexos.
             ativo,
             updatedAt: sql`now()`,
           })

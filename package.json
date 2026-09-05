@@ -12,11 +12,14 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "patch-package --error-on-fail",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:integration": "node --test scripts/testing/postgres.test.cjs",
+    "test:browser": "node --test scripts/testing/browser.test.cjs",
     "db:generate": "npm run db:generate -w @autismcad/db",
     "db:migrate": "npm run db:migrate -w @autismcad/db",
     "db:check": "npm run db:check -w @autismcad/db",
@@ -28,9 +31,15 @@
     "db:cleanup:plano-ensino": "npm run db:cleanup:plano-ensino -w @autismcad/web"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "esbuild": "^0.28.1",
+    "patch-package": "8.0.1",
+    "pg": "^8.16.3",
+    "react-test-renderer": "19.2.3",
     "turbo": "^2"
   },
   "overrides": {
+    "decode-uri-component": "0.5.0",
     "postcss": "^8.5.25",
     "sharp": "^0.35.3",
     "esbuild": "^0.28.1",

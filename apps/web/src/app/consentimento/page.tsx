@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAuthSession } from "@/server/auth/session";
-import { parseSessionUserId } from "@/server/auth/user-id";
+import { requireUser } from "@/server/auth/auth";
+import { AppError } from "@/server/shared/errors";
+import { aceitarConsentimentoAction } from "./consentimento.actions";
 import {
-  acceptCurrentPolicy,
   isPolicyConsentRequired,
 } from "@/server/modules/consent/consent.service";
 
@@ -13,19 +13,14 @@ export const metadata: Metadata = {
 };
 
 export default async function ConsentimentoPage() {
-  const session = await getAuthSession();
-  if (!session?.user?.id) redirect("/login");
-  const userId = parseSessionUserId(session.user.id);
+  const user = await requireUser({ skipConsentGate: true }).catch((error: unknown) => {
+    if (error instanceof AppError && error.status === 401) redirect("/login");
+    throw error;
+  });
+  const userId = user.id;
   // Já consentiu a versão vigente: não há o que fazer aqui.
   if (!(await isPolicyConsentRequired(userId))) redirect("/dashboard");
 
-  async function aceitar() {
-    "use server";
-    const s = await getAuthSession();
-    if (!s?.user?.id) redirect("/login");
-    await acceptCurrentPolicy(parseSessionUserId(s.user.id));
-    redirect("/dashboard");
-  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-12 text-slate-700">
@@ -44,7 +39,7 @@ export default async function ConsentimentoPage() {
         indicados na política.
       </p>
 
-      <form action={aceitar} className="mt-8">
+      <form action={aceitarConsentimentoAction} className="mt-8">
         <button
           type="submit"
           className="rounded-lg bg-amber-500 px-5 py-3 font-semibold text-white hover:bg-amber-600"

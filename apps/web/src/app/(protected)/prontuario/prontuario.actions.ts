@@ -179,6 +179,7 @@ export async function salvarDocumentoProntuarioAction(
     const { user, access } = await requirePermission(
       parsedInput.documentoId ? "prontuario:version" : "prontuario:create"
     );
+    if (parsedInput.status === "Finalizado") await requirePermission("prontuario:finalize");
     await assertPacienteAccess(user, parsedPacienteId, access);
     const saved = await salvarDocumento(parsedPacienteId, parsedInput, user);
     revalidatePath(`/prontuario/${parsedPacienteId}`);
