@@ -29,7 +29,7 @@
     "dotenv": "^17.2.4",
     "drizzle-orm": "^0.45.1",
     "jose": "^4.15.9",
-    "next": "^16.2.9",
+    "next": "^16.3.4",
     "next-auth": "^4.24.14",
     "pdf-lib": "^1.17.1",
     "react": "19.2.3",
@@ -45,7 +45,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.9",
+    "eslint-config-next": "^16.3.4",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"
