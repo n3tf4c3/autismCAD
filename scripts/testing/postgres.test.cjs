@@ -165,6 +165,123 @@ test("Ferias persiste na edicao, tem contagem propria e e preservada na exclusao
   assert.equal(await professionals.contarAgendaFuturaProfissional(1), 0);
 });
 
+async function evolucaoHarness() {
+  await reset();
+  await observer.query("insert into pacientes(id,nome,cpf) values(1,'Paciente sintetico','00000000000')");
+  await observer.query("insert into terapeutas(id,nome,cpf,usuario_id) values(1,'Profissional sintetico','11111111111',1),(2,'Outro profissional','22222222222',2)");
+  const states = ["Nao informado", "Ausente", "Férias", "Presente"];
+  for (const [index, presenca] of states.entries()) {
+    await observer.query(`insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim,
+      periodo_inicio,periodo_fim,presenca,realizado,motivo,observacoes)
+      values($1,1,1,$2,'08:00','09:00','2099-01-01','2099-01-31',$3,$4,'Anotacao anterior','Observacao preservada')`,
+    [index + 1, `2099-01-${String(5 + index * 7).padStart(2, "0")}`, presenca, presenca === "Presente"]);
+  }
+  await observer.query("insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim) values(5,1,2,'2099-01-05','09:00','10:00')");
+  const user = { id: 1, role: "profissional" };
+  const access = { canonicalRole: "PROFISSIONAL", profissionalId: 1 };
+  const revalidated = [];
+  const boundaries = {
+    ...fixtures(databases[0]),
+    "next/cache": { revalidatePath: (pathname) => revalidated.push(pathname) },
+    "@/server/auth/auth": { requirePermission: async () => ({ user, access }) },
+    "@/server/auth/api-auth": { requireApiPermission: async () => ({ user, access }) },
+    "@/server/auth/paciente-access": { assertPacienteAccess: async (_user, pacienteId) => {
+      assert.equal(pacienteId, 1); return { profissionalId: 1 };
+    } },
+  };
+  const [service, web, post, put] = await Promise.all([
+    loadSource("apps/web/src/server/modules/prontuario/prontuario.service.ts", boundaries),
+    loadSource("apps/web/src/app/(protected)/prontuario/prontuario.actions.ts", boundaries),
+    loadSource("apps/web/src/app/api/v1/evolucoes/route.ts", boundaries),
+    loadSource("apps/web/src/app/api/v1/evolucoes/[id]/route.ts", boundaries),
+  ]);
+  return { service, web, post, put, user, revalidated };
+}
+
+const attendanceSnapshot = async () => (await observer.query("select * from atendimentos order by id")).rows;
+const evolucaoRequest = (method, body) => new Request("http://localhost/api/v1/evolucoes", {
+  method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+});
+
+for (const channel of ["web", "api"]) {
+  test(`Devolutiva ${channel}: criar e editar confirma presenca somente do atendimento vinculado`, async () => {
+    const h = await evolucaoHarness();
+    for (const atendimentoId of [1, 2, 3, 4]) {
+      const before = await attendanceSnapshot();
+      const input = { atendimentoId, payload: { schemaVersion: 2, descricao: "Devolutiva sintetica" } };
+      let saved;
+      if (channel === "web") {
+        h.revalidated.length = 0;
+        const result = await h.web.criarEvolucaoAction(1, input);
+        assert.equal(result.ok, true, JSON.stringify(result)); saved = result.data;
+        assert.ok(h.revalidated.includes("/consultas"));
+      } else {
+        const response = await h.post.POST(evolucaoRequest("POST", { pacienteId: 1, ...input }));
+        const result = await response.json(); assert.equal(response.status, 201, JSON.stringify(result)); saved = result.data;
+      }
+      const after = await attendanceSnapshot();
+      for (const [index, row] of after.entries()) {
+        assert.deepEqual(row, Number(row.id) === atendimentoId
+          ? { ...before[index], presenca: "Presente", realizado: true, status_repasse: "Concluido", updated_at: row.updated_at }
+          : before[index]);
+      }
+      assert.equal(saved.data, before[atendimentoId - 1].data.toISOString().slice(0, 10));
+
+      // Uma correcao de devolutiva legada tambem confirma a presenca.
+      await observer.query("update atendimentos set presenca='Nao informado',realizado=false,status_repasse='Pendente' where id=$1", [atendimentoId]);
+      const edit = { payload: { schemaVersion: 2, descricao: "Devolutiva corrigida" } };
+      if (channel === "web") {
+        h.revalidated.length = 0;
+        const result = await h.web.atualizarEvolucaoAction(saved.id, edit);
+        assert.equal(result.ok, true, JSON.stringify(result)); assert.ok(h.revalidated.includes("/consultas"));
+      } else {
+        const response = await h.put.PUT(evolucaoRequest("PUT", edit), { params: Promise.resolve({ id: String(saved.id) }) });
+        assert.equal(response.status, 200, JSON.stringify(await response.json()));
+      }
+      const updated = (await attendanceSnapshot())[atendimentoId - 1];
+      assert.deepEqual(updated, { ...after[atendimentoId - 1], updated_at: updated.updated_at });
+    }
+  });
+}
+
+test("Devolutiva sem atendimento, vinculo invalido e troca de sessao preservam os demais atendimentos", async () => {
+  const h = await evolucaoHarness();
+  const before = await attendanceSnapshot();
+  await assert.rejects(h.service.criarEvolucao(1, { atendimentoId: 5, payload: {} }, h.user), { code: "INVALID_INPUT" });
+  const saved = await h.service.criarEvolucao(1, { profissionalId: 1, data: "2099-01-05", payload: {} }, h.user);
+  assert.deepEqual(await attendanceSnapshot(), before);
+  await h.service.atualizarEvolucao(saved.id, { atendimentoId: 1 }, h.user);
+  await h.service.atualizarEvolucao(saved.id, { atendimentoId: 2, data: "2099-01-12" }, h.user);
+  const after = await attendanceSnapshot();
+  assert.deepEqual(after.map(({ presenca, realizado, status_repasse }) => ({ presenca, realizado, status_repasse })), [
+    { presenca: "Presente", realizado: true, status_repasse: "Pendente" },
+    { presenca: "Presente", realizado: true, status_repasse: "Concluido" },
+    ...before.slice(2).map(({ presenca, realizado, status_repasse }) => ({ presenca, realizado, status_repasse })),
+  ]);
+  await assert.rejects(h.service.criarEvolucao(1, { atendimentoId: 2, payload: {} }, h.user), { code: "CONFLICT" });
+  assert.deepEqual(await attendanceSnapshot(), after);
+  await h.service.excluirEvolucao(saved.id, 1);
+  const deleted = (await attendanceSnapshot())[1];
+  assert.deepEqual(deleted, { ...after[1], status_repasse: "Pendente", updated_at: deleted.updated_at });
+});
+
+test("Devolutiva: falha ao confirmar presenca desfaz criacao e edicao na mesma transacao", async () => {
+  const h = await evolucaoHarness();
+  const existing = await h.service.criarEvolucao(1, { profissionalId: 1, data: "2099-01-05", payload: { descricao: "Original" } }, h.user);
+  const before = await attendanceSnapshot();
+  const evolucoesBefore = (await observer.query("select * from evolucoes order by id")).rows;
+  await observer.query("alter table atendimentos add constraint ck_test_presenca_failure check (id <> 1 or presenca <> 'Presente')");
+  try {
+    const isPresenceFailure = (error) => (error.cause?.code ?? error.code) === "23514";
+    await assert.rejects(h.service.criarEvolucao(1, { atendimentoId: 1, payload: {} }, h.user), isPresenceFailure);
+    await assert.rejects(h.service.atualizarEvolucao(existing.id, { atendimentoId: 1, payload: { descricao: "Alterada" } }, h.user), isPresenceFailure);
+    assert.deepEqual(await attendanceSnapshot(), before);
+    assert.deepEqual((await observer.query("select * from evolucoes order by id")).rows, evolucoesBefore);
+  } finally {
+    await observer.query("alter table atendimentos drop constraint ck_test_presenca_failure");
+  }
+});
+
 async function storageHarness() {
   await reset();
   await observer.query("insert into pacientes(id,nome,cpf,foto) values(1,'Synthetic patient','00000000000','pacientes/1/foto/old.jpg')");

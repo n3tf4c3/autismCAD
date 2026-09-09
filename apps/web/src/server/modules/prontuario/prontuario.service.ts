@@ -188,20 +188,18 @@ async function assertProfissionalPacienteValido(
   }
 }
 
-async function marcarRepasseConcluido(executor: typeof db, atendimentoId: number) {
-  // Achado 85: so conclui o repasse de atendimentos presentes, alinhando com
-  // resolveStatusRepasseForUpdate em atendimentos.service. Evolucao vinculada a
-  // atendimento ausente/nao informado nao deve marcar repasse como concluido.
+async function confirmarPresencaEConcluirRepasse(executor: typeof db, atendimentoId: number) {
+  // A devolutiva confirma a realizacao desta sessao. Presenca e repasse sao
+  // atualizados na mesma transacao da evolucao, preservando a invariante do banco.
   await executor
     .update(atendimentos)
-    .set({ statusRepasse: "Concluido", updatedAt: sql`now()` })
-    .where(
-      and(
-        eq(atendimentos.id, atendimentoId),
-        isNull(atendimentos.deletedAt),
-        eq(atendimentos.presenca, "Presente")
-      )
-    );
+    .set({
+      presenca: "Presente",
+      realizado: true,
+      statusRepasse: "Concluido",
+      updatedAt: sql`now()`,
+    })
+    .where(and(eq(atendimentos.id, atendimentoId), isNull(atendimentos.deletedAt)));
 }
 
 async function sincronizarRepassePendenteSeSemEvolucao(
@@ -494,7 +492,7 @@ export async function criarEvolucao(
           .returning({ id: evolucoes.id, data: evolucoes.data });
 
         if (atendimentoId) {
-          await marcarRepasseConcluido(tx, atendimentoId);
+          await confirmarPresencaEConcluirRepasse(tx, atendimentoId);
         }
 
         return saved;
@@ -623,7 +621,7 @@ export async function atualizarEvolucao(
           await sincronizarRepassePendenteSeSemEvolucao(tx, atendimentoAnteriorId, id);
         }
         if (atendimentoNovoId) {
-          await marcarRepasseConcluido(tx, atendimentoNovoId);
+          await confirmarPresencaEConcluirRepasse(tx, atendimentoNovoId);
         }
       },
       { operation: "prontuario.atualizarEvolucao", mode: "required" }

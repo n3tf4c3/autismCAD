@@ -101,6 +101,8 @@ export async function criarEvolucaoAction(
     });
     revalidatePath(`/prontuario/${parsedPacienteId}`);
     revalidatePath(`/prontuario/${parsedPacienteId}/evolucao/nova`);
+    revalidatePath("/consultas");
+    revalidatePath("/dashboard");
     return { ok: true, data: saved };
   } catch (error) {
     return actionErrorResult(error);
@@ -133,6 +135,8 @@ export async function atualizarEvolucaoAction(
     const pacienteId = Number(evolucaoAtual.pacienteId);
     revalidatePath(`/prontuario/${pacienteId}`);
     revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);
+    revalidatePath("/consultas");
+    revalidatePath("/dashboard");
     return { ok: true, data: updated };
   } catch (error) {
     return actionErrorResult(error);
@@ -162,6 +166,8 @@ export async function excluirEvolucaoAction(
     const pacienteId = Number(evolucaoAtual.pacienteId);
     revalidatePath(`/prontuario/${pacienteId}`);
     revalidatePath(`/prontuario/${pacienteId}/evolucao/${parsedEvolucaoId}`);
+    revalidatePath("/consultas");
+    revalidatePath("/dashboard");
     return { ok: true, data: { id: parsedEvolucaoId, deleted: true } };
   } catch (error) {
     return actionErrorResult(error);
