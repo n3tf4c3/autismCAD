@@ -723,6 +723,7 @@ export function ConsultasClient(props: {
                   <option value="Nao informado">Nao informado</option>
                   <option value="Presente">Presente</option>
                   <option value="Ausente">Ausente</option>
+                  <option value="Férias">Férias</option>
                 </select>
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">
@@ -864,6 +865,7 @@ export function ConsultasClient(props: {
                   <option value="Nao informado">Nao informado</option>
                   <option value="Presente">Presente</option>
                   <option value="Ausente">Ausente</option>
+                  <option value="Férias">Férias</option>
                 </select>
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">

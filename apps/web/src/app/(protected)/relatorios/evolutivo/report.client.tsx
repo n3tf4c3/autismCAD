@@ -17,6 +17,7 @@ type EvolutivoReport = {
     totalAtendimentos: number;
     presentes: number;
     ausentes: number;
+    ferias: number;
     naoInformado: number;
     taxaPresencaPercent: number;
     tempoTotalMinutos: number;
@@ -279,6 +280,7 @@ export function EvolutivoReportClient(props: {
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">Total</p>
                 <p className="text-2xl font-bold text-[var(--marrom)]">{report.indicadores.totalAtendimentos}</p>
+                <p className="text-xs text-gray-500">Férias: {report.indicadores.ferias}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">Presenças</p>

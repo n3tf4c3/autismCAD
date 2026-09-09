@@ -92,6 +92,13 @@
       "when": 1788609600000,
       "tag": "0012_remove_presence_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788944837936,
+      "tag": "0013_open_gladiator",
+      "breakpoints": true
     }
   ]
 }

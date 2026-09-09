@@ -35,7 +35,7 @@ export const assiduidadeQuerySchema = z
     profissionalId: optionalProfissionalId,
     from: optionalDate,
     to: optionalDate,
-    presenca: z.enum(["Presente", "Ausente", "Nao informado"]).optional(),
+    presenca: z.enum(["Presente", "Ausente", "Férias", "Nao informado"]).optional(),
   });
 
 export type AssiduidadeQueryInput = z.infer<typeof assiduidadeQuerySchema>;

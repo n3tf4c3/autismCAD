@@ -45,6 +45,7 @@ function presencaTone(presenca?: string | null): "ok" | "accent" {
   return /presen|confirm/i.test(presenca ?? "") ? "ok" : "accent";
 }
 function presencaLabel(presenca?: string | null): string {
+  if (presenca === "Férias") return "Férias";
   return /presen|confirm/i.test(presenca ?? "") ? "Confirmado" : "Pendente";
 }
 

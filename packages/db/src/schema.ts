@@ -345,7 +345,7 @@ export const atendimentos = pgTable(
     check("ck_atendimentos_turno", sql`${table.turno} in ('Matutino', 'Vespertino')`),
     check(
       "ck_atendimentos_presenca",
-      sql`${table.presenca} in ('Presente', 'Ausente', 'Nao informado')`
+      sql`${table.presenca} in ('Presente', 'Ausente', 'Férias', 'Nao informado')`
     ),
     check(
       "ck_atendimentos_status_repasse",

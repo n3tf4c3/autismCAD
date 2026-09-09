@@ -151,7 +151,7 @@ export default async function DashboardPage() {
   ].sort((a, b) => a.dia - b.dia || a.nome.localeCompare(b.nome, "pt-BR"));
 
   const pendentesAll = pendentes.filter((a) => {
-    const cancelado = String(a.presenca ?? "").toLowerCase() === "ausente";
+    const cancelado = ["ausente", "férias"].includes(String(a.presenca ?? "").toLowerCase());
     return !a.realizado && !cancelado;
   });
   const monthItems = monthAtendimentos.map((a) => ({

@@ -22,6 +22,7 @@ type Report = {
     total: number;
     presentes: number;
     faltas: number;
+    ferias: number;
     semRegistro: number;
     devolutivasPendentes: number;
     taxa: number;
@@ -41,6 +42,7 @@ type Report = {
     total: number;
     presencas: number;
     faltas: number;
+    ferias: number;
     taxa: number;
     neutros: number;
     ultimo: string;
@@ -224,6 +226,7 @@ export function AssiduidadeClient(props: {
               <option value="">Todas</option>
               <option value="Presente">Presente</option>
               <option value="Ausente">Ausente</option>
+              <option value="Férias">Férias</option>
               <option value="Nao informado">Nao informado</option>
             </select>
           </label>
@@ -269,7 +272,7 @@ export function AssiduidadeClient(props: {
         {loading ? <p className="mt-3 text-sm text-gray-600">Carregando...</p> : null}
       </section>
 
-      <section className="relatorio-print-resumo grid grid-cols-1 gap-4 md:grid-cols-5">
+      <section className="relatorio-print-resumo grid grid-cols-1 gap-4 md:grid-cols-6">
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Atendimentos no período</p>
           <p className="text-2xl font-bold text-[var(--marrom)]">{report?.resumo.total ?? 0}</p>
@@ -281,6 +284,10 @@ export function AssiduidadeClient(props: {
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Faltas</p>
           <p className="text-2xl font-bold text-red-600">{report?.resumo.faltas ?? 0}</p>
+        </div>
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">Férias</p>
+          <p className="text-2xl font-bold text-sky-700">{report?.resumo.ferias ?? 0}</p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Sem registro</p>
@@ -299,7 +306,7 @@ export function AssiduidadeClient(props: {
             Base: presentes / (presentes + faltas)
           </p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-2">
+        <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-3">
           <p className="text-sm text-gray-500">Período</p>
           <p className="text-sm font-semibold text-[var(--marrom)]">
             {report ? `${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}` : "-"}
@@ -406,6 +413,7 @@ export function AssiduidadeClient(props: {
                 <th className="px-6 py-3">Total</th>
                 <th className="px-6 py-3">Presenças</th>
                 <th className="px-6 py-3">Ausências</th>
+                <th className="px-6 py-3">Férias</th>
                 <th className="px-6 py-3">Taxa</th>
                 <th className="px-6 py-3">Sem registro</th>
                 <th className="px-6 py-3">Último atendimento</th>
@@ -420,6 +428,7 @@ export function AssiduidadeClient(props: {
                     <td className="px-6 py-3 text-gray-700">{l.total}</td>
                     <td className="px-6 py-3 font-semibold text-green-700">{l.presencas}</td>
                     <td className="px-6 py-3 font-semibold text-red-600">{l.faltas}</td>
+                    <td className="px-6 py-3 font-semibold text-sky-700">{l.ferias}</td>
                     <td className="px-6 py-3">
                       <span className="badge rounded-full px-2 py-1 text-xs font-semibold">
                         {l.taxa}%
@@ -432,7 +441,7 @@ export function AssiduidadeClient(props: {
                 ))
               ) : (
                 <tr>
-                  <td className="px-6 py-4 text-gray-500" colSpan={8}>
+                  <td className="px-6 py-4 text-gray-500" colSpan={9}>
                     Nenhum atendimento no recorte selecionado.
                   </td>
                 </tr>

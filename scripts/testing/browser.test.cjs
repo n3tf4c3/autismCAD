@@ -6,6 +6,80 @@ const esbuild = require("esbuild");
 const { chromium } = require("@playwright/test");
 const { loadSource, root } = require("./load-source.cjs");
 
+test("Ferias pode ser selecionada, salva e reaberta no formulario real de atendimento", async () => {
+  const fixtureModules = {
+    "next/navigation": "export const useRouter=()=>({push(){},refresh(){}});",
+    "@/app/(protected)/consultas/consultas.actions": `
+      const items = [{
+        id: 1, pacienteId: 1, profissionalId: 1, pacienteNome: 'Paciente sintetico',
+        profissionalNome: 'Profissional sintetico', data: '2026-09-09', horaInicio: '17:00:00', horaFim: '18:00:00',
+        isGrupo: false, turno: 'Vespertino', periodoInicio: '2026-08-01', periodoFim: '2026-12-31',
+        presenca: 'Nao informado', realizado: false, statusRepasse: 'Pendente', motivo: null,
+        observacoes: null, resumoRepasse: null
+      }];
+      export const listarAtendimentosAction = async () => ({ ok: true, data: { items: items.map(i => ({...i})) } });
+      export const salvarAtendimentoAction = async (id, input) => {
+        window.__savedAttendance = { id, input };
+        Object.assign(items.find(i => i.id === id), input);
+        return { ok: true, data: { id } };
+      };
+      export const criarAtendimentoAction = async () => ({ ok: true });
+      export const excluirAtendimentoAction = async () => ({ ok: true });
+      export const excluirDiaAtendimentosAction = async () => ({ ok: true });
+    `,
+  };
+  const bundle = await esbuild.build({
+    stdin: {
+      contents: `import React from 'react';import{createRoot}from'react-dom/client';
+        import{ConsultasClient}from'./src/app/(protected)/consultas/consultas.client';
+        createRoot(document.getElementById('root')).render(<ConsultasClient
+          initialProfissionais={[{id:1,nome:'Profissional sintetico'}]} initialPacientes={[{id:1,nome:'Paciente sintetico'}]}
+          canCreateAtendimento canEditAtendimento canDeleteAtendimento={false} canEditRepasse={false}/>);`,
+      resolveDir: path.join(root, "apps/web"), loader: "tsx",
+    },
+    bundle: true, write: false, format: "iife", platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"' },
+    tsconfig: path.join(root, "apps/web/tsconfig.json"), logLevel: "silent",
+    plugins: [{ name: "attendance-fixtures", setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        if (fixtureModules[args.path]) return { path: args.path, namespace: "fixture" };
+        const match = /^@autismcad\/validators\/(.*)$/.exec(args.path);
+        if (match) return { path: path.join(root, "packages/validators/src", `${match[1]}.ts`) };
+      });
+      build.onLoad({ filter: /.*/, namespace: "fixture" }, (args) => ({ contents: fixtureModules[args.path], loader: "js" }));
+    } }],
+  });
+  const server = http.createServer((request, response) => {
+    if (request.url === "/bundle.js") { response.setHeader("Content-Type", "application/javascript"); response.end(bundle.outputFiles[0].contents); return; }
+    response.setHeader("Content-Type", "text/html; charset=utf-8");
+    response.end('<!doctype html><html lang="pt-BR"><body><div id="root"></div><script src="/bundle.js"></script></body></html>');
+  });
+  let browser;
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+    const page = await browser.newPage(); const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.getByRole("button", { name: "Editar atendimento", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Presença").selectOption({ label: "Férias" });
+    await dialog.getByRole("button", { name: "Salvar alteracoes", exact: true }).click();
+    await require("@playwright/test").expect(dialog).toHaveCount(0);
+    const saved = await page.evaluate(() => window.__savedAttendance);
+    assert.equal(saved.id, 1);
+    assert.equal(saved.input.presenca, "Férias");
+    assert.equal(saved.input.motivo, null);
+    assert.equal(saved.input.periodoInicio, "2026-08-01");
+    assert.equal(saved.input.periodoFim, "2026-12-31");
+    await page.getByRole("button", { name: "Editar atendimento", exact: true }).click();
+    await require("@playwright/test").expect(dialog.getByLabel("Presença")).toHaveValue("Férias");
+    assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    server.closeAllConnections(); await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("#153 formulario real consulta handler same-origin sob CSP e preserva edicao manual", async () => {
   const route = await loadSource("apps/web/src/app/api/cep/[cep]/route.ts", { "@/server/auth/auth": { requireUser: async () => ({ id: 1 }) }, "@/lib/env": { env: { NODE_ENV: "test" } } });
   const config = await loadSource("apps/web/next.config.ts");

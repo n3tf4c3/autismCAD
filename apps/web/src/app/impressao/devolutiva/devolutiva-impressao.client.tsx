@@ -23,6 +23,7 @@ type ImpressaoReport = {
     totalAtendimentos: number;
     presentes: number;
     ausentes: number;
+    ferias: number;
     naoInformado: number;
     taxaPresencaPercent: number;
     tempoTotalMinutos: number;
@@ -263,8 +264,8 @@ function splitLabelLines(label: string, maxChars = 16): string[] {
   return lines.slice(0, 3);
 }
 
-function AttendanceDistributionChart(props: { present: number; absent: number; other: number }) {
-  const total = props.present + props.absent + props.other;
+function AttendanceDistributionChart(props: { present: number; absent: number; vacation: number; other: number }) {
+  const total = props.present + props.absent + props.vacation + props.other;
   const rows = [
     {
       key: "present",
@@ -281,6 +282,13 @@ function AttendanceDistributionChart(props: { present: number; absent: number; o
       color: "#ff6b8a",
     },
     {
+      key: "vacation",
+      label: "Férias",
+      value: props.vacation,
+      pct: total ? Math.round((props.vacation / total) * 100) : 0,
+      color: "#7aa7e8",
+    },
+    {
       key: "other",
       label: "Nao informado",
       value: props.other,
@@ -289,10 +297,14 @@ function AttendanceDistributionChart(props: { present: number; absent: number; o
     },
   ];
 
+  let cumulative = 0;
+  const segments = rows.map((row) => {
+    const start = cumulative;
+    cumulative += total ? (row.value / total) * 100 : 0;
+    return `${row.color} ${start}% ${cumulative}%`;
+  });
   const donutStyle = {
-    background: `conic-gradient(${rows[0].color} 0 ${rows[0].pct}%, ${rows[1].color} ${rows[0].pct}% ${
-      rows[0].pct + rows[1].pct
-    }%, ${rows[2].color} ${rows[0].pct + rows[1].pct}% 100%)`,
+    background: total ? `conic-gradient(${segments.join(", ")})` : "#eee4d8",
   };
 
   return (
@@ -984,6 +996,7 @@ export function DevolutivaImpressaoClient(props: {
                   <AttendanceDistributionChart
                     present={report.indicadores.presentes}
                     absent={report.indicadores.ausentes}
+                    vacation={report.indicadores.ferias}
                     other={report.indicadores.naoInformado}
                   />
 
@@ -1003,6 +1016,10 @@ export function DevolutivaImpressaoClient(props: {
                         <tr>
                           <td className="px-3 py-2">Ausências</td>
                           <td className="px-3 py-2 font-semibold">{report.indicadores.ausentes}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-2">Férias</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.ferias}</td>
                         </tr>
                         <tr>
                           <td className="px-3 py-2">Nao informado</td>
@@ -1233,6 +1250,5 @@ export function DevolutivaImpressaoClient(props: {
     </main>
   );
 }
-
 
 

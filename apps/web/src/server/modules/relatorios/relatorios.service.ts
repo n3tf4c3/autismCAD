@@ -287,6 +287,7 @@ export async function consolidateEvolutivoReport(params: {
     totalAtendimentos: atend.length,
     presentes: atend.filter((a) => a.presenca === "Presente").length,
     ausentes: atend.filter((a) => a.presenca === "Ausente").length,
+    ferias: atend.filter((a) => a.presenca === "Férias").length,
     naoInformado: atend.filter((a) => a.presenca === "Nao informado").length,
     taxaPresencaPercent: 0,
     tempoTotalMinutos: 0,
@@ -298,7 +299,7 @@ export async function consolidateEvolutivoReport(params: {
   let totalDuracao = 0;
   let countDuracao = 0;
   atend.forEach((a) => {
-    if (a.duracao_min > 0) {
+    if (a.presenca !== "Férias" && a.duracao_min > 0) {
       totalDuracao += a.duracao_min;
       countDuracao += 1;
     }
@@ -307,14 +308,16 @@ export async function consolidateEvolutivoReport(params: {
   indicadores.mediaMinutosPorSessao = countDuracao
     ? Math.round((totalDuracao / countDuracao) * 10) / 10
     : 0;
-  indicadores.taxaPresencaPercent = indicadores.totalAtendimentos
-    ? Math.round((indicadores.presentes / indicadores.totalAtendimentos) * 1000) / 10
+  const atendimentosSemFerias = indicadores.totalAtendimentos - indicadores.ferias;
+  indicadores.taxaPresencaPercent = atendimentosSemFerias
+    ? Math.round((indicadores.presentes / atendimentosSemFerias) * 1000) / 10
     : 0;
 
   const distribuicao = {
     porPresenca: {
       Presente: indicadores.presentes,
       Ausente: indicadores.ausentes,
+      "Férias": indicadores.ferias,
       "Nao informado": indicadores.naoInformado,
     },
     porProfissional: [] as Array<{
@@ -432,16 +435,18 @@ export async function consolidateEvolutivoReport(params: {
 
   const regras: string[] = [];
   const tp = indicadores.taxaPresencaPercent;
-  if (tp >= 85 && indicadores.totalAtendimentos >= 4) regras.push("ADESAO_BOA");
-  if (indicadores.ausentes >= 3 || tp < 70) regras.push("MUITAS_FALTAS");
-  if (indicadores.totalAtendimentos && indicadores.naoInformado / indicadores.totalAtendimentos > 0.4) {
+  if (tp >= 85 && atendimentosSemFerias >= 4) regras.push("ADESAO_BOA");
+  if (indicadores.ausentes >= 3 || (atendimentosSemFerias > 0 && tp < 70)) regras.push("MUITAS_FALTAS");
+  if (atendimentosSemFerias && indicadores.naoInformado / atendimentosSemFerias > 0.4) {
     regras.push("MUITOS_SEM_REGISTRO");
   }
   if (!observacoes.length && evolsSanitized.length === 0) regras.push("SEM_EVOLUCOES_TEXTUAIS");
   if (observacoes.length + evolsSanitized.length >= 5) regras.push("COM_REGISTROS_CLINICOS");
 
   const adesaoTexto =
-    tp >= 85
+    atendimentosSemFerias === 0
+      ? "Sem atendimentos fora de férias para avaliar adesão no período."
+      : tp >= 85
       ? "Adesão considerada boa no período, com alta taxa de presença."
       : tp < 70
         ? "Adesão abaixo do esperado, com presenças reduzidas."
@@ -834,6 +839,7 @@ export async function consolidateAssiduidadeReport(params: {
         total: 0,
         presentes: 0,
         faltas: 0,
+        ferias: 0,
         semRegistro: 0,
         devolutivasPendentes: 0,
         taxa: 0,
@@ -886,7 +892,8 @@ export async function consolidateAssiduidadeReport(params: {
   const total = rows.length;
   const presentes = rows.filter((a) => a.presenca === "Presente").length;
   const faltas = rows.filter((a) => a.presenca === "Ausente").length;
-  const semRegistro = rows.filter((a) => a.presenca !== "Presente" && a.presenca !== "Ausente").length;
+  const ferias = rows.filter((a) => a.presenca === "Férias").length;
+  const semRegistro = rows.filter((a) => a.presenca === "Nao informado").length;
   const denominador = presentes + faltas;
   const taxa = denominador ? Math.round((presentes / denominador) * 100) : 0;
   const pendenciasDevolutiva = consolidarPendenciasDevolutiva(rows);
@@ -897,6 +904,7 @@ export async function consolidateAssiduidadeReport(params: {
     total: number;
     presencas: number;
     faltas: number;
+    ferias: number;
     neutros: number;
     ultimo: string;
     profissionais: Set<string>;
@@ -910,6 +918,7 @@ export async function consolidateAssiduidadeReport(params: {
         total: 0,
         presencas: 0,
         faltas: 0,
+        ferias: 0,
         neutros: 0,
         ultimo: "",
         profissionais: new Set<string>(),
@@ -920,6 +929,7 @@ export async function consolidateAssiduidadeReport(params: {
     item.total += 1;
     if (a.presenca === "Presente") item.presencas += 1;
     else if (a.presenca === "Ausente") item.faltas += 1;
+    else if (a.presenca === "Férias") item.ferias += 1;
     else item.neutros += 1;
     const d = String(a.data).slice(0, 10);
     if (d && (!item.ultimo || d > item.ultimo)) item.ultimo = d;
@@ -935,6 +945,7 @@ export async function consolidateAssiduidadeReport(params: {
         total: l.total,
         presencas: l.presencas,
         faltas: l.faltas,
+        ferias: l.ferias,
         taxa: taxaLinha,
         neutros: l.neutros,
         ultimo: l.ultimo,
@@ -955,6 +966,7 @@ export async function consolidateAssiduidadeReport(params: {
       total,
       presentes,
       faltas,
+      ferias,
       semRegistro,
       devolutivasPendentes: pendenciasDevolutiva.length,
       taxa,
