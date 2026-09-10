@@ -6,7 +6,7 @@ const { Pool } = require("pg");
 const { drizzle } = require("drizzle-orm/node-postgres");
 const { migrate } = require("drizzle-orm/node-postgres/migrator");
 const { loadSource, root } = require("./load-source.cjs");
-const env = { NODE_ENV: "test", DATABASE_DRIVER: "neon-serverless", REQUIRE_DB_TRANSACTIONS: 1, APP_TIMEZONE: "America/Cuiaba" };
+const env = { NODE_ENV: "test", DATABASE_DRIVER: "neon-serverless", REQUIRE_DB_TRANSACTIONS: 1, APP_TIMEZONE: "America/Cuiaba", BCRYPT_COST: 8 };
 const servicePath = "apps/web/src/server/modules/users/users.service.ts";
 const actionPath = "apps/web/src/app/(protected)/pacientes/paciente.actions.ts";
 let pools, observer, databases, services;
@@ -45,6 +45,78 @@ async function waitForLocks(count) {
 }
 const remainingAdmins = async () => Number((await observer.query("select count(*) as n from users where ativo and deleted_at is null and role='admin-geral'")).rows[0].n);
 const update = (service, target, actor) => service.updateUser(target, { nome: "Synthetic", email: `${target}@example.invalid`, role: "profissional" }, actor);
+
+async function professionalAccountHarness() {
+  await reset();
+  await observer.query("select setval(pg_get_serial_sequence('public.users','id'),(select max(id) from users),true)");
+  const account = { nome: "Professional account", email: "old@example.invalid", senha: "synthetic-password", role: "profissional" };
+  const oldUser = await services[0].createUser(account);
+  const otherUser = await services[0].createUser({ ...account, email: "other@example.invalid" });
+  await observer.query("insert into pacientes(id,nome,cpf) values(1,'Synthetic patient','00000000000')");
+  await observer.query("insert into terapeutas(id,nome,cpf,usuario_id,deleted_at) values(1,'Synthetic professional','11111111111',$1,null),(2,'Other professional','22222222222',$2,null),(3,'Archived professional','33333333333',$1,now())", [oldUser.id, otherUser.id]);
+  await observer.query("insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim) values(1,1,1,'2099-01-05','08:00','09:00')");
+  await observer.query("insert into evolucoes(id,paciente_id,profissional_id,atendimento_id,data,payload) values(1,1,1,1,'2099-01-05',$1)", [{ descricao: "Synthetic clinical history" }]);
+  const snapshot = async () => ({
+    users: (await observer.query("select * from users order by id")).rows,
+    professionals: (await observer.query("select * from terapeutas order by id")).rows,
+    attendances: (await observer.query("select * from atendimentos order by id")).rows,
+    evolutions: (await observer.query("select * from evolucoes order by id")).rows,
+    patientLinks: (await observer.query("select * from user_paciente_vinculos order by user_id,paciente_id")).rows,
+  });
+  return { account, oldUser, otherUser, snapshot };
+}
+
+for (const binding of ["cadastro", "edicao"]) {
+  test(`Vinculo profissional: exclusao libera conta e preserva historico ao revincular por ${binding}`, async () => {
+    const h = await professionalAccountHarness();
+    const before = await h.snapshot();
+    await services[0].deleteUser(h.oldUser.id, 1);
+    const deleted = await h.snapshot();
+    const oldRow = deleted.users.find((row) => Number(row.id) === h.oldUser.id);
+    assert.equal(oldRow.ativo, false);
+    assert.ok(oldRow.deleted_at);
+    assert.equal(Number(oldRow.deleted_by_user_id), 1);
+    assert.equal(deleted.professionals[0].usuario_id, null);
+    assert.equal(deleted.professionals[2].usuario_id, null);
+    for (const index of [0, 2]) {
+      assert.deepEqual(deleted.professionals[index], { ...before.professionals[index], usuario_id: null, updated_at: deleted.professionals[index].updated_at });
+    }
+    assert.deepEqual(deleted.professionals[1], before.professionals[1]);
+    const replacement = await services[0].createUser({ ...h.account, email: "correct@example.invalid", ...(binding === "cadastro" ? { profissionalId: 1 } : {}) });
+    if (binding === "edicao") {
+      await services[0].updateUser(replacement.id, { nome: h.account.nome, email: replacement.email, role: h.account.role, profissionalId: 1 }, 1);
+    }
+    const after = await h.snapshot();
+    assert.equal(Number(after.professionals[0].usuario_id), replacement.id);
+    assert.deepEqual(after.professionals[1], before.professionals[1]);
+    assert.deepEqual(after.attendances, before.attendances);
+    assert.deepEqual(after.evolutions, before.evolutions);
+    const listed = await services[0].listUsers();
+    assert.equal(listed.some((row) => row.id === h.oldUser.id), false);
+    assert.equal(listed.find((row) => row.id === replacement.id).profissionalIdVinculado, 1);
+  });
+}
+
+test("Vinculo profissional: falha ao desvincular reverte exclusao e vinculos de paciente", async () => {
+  const h = await professionalAccountHarness();
+  await observer.query("insert into user_paciente_vinculos(user_id,paciente_id) values($1,1)", [h.oldUser.id]);
+  const before = await h.snapshot();
+  await observer.query("alter table terapeutas add constraint ck_test_unlink_failure check(id<>1 or usuario_id is not null)");
+  try {
+    await assert.rejects(services[0].deleteUser(h.oldUser.id, 1), (error) => (error.code ?? error.cause?.code) === "23514");
+    assert.deepEqual(await h.snapshot(), before);
+  } finally {
+    await observer.query("alter table terapeutas drop constraint ck_test_unlink_failure");
+  }
+});
+
+test("Vinculo profissional: conta ativa continua protegida contra transferencia por cadastro ou edicao", async () => {
+  const h = await professionalAccountHarness();
+  const before = await h.snapshot();
+  await assert.rejects(services[0].createUser({ ...h.account, email: "conflict@example.invalid", profissionalId: 1 }), { code: "CONFLICT" });
+  await assert.rejects(services[0].updateUser(h.otherUser.id, { nome: h.account.nome, email: h.otherUser.email, role: h.account.role, profissionalId: 1 }, 1), { code: "CONFLICT" });
+  assert.deepEqual(await h.snapshot(), before);
+});
 
 for (const scenario of ["delete/delete", "update/update", "delete/update"]) {
   test(`#102 PostgreSQL concorrente ${scenario}: um admin permanece e ator perdedor e revalidado`, async () => {

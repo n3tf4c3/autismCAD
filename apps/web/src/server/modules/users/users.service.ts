@@ -546,6 +546,9 @@ export async function deleteUser(id: number, requesterUserId: number) {
       if (!deleted) {
         throw new AppError("Usuario nao encontrado", 404, "NOT_FOUND");
       }
+      // A exclusao logica nao dispara o ON DELETE SET NULL da FK.
+      // Libera o acesso na mesma transacao, preservando o profissional e seu historico.
+      await sincronizarVinculoProfissional(tx, id, null);
       return { ok: true, id: deleted.id };
     },
     { operation: "users.deleteUser", mode: "required" }
