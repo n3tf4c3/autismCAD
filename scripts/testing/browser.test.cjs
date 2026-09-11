@@ -6,7 +6,7 @@ const esbuild = require("esbuild");
 const { chromium } = require("@playwright/test");
 const { loadSource, root } = require("./load-source.cjs");
 
-test("Ferias pode ser selecionada, salva e reaberta no formulario real de atendimento", async () => {
+test("Feriado e Recesso podem ser selecionados, salvos e reabertos no formulario real de atendimento", async () => {
   const fixtureModules = {
     "next/navigation": "export const useRouter=()=>({push(){},refresh(){}});",
     "@/app/(protected)/consultas/consultas.actions": `
@@ -62,17 +62,22 @@ test("Ferias pode ser selecionada, salva e reaberta no formulario real de atendi
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.getByRole("button", { name: "Editar atendimento", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Presença").selectOption({ label: "Férias" });
-    await dialog.getByRole("button", { name: "Salvar alteracoes", exact: true }).click();
-    await require("@playwright/test").expect(dialog).toHaveCount(0);
-    const saved = await page.evaluate(() => window.__savedAttendance);
-    assert.equal(saved.id, 1);
-    assert.equal(saved.input.presenca, "Férias");
-    assert.equal(saved.input.motivo, null);
-    assert.equal(saved.input.periodoInicio, "2026-08-01");
-    assert.equal(saved.input.periodoFim, "2026-12-31");
-    await page.getByRole("button", { name: "Editar atendimento", exact: true }).click();
-    await require("@playwright/test").expect(dialog.getByLabel("Presença")).toHaveValue("Férias");
+    assert.deepEqual(await dialog.getByLabel("Presença").locator("option").allTextContents(), [
+      "Nao informado", "Presente", "Ausente", "Feriado", "Recesso",
+    ]);
+    for (const presenca of ["Feriado", "Recesso"]) {
+      await dialog.getByLabel("Presença").selectOption({ label: presenca });
+      await dialog.getByRole("button", { name: "Salvar alteracoes", exact: true }).click();
+      await require("@playwright/test").expect(dialog).toHaveCount(0);
+      const saved = await page.evaluate(() => window.__savedAttendance);
+      assert.equal(saved.id, 1);
+      assert.equal(saved.input.presenca, presenca);
+      assert.equal(saved.input.motivo, null);
+      assert.equal(saved.input.periodoInicio, "2026-08-01");
+      assert.equal(saved.input.periodoFim, "2026-12-31");
+      await page.getByRole("button", { name: "Editar atendimento", exact: true }).click();
+      await require("@playwright/test").expect(dialog.getByLabel("Presença")).toHaveValue(presenca);
+    }
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();

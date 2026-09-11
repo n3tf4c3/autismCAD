@@ -45,7 +45,7 @@ function presencaTone(presenca?: string | null): "ok" | "accent" {
   return /presen|confirm/i.test(presenca ?? "") ? "ok" : "accent";
 }
 function presencaLabel(presenca?: string | null): string {
-  if (presenca === "Férias") return "Férias";
+  if (presenca === "Feriado" || presenca === "Recesso") return presenca;
   return /presen|confirm/i.test(presenca ?? "") ? "Confirmado" : "Pendente";
 }
 

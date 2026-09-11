@@ -25,7 +25,8 @@ type MensalReport = {
     totalAtendimentos: number;
     presentes: number;
     ausentes: number;
-    ferias: number;
+    feriados: number;
+    recessos: number;
     naoInformado: number;
     taxaPresencaPercent: number;
     tempoTotalMinutos: number;
@@ -303,7 +304,7 @@ export function DevolutivaMensalClient(props: {
     const lines: string[] = [];
     lines.push(`Resumo do período de ${props.pacienteNome} (${fmtPeriodLabel(report.periodo.from, report.periodo.to)}).`);
     lines.push(
-      `Atendimentos: ${report.indicadores.totalAtendimentos} (Presenças: ${report.indicadores.presentes}, Ausências: ${report.indicadores.ausentes}, Férias: ${report.indicadores.ferias}).`
+      `Atendimentos: ${report.indicadores.totalAtendimentos} (Presenças: ${report.indicadores.presentes}, Ausências: ${report.indicadores.ausentes}, Feriados: ${report.indicadores.feriados}, Recessos: ${report.indicadores.recessos}).`
     );
     lines.push(`Taxa de presença: ${report.indicadores.taxaPresencaPercent}%.`);
     if (desempenhoMensal.total) {

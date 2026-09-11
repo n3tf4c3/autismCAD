@@ -12,7 +12,8 @@ export type EvolutivoReport = {
     totalAtendimentos: number;
     presentes: number;
     ausentes: number;
-    ferias: number;
+    feriados: number;
+    recessos: number;
     naoInformado: number;
     taxaPresencaPercent: number;
     tempoTotalMinutos: number;
@@ -119,7 +120,7 @@ export async function buildEvolutivoPdf(report: EvolutivoReport): Promise<Uint8A
   const i = report.indicadores;
   drawLine("Indicadores", { bold: true, size: 13 });
   drawLine(
-    `Total: ${i.totalAtendimentos}  Presenças: ${i.presentes}  Ausências: ${i.ausentes}  Férias: ${i.ferias}  Sem registro: ${i.naoInformado}`
+    `Total: ${i.totalAtendimentos}  Presenças: ${i.presentes}  Ausências: ${i.ausentes}  Feriados: ${i.feriados}  Recessos: ${i.recessos}  Sem registro: ${i.naoInformado}`
   );
   drawLine(
     `Taxa de presença: ${i.taxaPresencaPercent}%  Tempo total (min): ${i.tempoTotalMinutos}  Média (min): ${i.mediaMinutosPorSessao}`

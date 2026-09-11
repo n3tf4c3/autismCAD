@@ -5,7 +5,8 @@ export const turnosPermitidos = new Set(["Matutino", "Vespertino"]);
 export const presencasPermitidas = new Set([
   "Presente",
   "Ausente",
-  "Férias",
+  "Feriado",
+  "Recesso",
   "Nao informado",
 ]);
 

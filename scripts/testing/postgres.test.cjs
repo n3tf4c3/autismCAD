@@ -180,7 +180,41 @@ test("#147 migracao idempotente remove somente presence e seus vinculos", async 
   assert.equal((await observer.query("select count(*)::int as n from pacientes")).rows[0].n, clinicalBefore);
 });
 
-test("Ferias persiste na edicao, tem contagem propria e e preservada na exclusao em lote", async () => {
+test("Migracao de presenca converte Ferias em Feriado e preserva registros e vinculos", async () => {
+  await reset();
+  await observer.query("begin");
+  try {
+    // Reproduz a constraint anterior com dados legados, inclusive soft-deletados.
+    await observer.query(readFileSync(path.join(root, "packages/db/src/migrations/0013_open_gladiator.sql"), "utf8"));
+    await observer.query("insert into pacientes(id,nome,cpf) values(1,'Paciente sintetico','00000000000')");
+    await observer.query("insert into terapeutas(id,nome,cpf) values(1,'Profissional sintetico','11111111111')");
+    const states = ["Férias", "Férias", "Presente", "Ausente", "Nao informado"];
+    for (const [index, presenca] of states.entries()) {
+      await observer.query(`insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim,
+        periodo_inicio,periodo_fim,presenca,realizado,motivo,observacoes,deleted_at)
+        values($1,1,1,$2,'08:00','09:00','2099-01-01','2099-01-31',$3,$4,'Motivo preservado','Observacao preservada',$5)`,
+      [index + 1, `2099-01-${String(index + 5).padStart(2, "0")}`, presenca, presenca === "Presente", index === 1 ? new Date("2099-01-10T00:00:00Z") : null]);
+    }
+    await observer.query("insert into evolucoes(id,paciente_id,profissional_id,atendimento_id,data,payload) values(1,1,1,1,'2099-01-05',$1)", [{ descricao: "Historico preservado" }]);
+    const before = (await observer.query("select * from atendimentos order by id")).rows;
+    const evolucoesBefore = (await observer.query("select * from evolucoes order by id")).rows;
+    const sequenceBefore = (await observer.query("select last_value,is_called from atendimentos_id_seq")).rows;
+    const migration = readFileSync(path.join(root, "packages/db/src/migrations/0014_presenca_feriado_recesso.sql"), "utf8");
+    await observer.query(migration);
+    const after = (await observer.query("select * from atendimentos order by id")).rows;
+    assert.deepEqual(after, before.map((row, index) => row.presenca === "Férias"
+      ? { ...row, presenca: "Feriado", updated_at: after[index].updated_at }
+      : row));
+    assert.deepEqual((await observer.query("select * from evolucoes order by id")).rows, evolucoesBefore);
+    assert.deepEqual((await observer.query("select last_value,is_called from atendimentos_id_seq")).rows, sequenceBefore);
+    await observer.query(migration);
+    assert.deepEqual((await observer.query("select * from atendimentos order by id")).rows, after);
+  } finally {
+    await observer.query("rollback");
+  }
+});
+
+test("Feriado e Recesso persistem, tem contagens proprias e sao preservados na exclusao em lote", async () => {
   await reset();
   await observer.query("insert into pacientes(id,nome,cpf) values(1,'Paciente sintetico','00000000000')");
   await observer.query("insert into terapeutas(id,nome,cpf) values(1,'Profissional sintetico','11111111111')");
@@ -190,49 +224,64 @@ test("Ferias persiste na edicao, tem contagem propria e e preservada na exclusao
   const reportValidators = await loadSource("packages/validators/src/relatorios/relatorios.schema.ts");
   const input = validators.saveAtendimentoSchema.parse({
     pacienteId: 1, profissionalId: 1, data: "2099-01-05", horaInicio: "08:00", horaFim: "09:00",
-    periodoInicio: "2099-01-01", periodoFim: "2099-01-31", presenca: "Nao informado",
+    periodoInicio: "2099-01-01", periodoFim: "2099-02-28", presenca: "Nao informado",
   });
-  const vacationId = await attendance.salvarAtendimento(input);
-  await attendance.salvarAtendimento({ ...input, presenca: "Férias" }, vacationId);
-  const persisted = (await attendance.listarAtendimentos({ pacienteId: 1 })).find((row) => row.id === vacationId);
-  assert.equal(persisted.presenca, "Férias");
-  assert.equal(Boolean(persisted.realizado), false);
-  assert.equal(persisted.motivo, null);
-  assert.equal(persisted.periodoInicio, input.periodoInicio);
-  assert.equal(persisted.periodoFim, input.periodoFim);
+  const preservedIds = [];
+  for (const [index, presenca] of ["Feriado", "Recesso"].entries()) {
+    const appointment = { ...input, data: index === 0 ? "2099-01-05" : "2099-01-12" };
+    const id = await attendance.salvarAtendimento(appointment);
+    await attendance.salvarAtendimento({ ...appointment, presenca }, id);
+    const persisted = (await attendance.listarAtendimentos({ pacienteId: 1 })).find((row) => row.id === id);
+    assert.equal(persisted.presenca, presenca);
+    assert.equal(Boolean(persisted.realizado), false);
+    assert.equal(persisted.motivo, null);
+    assert.equal(persisted.periodoInicio, input.periodoInicio);
+    assert.equal(persisted.periodoFim, input.periodoFim);
+    await assert.rejects(observer.query("update atendimentos set realizado=true where id=$1", [id]), { code: "23514" });
+    preservedIds.push(id);
+  }
 
-  // A migration aceita o novo estado sem enfraquecer os dominios existentes.
-  await assert.rejects(observer.query("update atendimentos set presenca='Invalido' where id=$1", [vacationId]), { code: "23514" });
-  await assert.rejects(observer.query("update atendimentos set realizado=true where id=$1", [vacationId]), { code: "23514" });
+  // Os novos estados substituem Ferias sem enfraquecer os dominios existentes.
+  for (const invalid of ["Invalido", "Férias"]) {
+    await assert.rejects(observer.query("update atendimentos set presenca=$1 where id=$2", [invalid, preservedIds[0]]), { code: "23514" });
+    assert.equal(reportValidators.assiduidadeQuerySchema.safeParse({ presenca: invalid }).success, false);
+  }
   const user = { id: 1, role: "admin-geral" };
-  const query = { from: "2099-01-01", to: "2099-01-31" };
-  const vacationOnly = await reports.consolidateEvolutivoReport({ query: { ...query, pacienteId: 1 }, user });
-  assert.equal(vacationOnly.indicadores.ferias, 1);
-  assert.equal(vacationOnly.indicadores.tempoTotalMinutos, 0);
-  assert.equal(vacationOnly.resumoAutomatico.regrasDisparadas.includes("MUITAS_FALTAS"), false);
+  const query = { from: input.periodoInicio, to: input.periodoFim };
+  const neutralOnly = await reports.consolidateEvolutivoReport({ query: { ...query, pacienteId: 1 }, user });
+  assert.equal(neutralOnly.indicadores.feriados, 1);
+  assert.equal(neutralOnly.indicadores.recessos, 1);
+  assert.equal(neutralOnly.indicadores.taxaPresencaPercent, 0);
+  assert.equal(neutralOnly.indicadores.tempoTotalMinutos, 0);
+  assert.equal(neutralOnly.resumoAutomatico.regrasDisparadas.includes("MUITAS_FALTAS"), false);
 
-  const presentId = await attendance.salvarAtendimento({ ...input, data: "2099-01-12", presenca: "Presente" });
-  await attendance.salvarAtendimento({ ...input, data: "2099-01-19", presenca: "Ausente", motivo: "Motivo sintetico" });
-  const plannedId = await attendance.salvarAtendimento({ ...input, data: "2099-01-26" });
+  const presentId = await attendance.salvarAtendimento({ ...input, data: "2099-01-19", presenca: "Presente" });
+  await attendance.salvarAtendimento({ ...input, data: "2099-01-26", presenca: "Ausente", motivo: "Motivo sintetico" });
+  const plannedId = await attendance.salvarAtendimento({ ...input, data: "2099-02-02" });
   const report = await reports.consolidateAssiduidadeReport({ query, user });
-  assert.deepEqual(report.resumo, { total: 4, presentes: 1, faltas: 1, ferias: 1, semRegistro: 1, devolutivasPendentes: 1, taxa: 50 });
-  assert.equal(report.linhas[0].ferias, 1);
+  assert.deepEqual(report.resumo, { total: 5, presentes: 1, faltas: 1, feriados: 1, recessos: 1, semRegistro: 1, devolutivasPendentes: 1, taxa: 50 });
+  assert.equal(report.linhas[0].feriados, 1);
+  assert.equal(report.linhas[0].recessos, 1);
   assert.equal(report.linhas[0].neutros, 1);
   assert.deepEqual(report.pendenciasDevolutiva.map((row) => row.atendimentoId), [presentId]);
-  const filtered = await reports.consolidateAssiduidadeReport({ query: reportValidators.assiduidadeQuerySchema.parse({ ...query, presenca: "Férias" }), user });
-  assert.equal(filtered.resumo.total, 1);
-  assert.equal(filtered.resumo.ferias, 1);
-  assert.equal(filtered.resumo.semRegistro, 0);
+  for (const [presenca, counter] of [["Feriado", "feriados"], ["Recesso", "recessos"]]) {
+    const filtered = await reports.consolidateAssiduidadeReport({ query: reportValidators.assiduidadeQuerySchema.parse({ ...query, presenca }), user });
+    assert.equal(filtered.resumo.total, 1);
+    assert.equal(filtered.resumo[counter], 1);
+    assert.equal(filtered.resumo.semRegistro, 0);
+    assert.equal(filtered.resumo.devolutivasPendentes, 0);
+  }
   const evolutivo = await reports.consolidateEvolutivoReport({ query: { ...query, pacienteId: 1 }, user });
   assert.equal(evolutivo.indicadores.taxaPresencaPercent, 33.3);
   assert.equal(evolutivo.indicadores.tempoTotalMinutos, 180);
-  assert.equal(evolutivo.distribuicao.porPresenca["Férias"], 1);
+  assert.equal(evolutivo.distribuicao.porPresenca.Feriado, 1);
+  assert.equal(evolutivo.distribuicao.porPresenca.Recesso, 1);
 
   const removed = await attendance.excluirDia({ ...input, diaSemana: new Date(`${input.data}T00:00:00Z`).getUTCDay() });
   assert.equal(removed.removidos, 1);
   const afterDelete = (await observer.query("select id::int,presenca,deleted_at from atendimentos order by id")).rows;
   assert.ok(afterDelete.find((row) => row.id === plannedId).deleted_at);
-  assert.equal(afterDelete.find((row) => row.id === vacationId).deleted_at, null);
+  for (const id of preservedIds) assert.equal(afterDelete.find((row) => row.id === id).deleted_at, null);
   const professionals = await loadSource("apps/web/src/server/modules/profissionais/profissionais.service.ts", fixtures(databases[0]));
   assert.equal(await professionals.contarAgendaFuturaProfissional(1), 0);
 });
@@ -241,14 +290,14 @@ async function evolucaoHarness() {
   await reset();
   await observer.query("insert into pacientes(id,nome,cpf) values(1,'Paciente sintetico','00000000000')");
   await observer.query("insert into terapeutas(id,nome,cpf,usuario_id) values(1,'Profissional sintetico','11111111111',1),(2,'Outro profissional','22222222222',2)");
-  const states = ["Nao informado", "Ausente", "Férias", "Presente"];
+  const states = ["Nao informado", "Ausente", "Feriado", "Presente", "Recesso"];
   for (const [index, presenca] of states.entries()) {
     await observer.query(`insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim,
       periodo_inicio,periodo_fim,presenca,realizado,motivo,observacoes)
-      values($1,1,1,$2,'08:00','09:00','2099-01-01','2099-01-31',$3,$4,'Anotacao anterior','Observacao preservada')`,
-    [index + 1, `2099-01-${String(5 + index * 7).padStart(2, "0")}`, presenca, presenca === "Presente"]);
+      values($1,1,1,$2,'08:00','09:00','2099-01-01','2099-02-28',$3,$4,'Anotacao anterior','Observacao preservada')`,
+    [index + 1, new Date(Date.UTC(2099, 0, 5 + index * 7)).toISOString().slice(0, 10), presenca, presenca === "Presente"]);
   }
-  await observer.query("insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim) values(5,1,2,'2099-01-05','09:00','10:00')");
+  await observer.query("insert into atendimentos(id,paciente_id,profissional_id,data,hora_inicio,hora_fim) values(6,1,2,'2099-01-05','09:00','10:00')");
   const user = { id: 1, role: "profissional" };
   const access = { canonicalRole: "PROFISSIONAL", profissionalId: 1 };
   const revalidated = [];
@@ -278,7 +327,7 @@ const evolucaoRequest = (method, body) => new Request("http://localhost/api/v1/e
 for (const channel of ["web", "api"]) {
   test(`Devolutiva ${channel}: criar e editar confirma presenca somente do atendimento vinculado`, async () => {
     const h = await evolucaoHarness();
-    for (const atendimentoId of [1, 2, 3, 4]) {
+    for (const atendimentoId of [1, 2, 3, 4, 5]) {
       const before = await attendanceSnapshot();
       const input = { atendimentoId, payload: { schemaVersion: 2, descricao: "Devolutiva sintetica" } };
       let saved;
@@ -319,7 +368,7 @@ for (const channel of ["web", "api"]) {
 test("Devolutiva sem atendimento, vinculo invalido e troca de sessao preservam os demais atendimentos", async () => {
   const h = await evolucaoHarness();
   const before = await attendanceSnapshot();
-  await assert.rejects(h.service.criarEvolucao(1, { atendimentoId: 5, payload: {} }, h.user), { code: "INVALID_INPUT" });
+  await assert.rejects(h.service.criarEvolucao(1, { atendimentoId: 6, payload: {} }, h.user), { code: "INVALID_INPUT" });
   const saved = await h.service.criarEvolucao(1, { profissionalId: 1, data: "2099-01-05", payload: {} }, h.user);
   assert.deepEqual(await attendanceSnapshot(), before);
   await h.service.atualizarEvolucao(saved.id, { atendimentoId: 1 }, h.user);

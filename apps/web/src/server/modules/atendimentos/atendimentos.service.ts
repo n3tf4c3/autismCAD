@@ -672,7 +672,7 @@ export async function excluirDia(payload: ExcluirDiaInput, deletedByUserId?: num
   // Remove only planned entries.
   // IMPORTANT: keep both predicates below aligned with `ck_atendimentos_realizado_presenca`:
   // - `realizado = false` guarantees only non-completed sessions are deleted.
-  // - `presenca = 'Nao informado'` preserves explicit absences and vacations.
+  // - `presenca = 'Nao informado'` preserves explicit absences, holidays and recesses.
   const where = [
     eq(atendimentos.pacienteId, payload.pacienteId),
     eq(atendimentos.horaInicio, horaInicio),

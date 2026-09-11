@@ -30,7 +30,8 @@ test("controle inclui somente presenca confirmada sem evolucao ativa", () => {
     atendimento({ id: 2, presenca: "Ausente" }),
     atendimento({ id: 3, evolucao_id: 30 }),
     atendimento({ id: 4, presenca: "Nao informado" }),
-    atendimento({ id: 5, presenca: "Férias" }),
+    atendimento({ id: 5, presenca: "Feriado" }),
+    atendimento({ id: 6, presenca: "Recesso" }),
   ]);
 
   assert.deepEqual(result.map((item) => item.atendimentoId), [1]);

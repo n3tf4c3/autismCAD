@@ -22,7 +22,8 @@ type Report = {
     total: number;
     presentes: number;
     faltas: number;
-    ferias: number;
+    feriados: number;
+    recessos: number;
     semRegistro: number;
     devolutivasPendentes: number;
     taxa: number;
@@ -42,7 +43,8 @@ type Report = {
     total: number;
     presencas: number;
     faltas: number;
-    ferias: number;
+    feriados: number;
+    recessos: number;
     taxa: number;
     neutros: number;
     ultimo: string;
@@ -226,7 +228,8 @@ export function AssiduidadeClient(props: {
               <option value="">Todas</option>
               <option value="Presente">Presente</option>
               <option value="Ausente">Ausente</option>
-              <option value="Férias">Férias</option>
+              <option value="Feriado">Feriado</option>
+              <option value="Recesso">Recesso</option>
               <option value="Nao informado">Nao informado</option>
             </select>
           </label>
@@ -285,9 +288,15 @@ export function AssiduidadeClient(props: {
           <p className="text-sm text-gray-500">Faltas</p>
           <p className="text-2xl font-bold text-red-600">{report?.resumo.faltas ?? 0}</p>
         </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Férias</p>
-          <p className="text-2xl font-bold text-sky-700">{report?.resumo.ferias ?? 0}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-xl bg-white p-4 shadow-sm">
+          <div>
+            <p className="text-sm text-gray-500">Feriados</p>
+            <p className="text-2xl font-bold text-sky-700">{report?.resumo.feriados ?? 0}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Recessos</p>
+            <p className="text-2xl font-bold text-violet-700">{report?.resumo.recessos ?? 0}</p>
+          </div>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-500">Sem registro</p>
@@ -413,7 +422,8 @@ export function AssiduidadeClient(props: {
                 <th className="px-6 py-3">Total</th>
                 <th className="px-6 py-3">Presenças</th>
                 <th className="px-6 py-3">Ausências</th>
-                <th className="px-6 py-3">Férias</th>
+                <th className="px-6 py-3">Feriados</th>
+                <th className="px-6 py-3">Recessos</th>
                 <th className="px-6 py-3">Taxa</th>
                 <th className="px-6 py-3">Sem registro</th>
                 <th className="px-6 py-3">Último atendimento</th>
@@ -428,7 +438,8 @@ export function AssiduidadeClient(props: {
                     <td className="px-6 py-3 text-gray-700">{l.total}</td>
                     <td className="px-6 py-3 font-semibold text-green-700">{l.presencas}</td>
                     <td className="px-6 py-3 font-semibold text-red-600">{l.faltas}</td>
-                    <td className="px-6 py-3 font-semibold text-sky-700">{l.ferias}</td>
+                    <td className="px-6 py-3 font-semibold text-sky-700">{l.feriados}</td>
+                    <td className="px-6 py-3 font-semibold text-violet-700">{l.recessos}</td>
                     <td className="px-6 py-3">
                       <span className="badge rounded-full px-2 py-1 text-xs font-semibold">
                         {l.taxa}%
@@ -441,7 +452,7 @@ export function AssiduidadeClient(props: {
                 ))
               ) : (
                 <tr>
-                  <td className="px-6 py-4 text-gray-500" colSpan={9}>
+                  <td className="px-6 py-4 text-gray-500" colSpan={10}>
                     Nenhum atendimento no recorte selecionado.
                   </td>
                 </tr>
