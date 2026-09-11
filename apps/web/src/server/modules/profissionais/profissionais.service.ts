@@ -251,7 +251,7 @@ export async function deleteProfissional(id: number, deletedByUserId?: number | 
 
 // Arquivar um profissional cancela a agenda dele daqui para frente. Hoje e o passado
 // ficam intactos para consulta de historico, e o que ja tem registro proprio
-// (realizado, ausencia justificada ou ferias) e preservado, igual a exclusao por periodo.
+// (realizado, ausencia justificada, feriado ou recesso) e preservado, igual a exclusao por periodo.
 function agendaFuturaCancelavel(profissionalId: number, hoje: string) {
   return [
     eq(atendimentos.profissionalId, profissionalId),

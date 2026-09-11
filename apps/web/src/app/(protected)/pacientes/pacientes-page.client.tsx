@@ -437,7 +437,8 @@ export function PacientesPageClient(props: {
                   <option value="Nao informado">Nao informado</option>
                   <option value="Presente">Presente</option>
                   <option value="Ausente">Ausente</option>
-                  <option value="Férias">Férias</option>
+                  <option value="Feriado">Feriado</option>
+                  <option value="Recesso">Recesso</option>
                 </select>
               </label>
 

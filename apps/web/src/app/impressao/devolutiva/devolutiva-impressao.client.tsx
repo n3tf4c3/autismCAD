@@ -23,7 +23,8 @@ type ImpressaoReport = {
     totalAtendimentos: number;
     presentes: number;
     ausentes: number;
-    ferias: number;
+    feriados: number;
+    recessos: number;
     naoInformado: number;
     taxaPresencaPercent: number;
     tempoTotalMinutos: number;
@@ -264,8 +265,8 @@ function splitLabelLines(label: string, maxChars = 16): string[] {
   return lines.slice(0, 3);
 }
 
-function AttendanceDistributionChart(props: { present: number; absent: number; vacation: number; other: number }) {
-  const total = props.present + props.absent + props.vacation + props.other;
+function AttendanceDistributionChart(props: { present: number; absent: number; holiday: number; recess: number; other: number }) {
+  const total = props.present + props.absent + props.holiday + props.recess + props.other;
   const rows = [
     {
       key: "present",
@@ -282,11 +283,18 @@ function AttendanceDistributionChart(props: { present: number; absent: number; v
       color: "#ff6b8a",
     },
     {
-      key: "vacation",
-      label: "Férias",
-      value: props.vacation,
-      pct: total ? Math.round((props.vacation / total) * 100) : 0,
+      key: "holiday",
+      label: "Feriados",
+      value: props.holiday,
+      pct: total ? Math.round((props.holiday / total) * 100) : 0,
       color: "#7aa7e8",
+    },
+    {
+      key: "recess",
+      label: "Recessos",
+      value: props.recess,
+      pct: total ? Math.round((props.recess / total) * 100) : 0,
+      color: "#a78bfa",
     },
     {
       key: "other",
@@ -996,7 +1004,8 @@ export function DevolutivaImpressaoClient(props: {
                   <AttendanceDistributionChart
                     present={report.indicadores.presentes}
                     absent={report.indicadores.ausentes}
-                    vacation={report.indicadores.ferias}
+                    holiday={report.indicadores.feriados}
+                    recess={report.indicadores.recessos}
                     other={report.indicadores.naoInformado}
                   />
 
@@ -1018,8 +1027,12 @@ export function DevolutivaImpressaoClient(props: {
                           <td className="px-3 py-2 font-semibold">{report.indicadores.ausentes}</td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-2">Férias</td>
-                          <td className="px-3 py-2 font-semibold">{report.indicadores.ferias}</td>
+                          <td className="px-3 py-2">Feriados</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.feriados}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-2">Recessos</td>
+                          <td className="px-3 py-2 font-semibold">{report.indicadores.recessos}</td>
                         </tr>
                         <tr>
                           <td className="px-3 py-2">Nao informado</td>
@@ -1250,5 +1263,4 @@ export function DevolutivaImpressaoClient(props: {
     </main>
   );
 }
-
 
