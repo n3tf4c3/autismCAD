@@ -263,11 +263,11 @@ export function SidebarClient(props: {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.22),transparent_38%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.14),transparent_42%)]" />
         <div className="relative z-10 flex flex-col items-center gap-4 px-6 py-8">
           <Image
-            src="/logo_girassol_autism.svg"
+            src="/sunflower-svgrepo-com.svg"
             alt="Logo Girassol"
             width={96}
             height={96}
-            className="h-24 w-24 rounded-xl bg-[#ffffff] object-contain p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
+            className="h-24 w-24 rounded-xl bg-white p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
             priority
           />
           <h1 className="text-lg font-bold tracking-wide text-[var(--texto-sobre-acao)]">Clínica Girassóis</h1>
@@ -303,11 +303,11 @@ export function SidebarClient(props: {
           <div className="relative z-10 flex items-start justify-between gap-3 px-6 py-6">
             <div className="flex items-center gap-3">
               <Image
-                src="/logo_girassol_autism.svg"
+                src="/sunflower-svgrepo-com.svg"
                 alt="Logo Girassol"
                 width={48}
                 height={48}
-                className="h-12 w-12 rounded-xl bg-[#ffffff] object-contain p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
+                className="h-12 w-12 rounded-xl bg-white p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
                 priority
               />
               <p className="text-sm font-bold tracking-wide text-[var(--texto-sobre-acao)]">Clínica Girassóis</p>
