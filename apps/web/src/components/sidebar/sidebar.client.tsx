@@ -267,7 +267,7 @@ export function SidebarClient(props: {
             alt="Logo Girassol"
             width={96}
             height={96}
-            className="h-24 w-24 rounded-xl bg-white object-contain p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
+            className="h-24 w-24 rounded-xl bg-[#ffffff] object-contain p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
             priority
           />
           <h1 className="text-lg font-bold tracking-wide text-[var(--texto-sobre-acao)]">Clínica Girassóis</h1>
@@ -307,7 +307,7 @@ export function SidebarClient(props: {
                 alt="Logo Girassol"
                 width={48}
                 height={48}
-                className="h-12 w-12 rounded-xl bg-white object-contain p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
+                className="h-12 w-12 rounded-xl bg-[#ffffff] object-contain p-2 drop-shadow-lg transition-transform duration-300 hover:rotate-3 hover:scale-105"
                 priority
               />
               <p className="text-sm font-bold tracking-wide text-[var(--texto-sobre-acao)]">Clínica Girassóis</p>
