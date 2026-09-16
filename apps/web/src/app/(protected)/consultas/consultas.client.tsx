@@ -539,7 +539,17 @@ export function ConsultasClient(props: {
                     ) : null}
                   </td>
                   <td className="px-3 py-3 text-gray-700">
-                    <div>{a.presenca}</div>
+                    <div
+                      className={
+                        a.presenca === "Presente"
+                          ? "text-blue-700 dark:text-blue-400"
+                          : a.presenca === "Ausente"
+                            ? "text-red-700 dark:text-red-400"
+                            : undefined
+                      }
+                    >
+                      {a.presenca}
+                    </div>
                     <div className="text-xs text-gray-500">Repasse: {a.statusRepasse || "Pendente"}</div>
                   </td>
                   <td className="px-3 py-3 text-gray-700">
