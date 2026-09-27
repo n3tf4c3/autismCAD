@@ -1,8 +1,15 @@
 const assert = require("node:assert/strict");
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const React = require("react");
-const { act, create } = require("react-test-renderer");
+const { act } = React;
+const { createRoot } = require("react-dom/client");
+const { JSDOM } = require("jsdom");
 const { loadSource } = require("../../../scripts/testing/load-source.cjs");
+// O provider usa somente contexto/hooks; os adaptadores nativos sao substituidos abaixo.
+const dom = new JSDOM("<!doctype html><html><body></body></html>");
+globalThis.window = dom.window;
+globalThis.document = dom.window.document;
+after(() => { dom.window.close(); delete globalThis.window; delete globalThis.document; });
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
@@ -23,10 +30,13 @@ async function harness(request, customize = () => {}) {
     "expo-secure-store": secureStore,
     "@/api/client": { ...client, apiRequest: (path, options) => request(path, options, client.ApiError) },
   }, "mobile");
-  let current, renderer;
+  let current;
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const renderer = createRoot(container);
   function Consumer() { current = module.useAuth(); return null; }
-  await act(async () => { renderer = create(React.createElement(module.AuthProvider, null, React.createElement(Consumer))); await tick(); });
-  return { get auth() { return current; }, storage, close: () => act(async () => { renderer.unmount(); }) };
+  await act(async () => { renderer.render(React.createElement(module.AuthProvider, null, React.createElement(Consumer))); await tick(); });
+  return { get auth() { return current; }, storage, close: () => act(async () => { renderer.unmount(); container.remove(); }) };
 }
 
 test("#155 hidratacao atrasada nao restaura sessao depois do logout", async () => {
