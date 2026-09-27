@@ -37,6 +37,6 @@ test("CI, Node, npm e EAS usam contratos reproduziveis", () => {
   assert.match(workflow, /npm install --global npm@11\.7\.0/);
   assert.equal(packageJson.packageManager, "npm@11.7.0");
   assert.equal(packageJson.engines?.node, "^22.22.0 || ^24.11.0");
-  assert.equal(packageJson.engines?.npm, "11.7.0");
+  assert.equal(packageJson.engines?.npm, "^11.7.0");
   assert.equal(eas.cli?.version, "22.2.0");
 });
