@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { PlanoEnsinoFormClient } from "@/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client";
 import { pacientes } from "@autismcad/db/schema";
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermission } from "@/server/auth/access";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import { obterDocumento } from "@/server/modules/prontuario/prontuario.service";
@@ -13,9 +14,9 @@ export default async function PlanoEnsinoPage(props: {
   params: Promise<{ pacienteId: string }>;
   searchParams: Promise<{ documentoId?: string }>;
 }) {
-  const { user } = await requirePermission("prontuario:create");
   const { pacienteId } = await props.params;
   const { documentoId } = await props.searchParams;
+  const { user, access } = await requirePermission(documentoId ? "prontuario:version" : "prontuario:create");
   const id = Number(pacienteId);
   const sourceDocumentId = documentoId ? Number(documentoId) : null;
   if (!id) {
@@ -27,7 +28,7 @@ export default async function PlanoEnsinoPage(props: {
   }
 
   try {
-    await assertPacienteAccess(user, id);
+    await assertPacienteAccess(user, id, access);
   } catch (error) {
     const err = toAppError(error);
     return (
@@ -68,6 +69,17 @@ export default async function PlanoEnsinoPage(props: {
     );
   }
 
+  if (sourceDoc?.status === "Finalizado") {
+    return (
+      <main className="space-y-4 rounded-2xl bg-white p-6 shadow-sm">
+        <p className="text-sm text-gray-600">Este plano de ensino está finalizado e não pode ser editado.</p>
+        <Link href={`/prontuario/documento/${sourceDoc.id}`} className="text-sm font-semibold text-[var(--laranja)]">
+          Visualizar plano de ensino
+        </Link>
+      </main>
+    );
+  }
+
   const initialData = sourceDoc
     ? {
         ...sanitizePlanoEnsinoPayload(sourceDoc.payload),
@@ -91,7 +103,7 @@ export default async function PlanoEnsinoPage(props: {
         </div>
       </section>
 
-      <PlanoEnsinoFormClient pacienteId={paciente.id} initialData={initialData} />
+      <PlanoEnsinoFormClient pacienteId={paciente.id} initialData={initialData} canFinalize={hasPermission(access, "prontuario:finalize")} />
     </main>
   );
 }

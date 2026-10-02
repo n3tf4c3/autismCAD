@@ -6,6 +6,93 @@ const esbuild = require("esbuild");
 const { chromium } = require("@playwright/test");
 const { loadSource, root } = require("./load-source.cjs");
 
+test("Plano de ensino: salvar rascunho, reabrir, corrigir e finalizar explicitamente no formulario real", async () => {
+  const { expect } = require("@playwright/test");
+  const fixtureModules = {
+    "next/navigation": "export const useRouter=()=>({push(url){window.__destination=url;},refresh(){}});",
+    "next/link": "export default function Link({children,...props}){return <a {...props}>{children}</a>;}",
+    "@/app/(protected)/prontuario/prontuario.actions": `
+      export const salvarDocumentoProntuarioAction = async (pacienteId, input) => {
+        window.__writes.push({pacienteId,input});
+        if(window.__fail) return {ok:false,error:'Falha sintetica ao salvar'};
+        window.__saved={...input.payload,sourceDocumentId:input.documentoId||7};
+        return {ok:true,data:{id:window.__saved.sourceDocumentId}};
+      };
+      export const excluirDocumentoProntuarioAction=async()=>({ok:true});
+      export const excluirEvolucaoAction=async()=>({ok:true});
+    `,
+  };
+  const bundle = await esbuild.build({
+    stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';
+      import{PlanoEnsinoFormClient}from'./src/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client';
+      import{TimelineClient}from'./src/app/(protected)/prontuario/[pacienteId]/timeline.client';
+      const root=createRoot(document.getElementById('root'));let key=0;window.__writes=[];
+      window.__render=(canFinalize=true)=>root.render(<PlanoEnsinoFormClient key={++key} pacienteId={1} canFinalize={canFinalize} initialData={window.__saved}/>);
+      window.__timeline=()=>root.render(<TimelineClient pacienteId={1} canEditDocumento canDeleteDocumento={false} canEditEvolucao={false} canDeleteEvolucao={false}
+        initialItems={['Rascunho','Finalizado'].map((status,index)=>({kind:'documento',id:index+1,tipo:'PLANO_ENSINO',titulo:status,status,version:1,data:'2026-10-02',profissional:'Sintetico'}))}/>);
+      window.__render();`, resolveDir: path.join(root, "apps/web"), loader: "tsx" },
+    bundle: true, write: false, format: "iife", platform: "browser", jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' }, tsconfig: path.join(root, "apps/web/tsconfig.json"), logLevel: "silent",
+    plugins: [{ name: "plan-fixtures", setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        if (fixtureModules[args.path]) return { path: args.path, namespace: "fixture" };
+        const match = /^@autismcad\/(validators|shared)\/(.*)$/.exec(args.path);
+        if (match) return { path: path.join(root, "packages", match[1], "src", `${match[2]}.ts`) };
+      });
+      build.onLoad({ filter: /.*/, namespace: "fixture" }, (args) => ({ contents: fixtureModules[args.path], loader: "jsx", resolveDir: path.join(root, "apps/web") }));
+    } }],
+  });
+  const server = http.createServer((request, response) => {
+    if (request.url === "/bundle.js") { response.setHeader("Content-Type", "application/javascript"); response.end(bundle.outputFiles[0].contents); return; }
+    response.setHeader("Content-Type", "text/html; charset=utf-8");
+    response.end('<!doctype html><html lang="pt-BR"><body><div id="root"></div><script src="/bundle.js"></script></body></html>');
+  });
+  let browser;
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+    const page = await browser.newPage(); const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.getByLabel("Habilidade", { exact: true }).fill("Comunicacao");
+    await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.__destination)).toBe("/prontuario/documento/7");
+    assert.equal(await page.evaluate(() => window.__writes[0].input.status), "Rascunho");
+    await expect(page.getByRole("button", { name: "Salvar rascunho", exact: true })).toBeDisabled();
+    await page.evaluate(() => window.__render());
+    await expect(page.getByLabel("Habilidade", { exact: true })).toHaveValue("Comunicacao");
+    await page.getByLabel("Recursos", { exact: true }).fill("Informacao esquecida");
+    await page.evaluate(() => { window.__fail=true; });
+    await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
+    await expect(page.getByRole("status")).toHaveText("Falha sintetica ao salvar");
+    await expect(page.getByRole("textbox", { name: "Recursos", exact: true })).toHaveValue("Informacao esquecida");
+    await page.evaluate(() => { window.__fail=false; });
+    await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.__writes.length)).toBe(3);
+    assert.equal(await page.evaluate(() => window.__writes[2].input.documentoId), 7);
+    await page.evaluate(() => window.__render());
+    await expect(page.getByRole("textbox", { name: "Recursos", exact: true })).toHaveValue("Informacao esquecida");
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page.getByRole("button", { name: "Finalizar", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.__writes.length), 3);
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Finalizar", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.__writes.length)).toBe(4);
+    assert.equal(await page.evaluate(() => window.__writes[3].input.status), "Finalizado");
+    assert.equal(await page.evaluate(() => window.__writes[3].input.documentoId), 7);
+    await page.evaluate(() => window.__render(false));
+    await expect(page.getByRole("button", { name: "Finalizar", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Salvar rascunho", exact: true })).toBeEnabled();
+    await page.evaluate(() => window.__timeline());
+    await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveAttribute("href", "/prontuario/1/plano-ensino?documentoId=1");
+    assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    server.closeAllConnections(); await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("Feriado e Recesso podem ser selecionados, salvos e reabertos no formulario real de atendimento", async () => {
   const fixtureModules = {
     "next/navigation": "export const useRouter=()=>({push(){},refresh(){}});",
