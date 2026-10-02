@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ESPECIALIDADES_TERAPEUTA } from "@autismcad/validators/profissionais/especialidades";
+import type { DocStatus } from "@autismcad/validators/prontuario/prontuario.schema";
 import { salvarDocumentoProntuarioAction } from "@/app/(protected)/prontuario/prontuario.actions";
 
 type BlocoForm = {
@@ -143,7 +144,7 @@ function unwrapAction<T>(
   return result.data;
 }
 
-export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?: PlanoEnsinoInitialData | null }) {
+export function PlanoEnsinoFormClient(props: { pacienteId: number; canFinalize: boolean; initialData?: PlanoEnsinoInitialData | null }) {
   const router = useRouter();
   const [especialidade, setEspecialidade] = useState(() => props.initialData?.especialidade ?? "");
   const [dataInicio, setDataInicio] = useState(() => props.initialData?.dataInicio ?? "");
@@ -165,13 +166,15 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
     setBlocos((current) => (current.length > 1 ? current.filter((bloco) => bloco.id !== id) : current));
   }
 
-  async function submit() {
+  async function submit(status: DocStatus) {
+    if (busy) return;
+    if (status === "Finalizado" && (!props.canFinalize || !window.confirm("Finalizar este plano de ensino? Após a finalização, ele não poderá ser editado."))) return;
     setBusy(true);
     setMsg(null);
     try {
       const payload = {
         tipo: "PLANO_ENSINO",
-        status: "Finalizado" as const,
+        status,
         documentoId: props.initialData?.sourceDocumentId ?? null,
         titulo: null,
         payload: {
@@ -193,16 +196,16 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
       };
 
       const data = unwrapAction(await salvarDocumentoProntuarioAction(props.pacienteId, payload));
-      setMsg("Plano de ensino salvo com sucesso.");
+      setMsg(status === "Rascunho" ? "Rascunho salvo. Você pode continuar a edição pelo prontuário." : "Plano de ensino finalizado.");
       if (data.id) {
-        setTimeout(() => router.push(`/prontuario/documento/${data.id}`), 650);
+        router.push(`/prontuario/documento/${data.id}`);
       } else {
-        setTimeout(() => router.push(`/prontuario/${props.pacienteId}`), 650);
+        router.push(`/prontuario/${props.pacienteId}`);
       }
+      router.refresh();
     } catch (error) {
       const err = error as { message?: string };
       setMsg(err.message || "Falha ao salvar plano de ensino");
-    } finally {
       setBusy(false);
     }
   }
@@ -210,7 +213,7 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-bold text-[var(--marrom)]">Plano de Ensino</h1>
-      <p className="mt-1 text-sm text-gray-600">Preencha os campos e salve o plano de ensino.</p>
+      <p className="mt-1 text-sm text-gray-600">Salve como rascunho para completar ou corrigir depois. Finalize quando o plano estiver pronto; após finalizar, ele não poderá ser editado.</p>
 
       <div className="mt-5 space-y-5">
         {isEditing ? (
@@ -318,14 +321,24 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; initialData?:
           <button
             type="button"
             disabled={busy}
-            onClick={() => submit()}
+            onClick={() => void submit("Rascunho")}
             className="rounded-lg bg-[var(--laranja)] px-4 py-2 font-semibold text-[var(--texto-sobre-acao)] hover:bg-[#e6961f] disabled:opacity-60"
           >
-            Salvar
+            Salvar rascunho
           </button>
+          {props.canFinalize ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void submit("Finalizado")}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 font-semibold text-[var(--marrom)] hover:bg-amber-50 disabled:opacity-60"
+            >
+              Finalizar
+            </button>
+          ) : null}
         </div>
 
-        {msg ? <p className="text-sm text-gray-700">{msg}</p> : null}
+        {msg ? <p role="status" className="text-sm text-gray-700">{msg}</p> : null}
       </div>
     </section>
   );

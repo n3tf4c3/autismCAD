@@ -181,7 +181,7 @@ export function TimelineClient(props: {
                       </Link>
                       {item.tipo === "PLANO_ENSINO" ? (
                         <>
-                          {props.canEditDocumento ? (
+                          {props.canEditDocumento && item.status === "Rascunho" ? (
                             <Link
                               className="text-sm font-semibold text-[var(--laranja)]"
                               href={getDocumentoEditarHref(props.pacienteId, item.tipo, item.id)}

@@ -44,6 +44,35 @@ async function waitForLocks(count) {
   throw new Error(`Nao houve ${count} conexoes independentes bloqueadas; corrida nao demonstrada`);
 }
 const remainingAdmins = async () => Number((await observer.query("select count(*) as n from users where ativo and deleted_at is null and role='admin-geral'")).rows[0].n);
+
+test("Plano de ensino: rascunho pode ser reaberto e corrigido; finalizacao preserva o documento e bloqueia novas edicoes", async () => {
+  await reset();
+  await observer.query("insert into pacientes(id,nome,cpf) values(1,'Paciente sintetico','00000000000')");
+  const service = await loadSource("apps/web/src/server/modules/prontuario/prontuario.service.ts", fixtures(databases[0]));
+  const user = { id: 1, role: "admin-geral" };
+  const payload = { blocos: [{ habilidade: "Comunicacao", objetivoEnsino: "Primeira anotacao" }] };
+  const saved = await service.salvarDocumento(1, { tipo: "PLANO_ENSINO", status: "Rascunho", payload }, user);
+  let reopened = await service.obterDocumento(saved.id);
+  assert.equal(reopened.status, "Rascunho");
+  assert.equal(reopened.payload.blocos[0].habilidade, "Comunicacao");
+  const corrected = { ...reopened.payload, blocos: [{ ...reopened.payload.blocos[0], recursos: "Informacao esquecida" }] };
+  const input = { tipo: "PLANO_ENSINO", documentoId: saved.id, status: "Rascunho", payload: corrected };
+  const updated = await service.salvarDocumento(1, input, user);
+  assert.equal(updated.id, saved.id);
+  reopened = await service.obterDocumento(saved.id);
+  assert.equal(reopened.status, "Rascunho");
+  assert.equal(reopened.payload.blocos[0].recursos, "Informacao esquecida");
+  assert.equal(reopened.payload.blocos[0].objetivoEnsino, "Primeira anotacao");
+  await service.salvarDocumento(1, { ...input, status: "Finalizado" }, user);
+  const finalized = await service.obterDocumento(saved.id);
+  assert.equal(finalized.status, "Finalizado");
+  assert.deepEqual(finalized.payload, reopened.payload);
+  for (const status of ["Rascunho", "Finalizado"]) {
+    await assert.rejects(service.salvarDocumento(1, { ...input, status, payload: {} }, user), { code: "CONFLICT" });
+  }
+  assert.deepEqual(await service.obterDocumento(saved.id), finalized);
+  assert.equal(Number((await observer.query("select count(*) as n from prontuario_documentos where paciente_id=1")).rows[0].n), 1);
+});
 const update = (service, target, actor) => service.updateUser(target, { nome: "Synthetic", email: `${target}@example.invalid`, role: "profissional" }, actor);
 
 async function professionalAccountHarness() {

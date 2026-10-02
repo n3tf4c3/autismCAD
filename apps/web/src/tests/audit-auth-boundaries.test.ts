@@ -16,8 +16,9 @@ function sessionFixtures(options: { revoked?: boolean; pending?: boolean; inacti
 }
 
 for (const documentoId of [undefined, 7]) {
+  for (const status of ["Rascunho", "Finalizado"] as const) {
   for (const allowed of [false, true]) {
-    test(`#16 salvar ${documentoId ? "versao" : "novo"} exige finalize (${allowed})`, async () => {
+    test(`#16 plano ${documentoId ? "existente" : "novo"} ${status} respeita finalize (${allowed})`, async () => {
       const writes: unknown[] = [];
       const checks: string[] = [];
       const source = await loadSource("apps/web/src/app/(protected)/prontuario/prontuario.actions.ts", {
@@ -37,11 +38,13 @@ for (const documentoId of [undefined, 7]) {
           criarEvolucao() {}, atualizarEvolucao() {}, obterEvolucaoPorId() {}, excluirEvolucao() {},
         },
       });
-      const result = await source.salvarDocumentoProntuarioAction(1, { tipo: "OUTRO", documentoId, status: "Finalizado", payload: {} });
-      assert.equal(result.ok, allowed);
-      assert.equal(writes.length, allowed ? 1 : 0);
-      assert.deepEqual(checks, [documentoId ? "prontuario:version" : "prontuario:create", "prontuario:finalize"]);
+      const result = await source.salvarDocumentoProntuarioAction(1, { tipo: "PLANO_ENSINO", documentoId, status, payload: {} });
+      const expected = status === "Rascunho" || allowed;
+      assert.equal(result.ok, expected);
+      assert.equal(writes.length, expected ? 1 : 0);
+      assert.deepEqual(checks, [documentoId ? "prontuario:version" : "prontuario:create", ...(status === "Finalizado" ? ["prontuario:finalize"] : [])]);
     });
+  }
   }
 }
 

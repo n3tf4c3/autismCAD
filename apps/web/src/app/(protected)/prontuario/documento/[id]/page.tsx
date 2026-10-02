@@ -3,6 +3,7 @@ import { formatDateBr } from "@autismcad/shared/date-only";
 import { getDocumentoEditarHref, getDocumentoTipoLabel } from "@/lib/prontuario/document-meta";
 import { DocumentoActionsClient } from "@/app/(protected)/prontuario/documento/[id]/documento-actions.client";
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermission } from "@/server/auth/access";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import { obterDocumento } from "@/server/modules/prontuario/prontuario.service";
@@ -18,7 +19,7 @@ function ReadonlyField(props: { label: string; value: string | null | undefined 
 }
 
 export default async function VisualizarDocumentoPage(props: { params: Promise<{ id: string }> }) {
-  const { user } = await requirePermission("prontuario:view");
+  const { user, access } = await requirePermission("prontuario:view");
   const { id } = await props.params;
   const docId = Number(id);
   if (!docId) {
@@ -39,7 +40,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
   }
 
   try {
-    await assertPacienteAccess(user, Number(doc.pacienteId));
+    await assertPacienteAccess(user, Number(doc.pacienteId), access);
   } catch (error) {
     const err = toAppError(error);
     return (
@@ -86,6 +87,13 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
         <p className="mt-3 text-sm text-gray-600">
           Autor: {doc.autorNome || doc.createdByRole || "Usuário"}
         </p>
+        {planoEnsino ? (
+          <p className="mt-3 text-sm text-gray-600">
+            {doc.status === "Rascunho"
+              ? "Este plano está em rascunho. Use Editar para completar ou corrigir antes de finalizar."
+              : "Este plano está finalizado e não pode ser editado."}
+          </p>
+        ) : null}
 
         {planoEnsino ? (
           <div className="mt-4 space-y-4">
@@ -142,13 +150,17 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
         <div className="mt-4 flex flex-wrap justify-end gap-3">
           {doc.tipo === "PLANO_ENSINO" ? (
             <>
-              <Link
-                href={getDocumentoEditarHref(doc.pacienteId, doc.tipo, doc.id)}
-                className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
-              >
-                Editar
-              </Link>
-              <DocumentoActionsClient documentoId={doc.id} pacienteId={Number(doc.pacienteId)} />
+              {doc.status === "Rascunho" && hasPermission(access, "prontuario:version") ? (
+                <Link
+                  href={getDocumentoEditarHref(doc.pacienteId, doc.tipo, doc.id)}
+                  className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                >
+                  Editar
+                </Link>
+              ) : null}
+              {hasPermission(access, "prontuario:delete") ? (
+                <DocumentoActionsClient documentoId={doc.id} pacienteId={Number(doc.pacienteId)} />
+              ) : null}
             </>
           ) : null}
         </div>
