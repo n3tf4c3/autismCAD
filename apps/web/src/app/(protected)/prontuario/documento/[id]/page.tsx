@@ -80,7 +80,7 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
           <div className="text-right text-sm text-gray-600">
             <p>Status: {doc.status || "-"}</p>
             {doc.tipo !== "PLANO_ENSINO" ? <p>Versao: {doc.version ?? "-"}</p> : null}
-            <p>Data: {formatDateBr(String(doc.createdAt).slice(0, 10))}</p>
+            <p>Data: {formatDateBr(String(doc.createdAt))}</p>
           </div>
         </div>
 
