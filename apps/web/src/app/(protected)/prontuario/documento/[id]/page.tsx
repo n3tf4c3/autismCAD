@@ -150,6 +150,14 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
         <div className="mt-4 flex flex-wrap justify-end gap-3">
           {doc.tipo === "PLANO_ENSINO" ? (
             <>
+              <Link
+                href={`/impressao/plano-ensino/individual?pacienteId=${doc.pacienteId}&documentoId=${doc.id}`}
+                className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Imprimir Plano
+              </Link>
               {doc.status === "Rascunho" && hasPermission(access, "prontuario:version") ? (
                 <Link
                   href={getDocumentoEditarHref(doc.pacienteId, doc.tipo, doc.id)}

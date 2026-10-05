@@ -92,6 +92,14 @@ export default async function ProntuarioPacientePage(props: {
               </Link>
             ) : null}
             <Link
+              href={`/impressao/plano-ensino/individual?pacienteId=${paciente.id}`}
+              className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Imprimir Plano
+            </Link>
+            <Link
               href={`/impressao/plano-ensino?pacienteId=${paciente.id}`}
               className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
               target="_blank"

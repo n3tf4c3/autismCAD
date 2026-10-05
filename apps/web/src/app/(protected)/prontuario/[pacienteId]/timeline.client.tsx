@@ -181,6 +181,14 @@ export function TimelineClient(props: {
                       </Link>
                       {item.tipo === "PLANO_ENSINO" ? (
                         <>
+                          <Link
+                            className="text-sm font-semibold text-[var(--laranja)]"
+                            href={`/impressao/plano-ensino/individual?pacienteId=${props.pacienteId}&documentoId=${item.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Imprimir
+                          </Link>
                           {props.canEditDocumento && item.status === "Rascunho" ? (
                             <Link
                               className="text-sm font-semibold text-[var(--laranja)]"

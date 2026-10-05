@@ -86,6 +86,101 @@ test("Plano de ensino: salvar rascunho, reabrir, corrigir e finalizar explicitam
     await page.evaluate(() => window.__timeline());
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveCount(1);
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveAttribute("href", "/prontuario/1/plano-ensino?documentoId=1");
+    await expect(page.getByRole("link", { name: "Imprimir", exact: true })).toHaveCount(2);
+    await expect(page.getByRole("link", { name: "Imprimir", exact: true }).first()).toHaveAttribute("href", "/impressao/plano-ensino/individual?pacienteId=1&documentoId=1");
+    assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    server.closeAllConnections(); await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("Plano de ensino individual: impressão A4, campos completos, rascunho e texto longo sem corte", async () => {
+  const { expect } = require("@playwright/test");
+  const fs = require("node:fs");
+  const fields = {
+    habilidade: "Comunicação", ensino: "Pedir ajuda", objetivoEnsino: "Solicitar ajuda em atividades do cotidiano.",
+    procedimento: "Apresentar a atividade.\nAguardar a solicitação da criança.", recursos: "Cartões e brinquedos",
+    suportes: "Suporte verbal", alvo: "Solicitação funcional", objetivoEspecifico: "Solicitar ajuda de forma independente.",
+    criterioSucesso: "Quatro acertos em cinco oportunidades.",
+  };
+  const document = {
+    id: 7, titulo: "Plano de Ensino - Psicologia", status: "Rascunho", autorNome: "Profissional sintético",
+    updatedAt: "2026-10-05", plano: { especialidade: "Psicologia", dataInicio: "2026-10-01", dataFinal: "2026-12-31", blocos: [fields] },
+  };
+  const bundle = await esbuild.build({
+    stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';
+      import{PlanoEnsinoDocumentoImpressaoClient}from'./src/app/impressao/plano-ensino/individual/plano-ensino-documento-impressao.client';
+      const root=createRoot(document.getElementById('root'));window.__printCalls=0;window.print=()=>window.__printCalls++;
+      window.__render=(doc)=>root.render(<PlanoEnsinoDocumentoImpressaoClient
+        paciente={{id:1,nome:'Paciente sintético',dataNascimento:'2020-01-15'}}
+        planos={doc?[doc,{...doc,id:6,status:'Finalizado'}]:[]} documento={doc}/>);
+      window.__render(${JSON.stringify(document)});`, resolveDir: path.join(root, "apps/web"), loader: "tsx" },
+    bundle: true, write: false, format: "iife", platform: "browser", jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' }, tsconfig: path.join(root, "apps/web/tsconfig.json"), logLevel: "silent",
+    plugins: [{ name: "print-fixtures", setup(build) {
+      build.onResolve({ filter: /^next\/link$/ }, () => ({ path: "link", namespace: "fixture" }));
+      build.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ contents: "export default function Link({children,...props}){return <a {...props}>{children}</a>;}", loader: "jsx", resolveDir: path.join(root, "apps/web") }));
+      build.onResolve({ filter: /^@autismcad\/shared\// }, (args) => ({ path: path.join(root, "packages/shared/src", `${args.path.split('/').slice(2).join('/')}.ts`) }));
+    } }],
+  });
+  const server = http.createServer((request, response) => {
+    if (request.url === "/bundle.js") { response.setHeader("Content-Type", "application/javascript"); response.end(bundle.outputFiles[0].contents); return; }
+    if (request.url === "/girassois.svg") { response.setHeader("Content-Type", "image/svg+xml"); response.end(fs.readFileSync(path.join(root, "apps/web/public/girassois.svg"))); return; }
+    response.setHeader("Content-Type", "text/html; charset=utf-8");
+    response.end('<!doctype html><html lang="pt-BR"><head><style>body{margin:0;font-family:Arial,sans-serif}</style></head><body><div id="root"></div><script src="/bundle.js"></script></body></html>');
+  });
+  let browser;
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+    const page = await browser.newPage(); const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    const sheet = page.getByRole("article", { name: "Plano de ensino para impressão" });
+    await expect(sheet).toBeVisible();
+    for (const text of Object.values(fields)) await expect(sheet).toContainText(text);
+    await expect(sheet).toContainText("15/01/2020");
+    await expect(sheet).toContainText("01/10/2026");
+    await expect(sheet).toContainText("31/12/2026");
+    await expect(sheet).toContainText("RASCUNHO");
+    await expect(page.getByRole("combobox", { name: "Plano de ensino", exact: true })).toHaveValue("7");
+    await page.getByRole("button", { name: "Imprimir / Salvar PDF" }).click();
+    assert.equal(await page.evaluate(() => window.__printCalls), 1);
+    await page.getByRole("combobox", { name: "Plano de ensino", exact: true }).selectOption("6");
+    await page.getByRole("button", { name: "Abrir plano" }).click();
+    await expect(page).toHaveURL(/\/impressao\/plano-ensino\/individual\?pacienteId=1&documentoId=6$/);
+    await expect(sheet).toBeVisible();
+    await page.emulateMedia({ media: "print" });
+    await expect(page.getByRole("button", { name: "Imprimir / Salvar PDF" })).toBeHidden();
+    await expect(sheet).toBeVisible();
+    const { PDFDocument } = require("pdf-lib");
+    const simplePdf = await page.pdf({ preferCSSPageSize: true });
+    const simple = await PDFDocument.load(simplePdf);
+    if (process.env.AUDIT_EVIDENCE_DIR) {
+      fs.mkdirSync(process.env.AUDIT_EVIDENCE_DIR, { recursive: true });
+      fs.writeFileSync(path.join(process.env.AUDIT_EVIDENCE_DIR, "plano-ensino-individual-a4.pdf"), simplePdf);
+      await page.screenshot({ path: path.join(process.env.AUDIT_EVIDENCE_DIR, "plano-ensino-impressao.png"), fullPage: true });
+    }
+    assert.equal(simple.getPageCount(), 1);
+    assert.ok(Math.abs(simple.getPage(0).getWidth() - 595.28) < 2);
+    assert.ok(Math.abs(simple.getPage(0).getHeight() - 841.89) < 2);
+    const longDocument = structuredClone(document);
+    longDocument.status = "Finalizado";
+    longDocument.plano.blocos = [0, 1].map((index) => ({ ...fields, procedimento: `Bloco ${index + 1}: ${"Procedimento detalhado para a atividade terapêutica. ".repeat(250)}FIM DO PROCEDIMENTO ${index + 1}` }));
+    await page.evaluate((doc) => window.__render(doc), longDocument);
+    await expect(sheet).not.toContainText("RASCUNHO");
+    await expect(sheet).toContainText("FIM DO PROCEDIMENTO 2");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+    const longPdf = await page.pdf({ preferCSSPageSize: true });
+    assert.ok((await PDFDocument.load(longPdf)).getPageCount() > 1);
+    if (process.env.AUDIT_EVIDENCE_DIR) fs.writeFileSync(path.join(process.env.AUDIT_EVIDENCE_DIR, "plano-ensino-individual-longo.pdf"), longPdf);
+    await page.emulateMedia({ media: "screen" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+    await page.evaluate(() => window.__render(null));
+    await expect(page.getByText("Nenhum plano de ensino salvo", { exact: false })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Imprimir / Salvar PDF" })).toHaveCount(0);
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
