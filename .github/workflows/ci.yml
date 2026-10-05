@@ -45,7 +45,7 @@ jobs:
         run: npm ci
 
       - name: Dependency advisories
-        run: npm audit --omit=dev --audit-level=high
+        run: npm run audit:dependencies
 
       - name: Lint
         run: npm run lint

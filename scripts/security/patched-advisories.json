@@ -1,0 +1,31 @@
+[
+  {
+    "package": "braces",
+    "version": "3.0.3",
+    "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "nodes": [
+      "node_modules/braces"
+    ],
+    "files": {
+      "lib/parse.js": "aad4689ca4fae68de8289c96063dbc4271515fd3b64128a06682ffce466d6241",
+      "lib/compile.js": "5b2bcd527c25a94a7158ec845d2eaf75b0ef04e01a7152ec3f399bb5b48b9bce",
+      "lib/stringify.js": "e0afbedc885acb78b1c7bceb7765648d7d02921a4e5c132a66ca304fa7045b2c",
+      "lib/expand.js": "3c83dd56030f9af00f9cd13ebdb741bf046eb81fdcaaaa752aff4fcdff931054"
+    },
+    "patch": "patches/braces+3.0.3.patch",
+    "patchHash": "42ad266ca90f9dd87098c5ac2554b5a7ae23f224dbeffd7f96da6743823b98b0"
+  },
+  {
+    "package": "node-forge",
+    "version": "1.4.0",
+    "advisory": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+    "nodes": [
+      "node_modules/node-forge"
+    ],
+    "files": {
+      "lib/rsa.js": "c64be81f05e1373e3f3618e4b5a0298480b9b8a72f4455ec557bc2fd1cf04b2f"
+    },
+    "patch": "patches/node-forge+1.4.0.patch",
+    "patchHash": "2c63cc025748188652604c917b26c50915a0f09b67cf0487540950089b5c81ba"
+  }
+]
