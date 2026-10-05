@@ -7,9 +7,9 @@ const { loadSource, queryResult } = createRequire(import.meta.url)("../../../../
 const entry = "apps/web/src/app/impressao/plano-ensino/individual/page.tsx";
 const client = "./plano-ensino-documento-impressao.client";
 
-async function fixture(options: { denyPermission?: boolean; denyPatient?: boolean; empty?: boolean; authError?: AppError } = {}) {
+async function fixture(options: { denyPermission?: boolean; denyPatient?: boolean; empty?: boolean; canCreate?: boolean; authError?: AppError } = {}) {
   const calls: string[] = [];
-  const access = { exists: true };
+  const access = { exists: true, permissions: new Set(options.canCreate ? ["prontuario:create"] : []) };
   const source = await loadSource(entry, {
     "@/lib/env": { env: { APP_TIMEZONE: "America/Cuiaba" } },
     "@autismcad/shared/errors": { AppError, toAppError },
@@ -110,4 +110,18 @@ test("Impressão individual apresenta estado vazio quando não há plano salvo",
   const result = await source.default({ searchParams: Promise.resolve({ pacienteId: "1" }) });
   assert.equal(result.props.documento, null);
   assert.deepEqual(result.props.planos, []);
+  assert.equal(result.props.canCriarPlano, false);
+});
+
+test("Modelo em branco oferece cadastro somente a quem pode criar planos", async () => {
+  const { source } = await fixture({ empty: true, canCreate: true });
+  const result = await source.default({ searchParams: Promise.resolve({ pacienteId: "1" }) });
+  assert.equal(result.props.canCriarPlano, true);
+  assert.equal(result.props.documento, null);
+});
+
+test("Modelo em branco não substitui documento explicitamente solicitado e ausente", async () => {
+  const { source } = await fixture({ empty: true });
+  const result = await source.default({ searchParams: Promise.resolve({ pacienteId: "1", documentoId: "99" }) });
+  assert.equal(result.props.mensagem, "Plano de ensino não encontrado para este paciente.");
 });

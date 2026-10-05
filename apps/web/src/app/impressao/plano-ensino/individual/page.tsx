@@ -6,6 +6,7 @@ import { normalizeDateOnlyLoose } from "@autismcad/shared/normalize";
 import { db } from "@/db";
 import { env } from "@/lib/env";
 import { requirePermission } from "@/server/auth/auth";
+import { hasPermissionKey } from "@/server/auth/permissions";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { listarDocumentos } from "@/server/modules/prontuario/prontuario.service";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
@@ -77,6 +78,7 @@ export default async function PlanoEnsinoDocumentoImpressaoPage(props: {
   return (
     <PlanoEnsinoDocumentoImpressaoClient
       paciente={paciente}
+      canCriarPlano={hasPermissionKey(access.permissions, "prontuario:create")}
       planos={documentos.map((item) => ({
         id: item.id,
         titulo: item.titulo || "Plano de Ensino",

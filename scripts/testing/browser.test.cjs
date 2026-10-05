@@ -112,9 +112,9 @@ test("Plano de ensino individual: impressão A4, campos completos, rascunho e te
     stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';
       import{PlanoEnsinoDocumentoImpressaoClient}from'./src/app/impressao/plano-ensino/individual/plano-ensino-documento-impressao.client';
       const root=createRoot(document.getElementById('root'));window.__printCalls=0;window.print=()=>window.__printCalls++;
-      window.__render=(doc)=>root.render(<PlanoEnsinoDocumentoImpressaoClient
+      window.__render=(doc,canCriarPlano=true)=>root.render(<PlanoEnsinoDocumentoImpressaoClient
         paciente={{id:1,nome:'Paciente sintético',dataNascimento:'2020-01-15'}}
-        planos={doc?[doc,{...doc,id:6,status:'Finalizado'}]:[]} documento={doc}/>);
+        planos={doc?[doc,{...doc,id:6,status:'Finalizado'}]:[]} documento={doc} canCriarPlano={canCriarPlano}/>);
       window.__render(${JSON.stringify(document)});`, resolveDir: path.join(root, "apps/web"), loader: "tsx" },
     bundle: true, write: false, format: "iife", platform: "browser", jsx: "automatic",
     define: { "process.env.NODE_ENV": '"production"' }, tsconfig: path.join(root, "apps/web/tsconfig.json"), logLevel: "silent",
@@ -180,7 +180,27 @@ test("Plano de ensino individual: impressão A4, campos completos, rascunho e te
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
     await page.evaluate(() => window.__render(null));
     await expect(page.getByText("Nenhum plano de ensino salvo", { exact: false })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Imprimir / Salvar PDF" })).toHaveCount(0);
+    await expect(sheet).toContainText("Modelo em branco para preenchimento");
+    await expect(sheet).toContainText("Paciente sintético");
+    await expect(sheet).not.toContainText("RASCUNHO");
+    for (const label of ["Habilidade", "Ensino", "Objetivo de ensino", "Procedimento", "Recursos", "Suportes", "Alvo", "Objetivo específico", "Critério de sucesso"]) {
+      await expect(sheet.locator("dt").filter({ hasText: new RegExp(`^${label}$`) })).toHaveCount(1);
+    }
+    await expect(page.getByRole("link", { name: "Criar plano de ensino" })).toHaveAttribute("href", "/prontuario/1/plano-ensino");
+    const previousPrintCalls = await page.evaluate(() => window.__printCalls);
+    await page.getByRole("button", { name: "Imprimir / Salvar PDF" }).click();
+    assert.equal(await page.evaluate(() => window.__printCalls), previousPrintCalls + 1);
+    await page.emulateMedia({ media: "print" });
+    const blankPdf = await page.pdf({ preferCSSPageSize: true });
+    assert.equal((await PDFDocument.load(blankPdf)).getPageCount(), 1);
+    if (process.env.AUDIT_EVIDENCE_DIR) {
+      fs.writeFileSync(path.join(process.env.AUDIT_EVIDENCE_DIR, "plano-ensino-modelo-em-branco.pdf"), blankPdf);
+      await page.screenshot({ path: path.join(process.env.AUDIT_EVIDENCE_DIR, "plano-ensino-modelo-em-branco.png"), fullPage: true });
+    }
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.__render(null, false));
+    await expect(page.getByRole("link", { name: "Criar plano de ensino" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Imprimir / Salvar PDF" })).toBeVisible();
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
