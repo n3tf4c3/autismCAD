@@ -1,20 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createRequire } from "node:module";
-import { AppError } from "@autismcad/shared/errors";
+import { AppError, toAppError } from "@autismcad/shared/errors";
 
 const { loadSource, queryResult } = createRequire(import.meta.url)("../../../../scripts/testing/load-source.cjs");
 const entry = "apps/web/src/app/impressao/plano-ensino/individual/page.tsx";
 const client = "./plano-ensino-documento-impressao.client";
 
-async function fixture(options: { denyPermission?: boolean; denyPatient?: boolean; empty?: boolean } = {}) {
+async function fixture(options: { denyPermission?: boolean; denyPatient?: boolean; empty?: boolean; authError?: AppError } = {}) {
   const calls: string[] = [];
   const access = { exists: true };
   const source = await loadSource(entry, {
     "@/lib/env": { env: { APP_TIMEZONE: "America/Cuiaba" } },
+    "@autismcad/shared/errors": { AppError, toAppError },
+    "next/navigation": { redirect: (destination: string) => { throw Object.assign(new Error("Redirect"), { destination }); } },
     [client]: { PlanoEnsinoDocumentoImpressaoClient: () => null },
     "@/server/auth/auth": { requirePermission: async (key: string) => {
       calls.push(key);
+      if (options.authError) throw options.authError;
       if (options.denyPermission) throw new AppError("Negado", 403, "FORBIDDEN");
       return { user: { id: 2 }, access };
     } },
@@ -44,8 +47,21 @@ async function fixture(options: { denyPermission?: boolean; denyPatient?: boolea
 
 test("Impressão individual exige prontuario:view antes de carregar dados", async () => {
   const { source, calls } = await fixture({ denyPermission: true });
-  await assert.rejects(source.default({ searchParams: Promise.resolve({ pacienteId: "1" }) }), { code: "FORBIDDEN" });
+  const result = await source.default({ searchParams: Promise.resolve({ pacienteId: "1" }) });
+  assert.equal(result.props.mensagem, "Negado");
   assert.deepEqual(calls, ["prontuario:view"]);
+});
+
+test("Impressão individual encaminha sessão ausente ou revogada ao login e consentimento pendente à sua tela", async () => {
+  for (const [status, code, destination] of [
+    [401, "UNAUTHORIZED", "/login"],
+    [401, "TOKEN_REVOKED", "/login"],
+    [403, "CONSENT_REQUIRED", "/consentimento"],
+  ] as const) {
+    const { source, calls } = await fixture({ authError: new AppError("Bloqueado", status, code) });
+    await assert.rejects(source.default({ searchParams: Promise.resolve({ pacienteId: "1" }) }), { destination });
+    assert.deepEqual(calls, ["prontuario:view"]);
+  }
 });
 
 test("Impressão individual nega paciente sem vínculo antes de carregar os planos", async () => {

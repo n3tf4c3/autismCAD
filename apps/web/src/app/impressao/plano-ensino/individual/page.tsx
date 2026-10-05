@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { pacientes } from "@autismcad/db/schema";
 import { normalizeDateOnlyLoose } from "@autismcad/shared/normalize";
@@ -8,7 +9,7 @@ import { requirePermission } from "@/server/auth/auth";
 import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { listarDocumentos } from "@/server/modules/prontuario/prontuario.service";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
-import { toAppError } from "@/server/shared/errors";
+import { AppError, toAppError } from "@/server/shared/errors";
 import { PlanoEnsinoDocumentoImpressaoClient } from "./plano-ensino-documento-impressao.client";
 
 export const metadata = { title: "Plano de Ensino — Impressão | AutismCAD" };
@@ -30,7 +31,18 @@ function Aviso(props: { mensagem: string; pacienteId?: number }) {
 export default async function PlanoEnsinoDocumentoImpressaoPage(props: {
   searchParams: Promise<{ pacienteId?: string; documentoId?: string }>;
 }) {
-  const { user, access } = await requirePermission("prontuario:view");
+  let authorization: Awaited<ReturnType<typeof requirePermission>>;
+  try {
+    authorization = await requirePermission("prontuario:view");
+  } catch (error) {
+    if (error instanceof AppError) {
+      if (error.status === 401) redirect("/login");
+      if (error.code === "CONSENT_REQUIRED") redirect("/consentimento");
+      if (error.status === 403) return <Aviso mensagem={error.message} />;
+    }
+    throw error;
+  }
+  const { user, access } = authorization;
   const { pacienteId, documentoId } = await props.searchParams;
   const id = Number(pacienteId);
   const docId = documentoId === undefined ? null : Number(documentoId);
