@@ -112,14 +112,6 @@ export function PlanoEnsinoDocumentoImpressaoClient(props: {
             <div><dt>Especialidade</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : plano.especialidade || "—"}</dd></div>
             <div><dt>Data de início</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : formatDateBr(plano.dataInicio)}</dd></div>
             <div><dt>Data final</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : formatDateBr(plano.dataFinal)}</dd></div>
-            <div><dt>Profissional / autor</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : documento?.autorNome}</dd></div>
-            {documento ? (
-              <>
-                <div><dt>Status</dt><dd>{documento.status || "—"}</dd></div>
-                <div><dt>Plano</dt><dd>#{documento.id}</dd></div>
-                <div><dt>Última atualização</dt><dd>{formatDateBr(documento.updatedAt)}</dd></div>
-              </>
-            ) : null}
           </dl>
 
           {plano.blocos.length ? plano.blocos.map((bloco, index) => (
