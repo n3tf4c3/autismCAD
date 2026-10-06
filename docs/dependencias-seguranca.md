@@ -7,6 +7,20 @@ Expo permanece no SDK 57 e React/ReactDOM em 19.2.3 no web e no mobile.
 O check oficial do Expo exigiu patches compativeis: expo 57.0.26,
 expo-constants 57.0.20 e expo-router 57.0.24, incluidos nesta entrega.
 
+## Atualizacao de source-map-js em 2026-10-06
+
+A CI do commit `968f4fd` bloqueou a versao transitiva 1.2.1 pelo aviso alto
+[GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)
+(CVE-2026-93749): offsets de mapas indexados podiam bloquear o event loop.
+O lockfile agora usa 1.2.2, release corrigida e compativel com os intervalos
+dos consumidores. Nao foi necessario adicionar override ou alterar o gate.
+A [release upstream](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2)
+tambem corrige a execucao no browser sob CSP sem unsafe-eval.
+
+O backup de 2026-10-06_04-20-47 preserva o estado anterior, incluindo 1.2.1.
+Depois de restaurar esse snapshot, aplicar esta atualizacao de seguranca
+antes da instalacao e publicacao do aplicativo.
+
 ## Correcoes locais enquanto nao ha release upstream
 
 | Pacote | Aviso exato | Correcao |
