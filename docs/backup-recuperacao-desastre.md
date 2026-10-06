@@ -79,6 +79,10 @@ extrair em pasta nova, seguir os scripts internos de `recuperacao/`:
 6. Reconfigurar os ambientes Vercel, domínio/DNS e credenciais Android conforme
    o guia; validar os fluxos antes de liberar o uso.
 
+Antes do passo 3, aplicar a atualização de `source-map-js` de 1.2.1 para 1.2.2,
+descrita em [dependências e segurança](dependencias-seguranca.md). O lockfile
+preservado no ZIP é anterior a essa correção de segurança.
+
 Os scripts de restauração recusam os endpoints originais de produção e destinos
 ocupados. O dump já restaura o schema e o journal: não executar migrations ou
 seeds antes da importação. O fluxo posterior continua sendo `db:migrate`,
