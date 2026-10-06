@@ -98,9 +98,9 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
         {planoEnsino ? (
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Especialidade</p>
-                <p className="mt-1 text-sm font-semibold text-[var(--texto)]">{planoEnsino.especialidade || "-"}</p>
+              <div className="space-y-4">
+                <ReadonlyField label="Especialidade" value={planoEnsino.especialidade} />
+                <ReadonlyField label="Responsável Técnico(a)" value={planoEnsino.responsavelTecnico} />
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Data de inicio</p>

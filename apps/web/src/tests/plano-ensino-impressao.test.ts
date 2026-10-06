@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createRequire } from "node:module";
 import { AppError, toAppError } from "@autismcad/shared/errors";
+import { sanitizePlanoEnsinoPayload } from "@autismcad/shared/plano-ensino";
+import { salvarDocumentoSchema } from "@autismcad/validators/prontuario/prontuario.schema";
 
 const { loadSource, queryResult } = createRequire(import.meta.url)("../../../../scripts/testing/load-source.cjs");
 const entry = "apps/web/src/app/impressao/plano-ensino/individual/page.tsx";
@@ -38,7 +40,7 @@ async function fixture(options: { denyPermission?: boolean; denyPatient?: boolea
       return options.empty ? [] : [7, 6].map((id) => ({
         id, pacienteId: 1, titulo: `Plano ${id}`, status: id === 7 ? "Rascunho" : "Finalizado",
         autorNome: "Profissional sintético", updatedAt: new Date("2026-10-06T02:00:00Z"),
-        payload: { especialidade: "Psicologia", data_inicio: "2026-10-01", itens: [{ habilidade: "Comunicação", objetivo_ensino: "Pedir ajuda" }] },
+        payload: { especialidade: "Psicologia", ...(id === 7 ? { responsavelTecnico: "  Técnica sintética  " } : {}), data_inicio: "2026-10-01", itens: [{ habilidade: "Comunicação", objetivo_ensino: "Pedir ajuda" }] },
       }));
     } },
   });
@@ -97,11 +99,24 @@ test("Impressão individual abre o último salvo ou o plano explicitamente escol
     assert.equal(result.props.documento.id, documentoId ? 6 : 7);
     assert.equal(result.props.documento.status, documentoId ? "Finalizado" : "Rascunho");
     assert.equal(result.props.documento.plano.dataInicio, "2026-10-01");
+    assert.equal(result.props.documento.plano.responsavelTecnico, documentoId ? null : "Técnica sintética");
     assert.equal(result.props.documento.plano.blocos[0].objetivoEnsino, "Pedir ajuda");
     assert.equal(result.props.documento.updatedAt, "2026-10-05");
     assert.equal(result.props.planos[0].updatedAt, "2026-10-05");
     assert.equal(result.props.planos.length, 2);
     assert.ok(result.props.planos.every((item: object) => !("payload" in item)));
+  }
+});
+
+test("Responsável técnico aceita nome opcional e preserva planos legados sem o campo", () => {
+  for (const value of [undefined, null, "", "   ", "  Técnica sintética  "]) {
+    const input = salvarDocumentoSchema.parse({ tipo: "PLANO_ENSINO", payload: { responsavelTecnico: value } });
+    const plano = sanitizePlanoEnsinoPayload(input.payload, "America/Cuiaba");
+    assert.equal(plano.responsavelTecnico, value?.trim() || null);
+  }
+  assert.equal(sanitizePlanoEnsinoPayload({}, "America/Cuiaba").responsavelTecnico, null);
+  for (const value of [7, {}, []]) {
+    assert.equal(salvarDocumentoSchema.safeParse({ tipo: "PLANO_ENSINO", payload: { responsavelTecnico: value } }).success, false);
   }
 });
 

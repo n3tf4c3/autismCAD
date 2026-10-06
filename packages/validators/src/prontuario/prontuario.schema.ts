@@ -23,6 +23,7 @@ export const docStatusSchema = z.enum(DOC_STATUS).optional();
 
 export const prontuarioDocumentoPayloadSchema = z
   .object({
+    responsavelTecnico: z.string().trim().optional().nullable(),
     introducao: z.string().trim().min(1).optional().nullable(),
     avaliacao: z.string().trim().min(1).optional().nullable(),
     objetivos: z.array(z.string().trim().min(1)).optional(),
