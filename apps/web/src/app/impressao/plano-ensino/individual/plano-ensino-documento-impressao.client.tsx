@@ -18,6 +18,7 @@ const CAMPOS_BLOCO = [
 
 const PLANO_EM_BRANCO: PlanoEnsinoPayload = {
   especialidade: null,
+  responsavelTecnico: null,
   dataInicio: null,
   dataFinal: null,
   blocos: [{
@@ -112,6 +113,7 @@ export function PlanoEnsinoDocumentoImpressaoClient(props: {
             <div><dt>Especialidade</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : plano.especialidade || "—"}</dd></div>
             <div><dt>Data de início</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : formatDateBr(plano.dataInicio)}</dd></div>
             <div><dt>Data final</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : formatDateBr(plano.dataFinal)}</dd></div>
+            <div className="plan-print-responsible"><dt>Responsável Técnico(a)</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : plano.responsavelTecnico || "—"}</dd></div>
           </dl>
 
           {plano.blocos.length ? plano.blocos.map((bloco, index) => (
@@ -156,6 +158,7 @@ export function PlanoEnsinoDocumentoImpressaoClient(props: {
         .plan-print-draft { margin: 0 0 16px; border: 2px solid #78604a; padding: 8px 12px; font-weight: 700; break-inside: avoid; }
         .plan-print-identification { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; border-bottom: 1px solid #b7afa7; padding-bottom: 16px; margin: 0 0 20px; break-inside: avoid; }
         .plan-print-patient { grid-column: span 2; }
+        .plan-print-responsible { grid-column: 1; }
         .plan-print-sheet dt { font-size: 12px; font-weight: 700; color: #4d392a; break-after: avoid; }
         .plan-print-sheet dd { margin: 3px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; orphans: 3; widows: 3; }
         .plan-print-sheet .plan-print-blank { min-height: 28px; border-bottom: 1px dotted #b7afa7; }

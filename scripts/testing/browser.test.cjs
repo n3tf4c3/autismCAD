@@ -54,17 +54,23 @@ test("Plano de ensino: salvar rascunho, reabrir, corrigir e finalizar explicitam
     const page = await browser.newPage(); const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await expect(page.getByLabel("Responsável Técnico(a)", { exact: true })).toHaveValue("");
+    await page.getByLabel("Responsável Técnico(a)", { exact: true }).fill("  Técnica sintética  ");
     await page.getByLabel("Habilidade", { exact: true }).fill("Comunicacao");
     await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.__destination)).toBe("/prontuario/documento/7");
     assert.equal(await page.evaluate(() => window.__writes[0].input.status), "Rascunho");
+    assert.equal(await page.evaluate(() => window.__writes[0].input.payload.responsavelTecnico), "Técnica sintética");
     await expect(page.getByRole("button", { name: "Salvar rascunho", exact: true })).toBeDisabled();
     await page.evaluate(() => window.__render());
     await expect(page.getByLabel("Habilidade", { exact: true })).toHaveValue("Comunicacao");
+    await expect(page.getByLabel("Responsável Técnico(a)", { exact: true })).toHaveValue("Técnica sintética");
+    await page.getByLabel("Responsável Técnico(a)", { exact: true }).fill("Responsável corrigido");
     await page.getByLabel("Recursos", { exact: true }).fill("Informacao esquecida");
     await page.evaluate(() => { window.__fail=true; });
     await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
     await expect(page.getByRole("status")).toHaveText("Falha sintetica ao salvar");
+    await expect(page.getByLabel("Responsável Técnico(a)", { exact: true })).toHaveValue("Responsável corrigido");
     await expect(page.getByRole("textbox", { name: "Recursos", exact: true })).toHaveValue("Informacao esquecida");
     await page.evaluate(() => { window.__fail=false; });
     await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
@@ -72,6 +78,7 @@ test("Plano de ensino: salvar rascunho, reabrir, corrigir e finalizar explicitam
     assert.equal(await page.evaluate(() => window.__writes[2].input.documentoId), 7);
     await page.evaluate(() => window.__render());
     await expect(page.getByRole("textbox", { name: "Recursos", exact: true })).toHaveValue("Informacao esquecida");
+    await expect(page.getByLabel("Responsável Técnico(a)", { exact: true })).toHaveValue("Responsável corrigido");
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.getByRole("button", { name: "Finalizar", exact: true }).click();
     assert.equal(await page.evaluate(() => window.__writes.length), 3);
@@ -80,6 +87,7 @@ test("Plano de ensino: salvar rascunho, reabrir, corrigir e finalizar explicitam
     await expect.poll(() => page.evaluate(() => window.__writes.length)).toBe(4);
     assert.equal(await page.evaluate(() => window.__writes[3].input.status), "Finalizado");
     assert.equal(await page.evaluate(() => window.__writes[3].input.documentoId), 7);
+    assert.equal(await page.evaluate(() => window.__writes[3].input.payload.responsavelTecnico), "Responsável corrigido");
     await page.evaluate(() => window.__render(false));
     await expect(page.getByRole("button", { name: "Finalizar", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Salvar rascunho", exact: true })).toBeEnabled();
@@ -106,7 +114,7 @@ test("Plano de ensino individual: impressão A4, campos completos, rascunho e te
   };
   const document = {
     id: 7, titulo: "Plano de Ensino - Psicologia", status: "Rascunho", autorNome: "Profissional sintético",
-    updatedAt: "2026-10-05", plano: { especialidade: "Psicologia", dataInicio: "2026-10-01", dataFinal: "2026-12-31", blocos: [fields] },
+    updatedAt: "2026-10-05", plano: { especialidade: "Psicologia", responsavelTecnico: "Técnica sintética", dataInicio: "2026-10-01", dataFinal: "2026-12-31", blocos: [fields] },
   };
   const bundle = await esbuild.build({
     stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';
@@ -144,6 +152,7 @@ test("Plano de ensino individual: impressão A4, campos completos, rascunho e te
     await expect(sheet).toContainText("01/10/2026");
     await expect(sheet).toContainText("31/12/2026");
     await expect(sheet).toContainText("RASCUNHO");
+    await expect(sheet.locator(".plan-print-responsible")).toHaveText("Responsável Técnico(a)Técnica sintética");
     await expect(page.getByRole("combobox", { name: "Plano de ensino", exact: true })).toHaveValue("7");
     await page.getByRole("button", { name: "Imprimir / Salvar PDF" }).click();
     assert.equal(await page.evaluate(() => window.__printCalls), 1);
@@ -183,9 +192,10 @@ test("Plano de ensino individual: impressão A4, campos completos, rascunho e te
     await expect(sheet).toContainText("Modelo em branco para preenchimento");
     await expect(sheet).toContainText("Paciente sintético");
     await expect(sheet).not.toContainText("RASCUNHO");
-    for (const label of ["Habilidade", "Ensino", "Objetivo de ensino", "Procedimento", "Recursos", "Suportes", "Alvo", "Objetivo específico", "Critério de sucesso"]) {
-      await expect(sheet.locator("dt").filter({ hasText: new RegExp(`^${label}$`) })).toHaveCount(1);
+    for (const label of ["Responsável Técnico(a)", "Habilidade", "Ensino", "Objetivo de ensino", "Procedimento", "Recursos", "Suportes", "Alvo", "Objetivo específico", "Critério de sucesso"]) {
+      await expect(sheet.getByText(label, { exact: true })).toHaveCount(1);
     }
+    await expect(sheet.locator(".plan-print-responsible dd")).toHaveClass("plan-print-blank");
     await expect(page.getByRole("link", { name: "Criar plano de ensino" })).toHaveAttribute("href", "/prontuario/1/plano-ensino");
     const previousPrintCalls = await page.evaluate(() => window.__printCalls);
     await page.getByRole("button", { name: "Imprimir / Salvar PDF" }).click();

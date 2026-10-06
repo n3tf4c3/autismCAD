@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { PlanoEnsinoPayload } from "@autismcad/shared/plano-ensino";
 import { ESPECIALIDADES_TERAPEUTA } from "@autismcad/validators/profissionais/especialidades";
 import type { DocStatus } from "@autismcad/validators/prontuario/prontuario.schema";
 import { salvarDocumentoProntuarioAction } from "@/app/(protected)/prontuario/prontuario.actions";
@@ -24,11 +25,7 @@ type BlocoInput = {
   [K in keyof Omit<BlocoForm, "id">]: string | null;
 };
 
-export type PlanoEnsinoInitialData = {
-  especialidade: string | null;
-  dataInicio: string | null;
-  dataFinal: string | null;
-  blocos: BlocoInput[];
+export type PlanoEnsinoInitialData = PlanoEnsinoPayload & {
   sourceDocumentId?: number | null;
 };
 
@@ -147,6 +144,7 @@ function unwrapAction<T>(
 export function PlanoEnsinoFormClient(props: { pacienteId: number; canFinalize: boolean; initialData?: PlanoEnsinoInitialData | null }) {
   const router = useRouter();
   const [especialidade, setEspecialidade] = useState(() => props.initialData?.especialidade ?? "");
+  const [responsavelTecnico, setResponsavelTecnico] = useState(() => props.initialData?.responsavelTecnico ?? "");
   const [dataInicio, setDataInicio] = useState(() => props.initialData?.dataInicio ?? "");
   const [dataFinal, setDataFinal] = useState(() => props.initialData?.dataFinal ?? "");
   const [blocos, setBlocos] = useState<BlocoForm[]>(() => getInitialBlocos(props.initialData));
@@ -179,6 +177,7 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; canFinalize: 
         titulo: null,
         payload: {
           especialidade: especialidade.trim() || null,
+          responsavelTecnico: responsavelTecnico.trim() || null,
           dataInicio: dataInicio || null,
           dataFinal: dataFinal || null,
           blocos: blocos.map((bloco) => ({
@@ -232,12 +231,20 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; canFinalize: 
         ) : null}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Select
-            label="Especialidade"
-            value={especialidade}
-            options={ESPECIALIDADES_TERAPEUTA}
-            onChange={setEspecialidade}
-          />
+          <div className="grid content-start gap-4">
+            <Select
+              label="Especialidade"
+              value={especialidade}
+              options={ESPECIALIDADES_TERAPEUTA}
+              onChange={setEspecialidade}
+            />
+            <Input
+              label="Responsável Técnico(a)"
+              value={responsavelTecnico}
+              placeholder="Nome do responsável técnico"
+              onChange={setResponsavelTecnico}
+            />
+          </div>
           <Input label="Data de inicio" type="date" value={dataInicio} onChange={setDataInicio} />
           <Input label="Data final" type="date" value={dataFinal} onChange={setDataFinal} />
         </div>

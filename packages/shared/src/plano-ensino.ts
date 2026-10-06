@@ -16,6 +16,7 @@ export type PlanoEnsinoBloco = {
 
 export type PlanoEnsinoPayload = {
   especialidade: string | null;
+  responsavelTecnico: string | null;
   dataInicio: string | null;
   dataFinal: string | null;
   blocos: PlanoEnsinoBloco[];
@@ -60,6 +61,7 @@ export function sanitizePlanoEnsinoPayload(input: unknown, timeZone: string): Pl
 
   return {
     especialidade: normalizeOptionalText(String(rec.especialidade ?? "")),
+    responsavelTecnico: normalizeOptionalText(String(rec.responsavelTecnico ?? "")),
     dataInicio: normalizeDateOnlyLoose(String(rec.dataInicio ?? rec.data_inicio ?? ""), timeZone),
     dataFinal: normalizeDateOnlyLoose(String(rec.dataFinal ?? rec.data_final ?? ""), timeZone),
     blocos: rawBlocos.map(sanitizeBloco).filter(hasBlocoContent),

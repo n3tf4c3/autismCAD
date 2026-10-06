@@ -28,6 +28,7 @@ for (const status of ["Rascunho", "Finalizado"]) {
             autorNome: "Sintético",
             payload: {
               especialidade: "Psicologia",
+              responsavelTecnico: "Técnica sintética",
               dataInicio: "2026-10-01",
               dataFinal: "2026-12-01",
               blocos: [],
@@ -41,6 +42,8 @@ for (const status of ["Rascunho", "Finalizado"]) {
       assert.doesNotMatch(html, /05\/10\/2001/);
       assert.match(html, /01\/10\/2026/);
       assert.match(html, /01\/12\/2026/);
+      assert.match(html, /Responsável Técnico\(a\)/);
+      assert.match(html, /Técnica sintética/);
     });
   }
 }
