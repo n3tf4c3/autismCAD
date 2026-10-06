@@ -21,6 +21,36 @@ O backup de 2026-10-06_04-20-47 preserva o estado anterior, incluindo 1.2.1.
 Depois de restaurar esse snapshot, aplicar esta atualizacao de seguranca
 antes da instalacao e publicacao do aplicativo.
 
+## Atualizacao de sharp e shell-quote em 2026-10-06
+
+A CI do commit `1745df2` encontrou dois novos avisos sem mitigacao:
+
+- `sharp` 0.35.4: aviso alto
+  [GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w)
+  na dependencia nativa librsvg. O override minimo passa a `^0.35.5`;
+  o lockfile inclui os binarios sharp 0.35.5 e sharp-libvips 1.3.4,
+  com librsvg 2.63.2 corrigido.
+- `shell-quote` 1.10.0: aviso critico
+  [GHSA-pqg4-j6r4-53mv](https://github.com/advisories/GHSA-pqg4-j6r4-53mv)
+  por quebra de linha em argumentos depois de um token de comentario.
+  O lockfile passa a 1.12.0, que inclui a correcao publicada em 1.11.0.
+  A faixa `^1.6.1` de react-devtools-core ja aceita essa versao;
+  nao e necessario adicionar outro override nem atualizar React Native.
+
+`scripts/security/dependency-upgrades.test.cjs` verifica a rejeicao das quatro
+quebras de linha do aviso, preserva argumentos validos e exercita a conversao
+SVG/PNG com a biblioteca nativa corrigida. O gate de dependencias permanece
+inalterado; os patches de braces e node-forge continuam obrigatorios.
+Snapshots anteriores com sharp 0.35.4 ou shell-quote 1.10.0 devem receber
+esta atualizacao antes de serem publicados novamente.
+
+O check oficial de compatibilidade encontrou tambem novos patches do SDK 57:
+expo 57.0.27, expo-constants 57.0.21, expo-linking 57.0.12 e expo-router 57.0.25.
+Esses quatro pacotes foram alinhados para preservar o gate mobile do CI;
+React, React Native e a major do SDK permanecem nas versoes anteriores.
+O lockfile preserva os overrides anteriores de decode-uri-component 0.5.0
+e uuid 11.1.1; a instalacao limpa aplica tambem o adaptador de query-string.
+
 ## Correcoes locais enquanto nao ha release upstream
 
 | Pacote | Aviso exato | Correcao |
@@ -49,7 +79,7 @@ ciclos de dependencias do Expo/Metro nao dispensam a verificacao das folhas.
 Criticos, novos avisos altos, versoes/copias/hashes diferentes, falhas de rede,
 JSON invalido ou regressao reprovada bloqueiam o CI.
 
-O audit bruto ainda informa 21 entradas altas herdadas desses dois avisos e zero
+O audit bruto ainda informa 23 entradas altas herdadas desses dois avisos e zero
 criticas neste snapshot. Isso nao equivale a `npm audit` sem alertas. O gate
 informa explicitamente a contagem bruta e a cobertura pelos patches locais.
 
