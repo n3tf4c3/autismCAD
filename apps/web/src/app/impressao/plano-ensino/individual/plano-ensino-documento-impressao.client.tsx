@@ -107,7 +107,7 @@ export function PlanoEnsinoDocumentoImpressaoClient(props: {
           ) : null}
 
           <dl className="plan-print-identification">
-            <div className="plan-print-patient"><dt>Paciente</dt><dd>{paciente.nome} (#{paciente.id})</dd></div>
+            <div className="plan-print-patient"><dt>Paciente</dt><dd>{paciente.nome}</dd></div>
             <div><dt>Data de nascimento</dt><dd>{formatDateBr(paciente.dataNascimento)}</dd></div>
             <div><dt>Especialidade</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : plano.especialidade || "—"}</dd></div>
             <div><dt>Data de início</dt><dd className={modeloEmBranco ? "plan-print-blank" : undefined}>{modeloEmBranco ? "\u00a0" : formatDateBr(plano.dataInicio)}</dd></div>
