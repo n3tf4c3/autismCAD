@@ -15,6 +15,7 @@ function parseQuery(url: string) {
     pacienteId: search.get("pacienteId"),
     from: search.get("from") ?? undefined,
     to: search.get("to") ?? undefined,
+    especialidade: search.get("especialidade") ?? undefined,
   });
 }
 

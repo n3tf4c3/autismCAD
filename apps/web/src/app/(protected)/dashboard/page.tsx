@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth/auth";
-import { assertHasPermission, loadUserAccess } from "@/server/auth/access";
+import { assertHasPermission, hasPermission, loadUserAccess } from "@/server/auth/access";
 import { ADMIN_ROLES, hasPermissionKey } from "@/server/auth/permissions";
 import { resolveEffectiveRoleCanon } from "@/server/auth/effective-role";
 import { atendimentos, pacientes, terapeutas as profissionaisTabela } from "@autismcad/db/schema";
@@ -11,6 +11,8 @@ import { loadDashboardAgenda } from "@/server/modules/dashboard/dashboard.servic
 import { obterProfissionalPorUsuario } from "@/server/modules/profissionais/profissionais.service";
 import { ymNowInClinicTz, ymdNowInClinicTz } from "@/server/shared/clock";
 import { QuickCalendarClient } from "./quick-calendar.client";
+import { PlanosEnsinoAlertasClient } from "./planos-ensino-alertas.client";
+import { listarPlanosEnsinoComValidade } from "@/server/modules/prontuario/planos-ensino-lista.service";
 
 type BirthdayItem = {
   id: number;
@@ -46,6 +48,7 @@ export default async function DashboardPage() {
   const accessRole = access.canonicalRole ?? access.role;
   const isAdmin = accessRole ? ADMIN_ROLES.has(accessRole) : false;
   const isProfissional = accessRole === "PROFISSIONAL";
+  const canViewPlanos = hasPermission(access, "prontuario:view") && (isAdmin || isProfissional || accessRole === "RECEPCAO");
   // Achado 59: aniversariantes de profissionais expoem dados pessoais; so para quem
   // pode visualizar profissionais.
   const canViewProfissionais = isAdmin || hasPermissionKey(access.permissions, "profissionais:view");
@@ -67,7 +70,7 @@ export default async function DashboardPage() {
   const ym = ymNowInClinicTz();
   const birthdayMonth = monthFromYmd(today);
 
-  const [agenda, pacientesAniversariantes, profissionaisAniversariantes] = await Promise.all([
+  const [agenda, pacientesAniversariantes, profissionaisAniversariantes, planos] = await Promise.all([
     loadDashboardAgenda({
       profissionalId,
       today,
@@ -128,6 +131,7 @@ export default async function DashboardPage() {
             asc(profissionaisTabela.nome)
           )
       : Promise.resolve([]),
+    canViewPlanos ? listarPlanosEnsinoComValidade({ user, access }) : Promise.resolve([]),
   ]);
 
   const { pendentes, monthAtendimentos } = agenda;
@@ -169,6 +173,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      {canViewPlanos ? <PlanosEnsinoAlertasClient planos={planos} hoje={today} userId={userId} /> : null}
+
       <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F465}"}</span>
