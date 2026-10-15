@@ -173,8 +173,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-      {canViewPlanos ? <PlanosEnsinoAlertasClient planos={planos} hoje={today} userId={userId} /> : null}
-
       <section className="flex h-full flex-col gap-4 rounded-xl bg-white p-5 shadow-sm xl:h-[540px]">
         <div className="flex items-center gap-3">
           <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F50E}"}</span>
@@ -301,6 +299,7 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+      {canViewPlanos ? <PlanosEnsinoAlertasClient planos={planos} hoje={today} userId={userId} /> : null}
     </div>
   );
 }
