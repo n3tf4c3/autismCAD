@@ -12,37 +12,40 @@ export function PlanosEnsinoAlertasClient(props: { planos: PlanoEnsinoListaItem[
   const alertas = selecionarAlertasPlanos(props.planos, props.hoje, antecedencia);
   const vencidos = alertas.filter((plano) => (diasAteVencimento(plano.dataFinal, props.hoje) ?? 1) < 0).length;
   return (
-    <section id="alertas-planos-ensino" aria-labelledby="alertas-planos-titulo" className="rounded-2xl bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-3">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 id="alertas-planos-titulo" className="text-xl font-bold text-[var(--marrom)]">Vencimento dos planos de ensino</h2>
-          <p className="mt-1 text-sm text-gray-600">Último plano finalizado de cada paciente e especialidade.</p>
+    <section id="alertas-planos-ensino" aria-labelledby="alertas-planos-titulo" aria-describedby="alertas-planos-descricao" className="rounded-2xl bg-white p-4 shadow-sm sm:col-span-2 xl:col-span-3">
+      <p id="alertas-planos-descricao" className="sr-only">Último plano finalizado de cada paciente e especialidade.</p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <h2 id="alertas-planos-titulo" className="text-base font-bold text-[var(--marrom)]">Vencimento dos planos de ensino</h2>
+          <p role="status" className={`mt-0.5 text-xs ${alertas.length ? "text-gray-600" : "text-green-700 dark:text-green-300"}`}>
+            {alertas.length
+              ? `${vencidos} vencido(s) · ${alertas.length} plano(s) precisam de atenção`
+              : `Nenhum plano vencido ou com vencimento nos próximos ${antecedencia} dias.`}
+          </p>
         </div>
-        <label className="flex flex-col gap-1 text-sm font-semibold text-[var(--marrom)]">
-          <span>Alertar com antecedência de</span>
-          <select value={antecedencia} onChange={(event) => setAntecedencia(Number(event.target.value))} className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-700">
+        <label className="inline-flex shrink-0 items-center gap-2 text-xs font-semibold text-[var(--marrom)]">
+          <span>Antecedência</span>
+          <select aria-label="Alertar com antecedência de" title="Preferência salva para você neste navegador." value={antecedencia} onChange={(event) => setAntecedencia(Number(event.target.value))} className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700">
             {PRAZOS_ALERTA_PLANO_ENSINO.map((dias) => <option key={dias} value={dias}>{dias} dias</option>)}
           </select>
-          <span className="text-xs font-normal text-gray-500">Preferência salva para você neste navegador.</span>
         </label>
       </div>
-      <p role="status" className="mt-3 text-sm text-gray-600">{vencidos} vencido(s) · {alertas.length} plano(s) precisam de atenção</p>
       {alertas.length ? (
-        <ul className="mt-3 max-h-[420px] divide-y divide-gray-100 overflow-y-auto pr-1">
+        <ul className="mt-2 max-h-60 divide-y divide-gray-100 overflow-y-auto pr-1">
           {alertas.map((plano) => (
-            <li key={plano.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <Link href={`/prontuario/${plano.pacienteId}#planos-ensino`} className="font-semibold text-[var(--marrom)] underline">{plano.pacienteNome}</Link>
-                <p className="mt-1 text-sm text-gray-600">{plano.especialidade || "Especialidade não informada"} · Vencimento: {formatDateBr(plano.dataFinal)}</p>
+            <li key={plano.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2">
+              <div className="flex min-w-0 basis-full flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:basis-0 sm:flex-1">
+                <Link href={`/prontuario/${plano.pacienteId}#planos-ensino`} className="text-sm font-semibold text-[var(--marrom)] underline">{plano.pacienteNome}</Link>
+                <span className="text-xs text-gray-600">{plano.especialidade || "Especialidade não informada"} · Vencimento: {formatDateBr(plano.dataFinal)}</span>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <PlanoEnsinoSituacao plano={plano} hoje={props.hoje} antecedencia={antecedencia} />
-                <Link href={`/prontuario/documento/${plano.id}`} aria-label={`Abrir plano de ${plano.especialidade || "especialidade não informada"} de ${plano.pacienteNome}`} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-[var(--marrom)] hover:bg-amber-50">Abrir plano</Link>
+                <Link href={`/prontuario/documento/${plano.id}`} aria-label={`Abrir plano de ${plano.especialidade || "especialidade não informada"} de ${plano.pacienteNome}`} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-[var(--marrom)] hover:bg-amber-50">Abrir plano</Link>
               </div>
             </li>
           ))}
         </ul>
-      ) : <p className="mt-4 rounded-xl bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">Nenhum plano vencido ou com vencimento nos próximos {antecedencia} dias.</p>}
+      ) : null}
     </section>
   );
 }
