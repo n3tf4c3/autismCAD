@@ -640,6 +640,8 @@ export async function consolidatePlanoEnsinoReport(params: {
 }) {
   const pacienteId = params.query.pacienteId;
   if (!pacienteId) throw new AppError("Paciente obrigatorio", 400, "INVALID_INPUT");
+  const especialidade = params.query.especialidade ?? null;
+  const especialidadeKey = normalizeToken(especialidade);
 
   const from = normalizeDateOnlyLoose(params.query.from) ?? ymdMinusDaysInClinicTz(29);
   const to = normalizeDateOnlyLoose(params.query.to) ?? ymdNowInClinicTz();
@@ -725,6 +727,7 @@ export async function consolidatePlanoEnsinoReport(params: {
       };
     })
     .filter((plano) =>
+      (!especialidade || normalizeToken(plano.especialidade) === especialidadeKey) &&
       overlapDateRange({
         targetFrom: from,
         targetTo: to,
@@ -748,12 +751,17 @@ export async function consolidatePlanoEnsinoReport(params: {
       id: evolucoes.id,
       data: evolucoes.data,
       payload: evolucoes.payload,
+      especialidade: profissionaisTabela.especialidade,
     })
     .from(evolucoes)
+    .leftJoin(profissionaisTabela, eq(profissionaisTabela.id, evolucoes.profissionalId))
     .where(and(...whereEvolucao))
     .orderBy(asc(evolucoes.data), asc(evolucoes.id));
 
   const desempenhoEnsino = evolucoesPlanoRows.flatMap((row) => {
+    // Evolucoes nao guardam especialidade no payload: usam o profissional vinculado.
+    // Sem esse vinculo, nao e possivel atribuir a evolucao a uma area especifica.
+    if (especialidade && normalizeToken(row.especialidade) !== especialidadeKey) return [];
     const payload = sanitizeEvolucaoPayload(row.payload).payload;
     return extractPlanoDesempenhoItems({
       evolucaoId: Number(row.id),
@@ -797,6 +805,7 @@ export async function consolidatePlanoEnsinoReport(params: {
       dataNascimento: paciente.dataNascimento,
     },
     periodo: { from, to },
+    especialidade,
     resumo,
     planos,
     desempenhoEnsino,

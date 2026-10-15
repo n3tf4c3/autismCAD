@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isCalendarDate } from "../common/datetime";
+import { ESPECIALIDADES_RELATORIO_PLANO_ENSINO } from "./especialidades";
 
 const optionalProfissionalId = z.coerce.number().int().positive().optional();
 
@@ -25,6 +26,7 @@ export const planoEnsinoQuerySchema = z
     pacienteId: z.coerce.number().int().positive(),
     from: optionalDate,
     to: optionalDate,
+    especialidade: z.enum(ESPECIALIDADES_RELATORIO_PLANO_ENSINO).optional(),
   });
 
 export type PlanoEnsinoQueryInput = z.infer<typeof planoEnsinoQuerySchema>;

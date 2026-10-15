@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ESPECIALIDADES_RELATORIO_PLANO_ENSINO } from "@autismcad/validators/relatorios/especialidades";
 import { gerarRelatorioPlanoEnsinoAction } from "@/app/(protected)/relatorios/relatorios.actions";
 import {
   normalizeRelatorioApiError,
@@ -27,6 +28,7 @@ type PlanoEnsinoReport = {
     dataNascimento: string | null;
   };
   periodo: { from: string; to: string };
+  especialidade: string | null;
   resumo: {
     totalPlanos: number;
     totalBlocos: number;
@@ -354,6 +356,7 @@ export function PlanoEnsinoImpressaoClient(props: {
   const [referenceMonth, setReferenceMonth] = useState(ymNow());
   const [customFrom, setCustomFrom] = useState(() => monthRange(ymNow())?.from ?? "");
   const [customTo, setCustomTo] = useState(() => monthRange(ymNow())?.to ?? "");
+  const [especialidade, setEspecialidade] = useState("");
   const [loading, setLoading] = useState(false);
   const [exportingDocx, setExportingDocx] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -368,13 +371,19 @@ export function PlanoEnsinoImpressaoClient(props: {
   }, [customFrom, customTo, periodPreset, referenceMonth]);
 
   const query = useMemo(() => {
-    if (!selectedRange) return "";
+    if (!report) return "";
     const search = new URLSearchParams();
     search.set("pacienteId", String(props.pacienteId));
-    search.set("from", selectedRange.from);
-    search.set("to", selectedRange.to);
+    search.set("from", report.periodo.from);
+    search.set("to", report.periodo.to);
+    if (report.especialidade) search.set("especialidade", report.especialidade);
     return search.toString();
-  }, [props.pacienteId, selectedRange]);
+  }, [props.pacienteId, report]);
+
+  const reportIsCurrent = !!report &&
+    report.periodo.from === selectedRange?.from &&
+    report.periodo.to === selectedRange?.to &&
+    (report.especialidade ?? "") === especialidade;
 
   const desempenhoRows = useMemo(() => report?.desempenhoEnsino ?? [], [report]);
 
@@ -405,6 +414,7 @@ export function PlanoEnsinoImpressaoClient(props: {
           pacienteId: props.pacienteId,
           from: selectedRange.from,
           to: selectedRange.to,
+          especialidade: especialidade || undefined,
         }),
         "Erro ao carregar relatório de plano de ensino"
       );
@@ -418,8 +428,8 @@ export function PlanoEnsinoImpressaoClient(props: {
   }
 
   async function exportDocx() {
-    if (!query) {
-      setMsg(periodPreset === "custom" ? "Periodo invalido." : "Referencia invalida.");
+    if (!query || !reportIsCurrent || loading) {
+      setMsg("Atualize o relatório antes de baixar o DOCX.");
       return;
     }
 
@@ -437,7 +447,8 @@ export function PlanoEnsinoImpressaoClient(props: {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `relatorio-plano-ensino-${props.pacienteId}.docx`;
+      const area = report?.especialidade ? `-${report.especialidade.toLowerCase()}` : "";
+      a.download = `relatorio-plano-ensino-${props.pacienteId}${area}.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -462,12 +473,26 @@ export function PlanoEnsinoImpressaoClient(props: {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Parâmetros do relatório</p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--marrom)]">Recorte para impressão</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Selecione o período, gere a página e use os botões para imprimir, salvar PDF
+              Selecione a especialidade e o período, gere a página e use os botões para imprimir, salvar PDF
               ou baixar o DOCX.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[220px_190px_190px_auto_auto_auto]">
+          <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className="text-sm font-semibold text-[var(--marrom)]">Especialidade</span>
+              <select
+                value={especialidade}
+                onChange={(event) => setEspecialidade(event.target.value)}
+                className="min-w-0 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-[var(--laranja)] focus:ring-2 focus:ring-amber-100"
+              >
+                <option value="">Todas as especialidades</option>
+                {ESPECIALIDADES_RELATORIO_PLANO_ENSINO.map((area) => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
+            </label>
+
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold text-[var(--marrom)]">Tipo de período</span>
               <select
@@ -519,7 +544,9 @@ export function PlanoEnsinoImpressaoClient(props: {
                 />
               </label>
             )}
+          </div>
 
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => void consultar()}
@@ -532,7 +559,7 @@ export function PlanoEnsinoImpressaoClient(props: {
             <button
               type="button"
               onClick={() => window.print()}
-              disabled={!report}
+              disabled={!reportIsCurrent || loading}
               className="min-h-11 rounded-xl border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Imprimir / Salvar PDF
@@ -542,7 +569,7 @@ export function PlanoEnsinoImpressaoClient(props: {
               <button
                 type="button"
                 onClick={() => void exportDocx()}
-                disabled={!query || exportingDocx}
+                disabled={!reportIsCurrent || loading || exportingDocx}
                 className="min-h-11 rounded-xl border border-[#4d392a] bg-[#4d392a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3c2d21] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {exportingDocx ? "Gerando DOCX..." : "Salvar DOCX"}
@@ -552,7 +579,12 @@ export function PlanoEnsinoImpressaoClient(props: {
 
           {selectedRange ? (
             <p className="text-sm text-slate-500">
-              Paciente: <span className="font-medium">{props.pacienteNome}</span> | Recorte atual: {fmtDate(selectedRange.from)} a {fmtDate(selectedRange.to)}.
+              Paciente: <span className="font-medium">{props.pacienteNome}</span> | Especialidade: {especialidade || "Todas as especialidades"} | Recorte atual: {fmtDate(selectedRange.from)} a {fmtDate(selectedRange.to)}.
+            </p>
+          ) : null}
+          {report && !reportIsCurrent ? (
+            <p role="status" className="text-sm text-amber-700">
+              Atualize o relatório para aplicar os filtros antes de imprimir ou exportar.
             </p>
           ) : null}
         </div>
@@ -587,8 +619,9 @@ export function PlanoEnsinoImpressaoClient(props: {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1.6fr_1fr_1fr]">
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
               <SummaryCard label="Paciente" value={report.paciente.nome} />
+              <SummaryCard label="Especialidade" value={report.especialidade || "Todas as especialidades"} />
               <SummaryCard
                 label="Periodo avaliado"
                 value={fmtPeriodLabel(report.periodo.from, report.periodo.to)}

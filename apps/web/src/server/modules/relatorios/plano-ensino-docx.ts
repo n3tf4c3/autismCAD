@@ -18,6 +18,7 @@ export type PlanoEnsinoReport = {
     dataNascimento: string | null;
   };
   periodo: { from: string; to: string };
+  especialidade: string | null;
   desempenhoEnsino: Array<{
     evolucaoId: number;
     data: string;
@@ -133,6 +134,7 @@ export async function buildPlanoEnsinoDocx(report: PlanoEnsinoReport): Promise<B
       ],
     }),
     bodyParagraph(`Paciente: ${report.paciente.nome}`),
+    bodyParagraph(`Especialidade: ${report.especialidade || "Todas as especialidades"}`),
     bodyParagraph(`Periodo avaliado: ${fmtPeriodLabel(report.periodo.from, report.periodo.to)}`),
     bodyParagraph(`Recorte: ${fmtDate(report.periodo.from)} a ${fmtDate(report.periodo.to)}`),
     bodyParagraph(`Emissao: ${fmtNowPtBr()}`),

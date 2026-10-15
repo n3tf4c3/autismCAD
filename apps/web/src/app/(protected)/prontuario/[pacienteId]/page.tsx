@@ -8,6 +8,10 @@ import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { obterTimelineProntuario } from "@/server/modules/prontuario/prontuario.service";
 import { TimelineClient, type TimelineItem } from "@/app/(protected)/prontuario/[pacienteId]/timeline.client";
 import { toAppError } from "@/server/shared/errors";
+import { listarPlanosEnsinoComValidade } from "@/server/modules/prontuario/planos-ensino-lista.service";
+import { PlanosEnsinoListaClient } from "@/components/prontuario/planos-ensino-lista.client";
+import { ymdNowInClinicTz } from "@/server/shared/clock";
+import { hasPermission } from "@/server/auth/access";
 
 export default async function ProntuarioPacientePage(props: {
   params: Promise<{ pacienteId: string }>;
@@ -19,6 +23,8 @@ export default async function ProntuarioPacientePage(props: {
   const canDeleteEvolucao = hasPermissionKey(access.permissions, "evolucoes:delete");
   const canEditDocumento = hasPermissionKey(access.permissions, "prontuario:version");
   const canDeleteDocumento = hasPermissionKey(access.permissions, "prontuario:delete");
+  const canAjustarAlerta = (access.canonicalRole ?? access.role) !== "RESPONSAVEL" &&
+    (hasPermission(access, "consultas:view") || hasPermission(access, "atendimentos:view"));
   const { pacienteId } = await props.params;
   const id = Number(pacienteId);
   if (!id) {
@@ -40,7 +46,7 @@ export default async function ProntuarioPacientePage(props: {
     );
   }
 
-  const [paciente, timeline] = await Promise.all([
+  const [paciente, timeline, planos] = await Promise.all([
     db
       .select({ id: pacientes.id, nome: pacientes.nome })
       .from(pacientes)
@@ -48,6 +54,7 @@ export default async function ProntuarioPacientePage(props: {
       .limit(1)
       .then((rows) => rows[0] ?? null),
     obterTimelineProntuario(id),
+    listarPlanosEnsinoComValidade({ user, access, pacienteId: id }),
   ]);
 
   if (!paciente) {
@@ -109,6 +116,8 @@ export default async function ProntuarioPacientePage(props: {
           </div>
         </div>
       </section>
+
+      <PlanosEnsinoListaClient planos={planos} hoje={ymdNowInClinicTz()} userId={user.id} canAjustarAlerta={canAjustarAlerta} />
 
       <TimelineClient
         pacienteId={paciente.id}
