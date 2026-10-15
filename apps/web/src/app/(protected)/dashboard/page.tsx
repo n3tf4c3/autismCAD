@@ -173,6 +173,45 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F465}"}</span>
+          <div>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Consultar Pacientes</h3>
+            <p className="text-sm text-gray-600">Busque por nome ou CPF pacientes ja cadastrados.</p>
+          </div>
+        </div>
+        <Link className={ctaButtonClass} href="/pacientes">
+          Abrir consulta
+        </Link>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F466}"}</span>
+          <div>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Cadastro de Pacientes</h3>
+            <p className="text-sm text-gray-600">Registre novos pacientes, contatos e perfis profissionais.</p>
+          </div>
+        </div>
+        <Link className={ctaButtonClass} href="/pacientes/novo">
+          Abrir cadastro
+        </Link>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F9D1}\u200D\u2695\uFE0F"}</span>
+          <div>
+            <h3 className="text-lg font-bold text-[var(--marrom)]">Profissionais</h3>
+            <p className="text-sm text-gray-600">Cadastre profissionais, especialidades e agendas.</p>
+          </div>
+        </div>
+        <Link className={ctaButtonClass} href="/profissionais">
+          Ver equipe
+        </Link>
+      </section>
+
       <section className="flex h-full flex-col gap-4 rounded-xl bg-white p-5 shadow-sm xl:h-[540px]">
         <div className="flex items-center gap-3">
           <span className="text-[1.35rem] leading-none text-[#9b5c00]">{"\u{1F50E}"}</span>
