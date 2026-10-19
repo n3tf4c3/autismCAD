@@ -291,6 +291,11 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; canFinalize: 
                     onChange={(value) => updateBloco(bloco.id, "objetivoEnsino", value)}
                   />
                   <Textarea
+                    label="Objetivo Especifico"
+                    value={bloco.objetivoEspecifico}
+                    onChange={(value) => updateBloco(bloco.id, "objetivoEspecifico", value)}
+                  />
+                  <Textarea
                     label="Procedimento"
                     value={bloco.procedimento}
                     onChange={(value) => updateBloco(bloco.id, "procedimento", value)}
@@ -308,11 +313,6 @@ export function PlanoEnsinoFormClient(props: { pacienteId: number; canFinalize: 
                       onChange={(value) => updateBloco(bloco.id, "alvo", value)}
                     />
                   </div>
-                  <Textarea
-                    label="Objetivo Especifico"
-                    value={bloco.objetivoEspecifico}
-                    onChange={(value) => updateBloco(bloco.id, "objetivoEspecifico", value)}
-                  />
                   <Textarea
                     label="Criterio de Sucesso"
                     value={bloco.criterioSucesso}
