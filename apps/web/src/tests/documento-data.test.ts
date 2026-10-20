@@ -14,6 +14,7 @@ for (const status of ["Rascunho", "Finalizado"]) {
         "@/server/auth/auth": { requirePermission: async () => ({ user: { id: 1 }, access: {} }) },
         "@/server/auth/access": { hasPermission: () => false },
         "@/server/auth/paciente-access": { assertPacienteAccess: async () => {} },
+        "@/components/prontuario/clonar-plano-ensino.client": { ClonarPlanoEnsinoClient: () => null },
         "@/app/(protected)/prontuario/documento/[id]/documento-actions.client": {
           DocumentoActionsClient: () => null,
         },

@@ -117,7 +117,7 @@ export default async function ProntuarioPacientePage(props: {
         </div>
       </section>
 
-      <PlanosEnsinoListaClient planos={planos} hoje={ymdNowInClinicTz()} userId={user.id} canAjustarAlerta={canAjustarAlerta} />
+      <PlanosEnsinoListaClient planos={planos} hoje={ymdNowInClinicTz()} userId={user.id} canAjustarAlerta={canAjustarAlerta} canClonar={canEditarPlano} />
 
       <TimelineClient
         pacienteId={paciente.id}

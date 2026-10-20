@@ -40,7 +40,12 @@ test("Planos de ensino: lista de datas e alerta ajustável no dashboard, com pre
         return { path: path.join(root, "packages", group, "src", `${relative}.ts`) };
       });
       build.onResolve({ filter: /^next\/link$/ }, () => ({ path: "link", namespace: "fixture" }));
-      build.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ contents: "export default function Link({children,...props}){return <a {...props}>{children}</a>;}", loader: "jsx", resolveDir: path.join(root, "apps/web") }));
+      build.onResolve({ filter: /plano-ensino\.actions$/ }, () => ({ path: "clone-action", namespace: "fixture" }));
+      build.onResolve({ filter: /^next\/navigation$/ }, () => ({ path: "navigation", namespace: "fixture" }));
+      build.onLoad({ filter: /.*/, namespace: "fixture" }, (args) => ({ contents: args.path === "clone-action"
+        ? "export async function buscarPacientesParaClonarPlanoAction(){return {ok:true,data:[]};}"
+        : args.path === "navigation" ? "export const useRouter=()=>({push(){}});"
+        : "export default function Link({children,...props}){return <a {...props}>{children}</a>;}", loader: "jsx", resolveDir: path.join(root, "apps/web") }));
     } }],
   });
   const server = http.createServer((request, response) => {
@@ -322,6 +327,119 @@ test("Plano de ensino: salvar rascunho, reabrir, corrigir e finalizar explicitam
     await expect(page.getByRole("link", { name: "Editar", exact: true })).toHaveAttribute("href", "/prontuario/1/plano-ensino?documentoId=1");
     await expect(page.getByRole("link", { name: "Imprimir", exact: true })).toHaveCount(2);
     await expect(page.getByRole("link", { name: "Imprimir", exact: true }).first()).toHaveAttribute("href", "/impressao/plano-ensino/individual?pacienteId=1&documentoId=1");
+    assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    server.closeAllConnections(); await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("Clonar plano: mesmo paciente, busca de outro, revisão, cancelamento e gravação independente", async () => {
+  const fs = require("node:fs");
+  const { expect } = require("@playwright/test");
+  const webRequire = require("node:module").createRequire(path.join(root, "apps/web/package.json"));
+  const cssPath = path.join(root, "apps/web/src/app/globals.css");
+  const css = await webRequire("postcss")([webRequire("@tailwindcss/postcss")({ base: path.join(root, "apps/web") })])
+    .process(fs.readFileSync(cssPath, "utf8"), { from: cssPath });
+  const fixtureModules = {
+    "next/navigation": "export const useRouter=()=>({push(url){window.__destination=url;},refresh(){}});",
+    "next/link": "export default function Link({children,...props}){return <a {...props}>{children}</a>;}",
+    "@/app/(protected)/prontuario/plano-ensino.actions": `export async function buscarPacientesParaClonarPlanoAction(nome){
+      window.__searches.push(nome);
+      if(window.__failSearch) return {ok:false,error:'Falha sintética na busca'};
+      return {ok:true,data:nome==='vazio'?[]:[{id:1,nome:'Paciente original'},{id:2,nome:'Outro paciente sintético'}]};
+    }`,
+    "@/app/(protected)/prontuario/prontuario.actions": `export async function salvarDocumentoProntuarioAction(pacienteId,input){
+      window.__writes.push({pacienteId,input});return {ok:true,data:{id:9}};
+    }`,
+  };
+  const bundle = await esbuild.build({
+    stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';
+      import{PlanosEnsinoListaClient}from'./src/components/prontuario/planos-ensino-lista.client';
+      import{PlanoEnsinoFormClient}from'./src/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client';
+      const root=createRoot(document.getElementById('root'));let key=0;window.__writes=[];window.__searches=[];
+      const plano={id:7,pacienteId:1,pacienteNome:'Paciente original',especialidade:'Psicologia',version:1,status:'Finalizado',cadastradoEm:'2026-10-01',dataInicio:'2026-10-01',dataFinal:'2026-12-31',atual:true};
+      window.__original={especialidade:'Psicologia',responsavelTecnico:'Técnica sintética',dataInicio:'2026-10-01',dataFinal:'2026-12-31',blocos:[{habilidade:'Comunicação',ensino:'Pedir ajuda'}]};
+      window.__list=(canClonar=true)=>root.render(<PlanosEnsinoListaClient key={++key} planos={[plano,{...plano,id:8,status:'Rascunho',atual:false}]} hoje="2026-10-20" userId={3} canClonar={canClonar}/>);
+      window.__copy=()=>root.render(<PlanoEnsinoFormClient key={++key} pacienteId={2} initialData={{...window.__original,sourceDocumentId:null}} canFinalize/>);
+      window.__list(false);`, resolveDir: path.join(root, "apps/web"), loader: "tsx" },
+    bundle: true, write: false, format: "iife", platform: "browser", jsx: "automatic",
+    define: { "process.env.NODE_ENV": '"production"' }, tsconfig: path.join(root, "apps/web/tsconfig.json"), logLevel: "silent",
+    plugins: [{ name: "clone-fixtures", setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        if (fixtureModules[args.path]) return { path: args.path, namespace: "fixture" };
+        const match = /^@autismcad\/(validators|shared)\/(.*)$/.exec(args.path);
+        if (match) return { path: path.join(root, "packages", match[1], "src", `${match[2]}.ts`) };
+      });
+      build.onLoad({ filter: /.*/, namespace: "fixture" }, (args) => ({ contents: fixtureModules[args.path], loader: "jsx", resolveDir: path.join(root, "apps/web") }));
+    } }],
+  });
+  const server = http.createServer((request, response) => {
+    if (request.url === "/bundle.js") { response.setHeader("Content-Type", "application/javascript"); response.end(bundle.outputFiles[0].contents); return; }
+    if (request.url === "/styles.css") { response.setHeader("Content-Type", "text/css"); response.end(css.css); return; }
+    response.setHeader("Content-Type", "text/html; charset=utf-8");
+    response.end('<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/styles.css"></head><body style="margin:0;font-family:Arial,sans-serif;background:#f5f5f5"><div id="root" style="max-width:1200px;margin:auto;padding:16px"></div><script src="/bundle.js"></script></body></html>');
+  });
+  let browser;
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+    const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
+    const errors = []; page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    const clone = page.getByRole("button", { name: "Clonar plano", exact: true });
+    await expect(clone).toHaveCount(0);
+    await page.evaluate(() => window.__list());
+    await expect(clone).toHaveCount(2);
+    await clone.first().click();
+    const dialog = page.getByRole("dialog", { name: "Clonar plano de ensino" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("radio", { name: /Mesmo paciente/ })).toBeChecked();
+    await expect(dialog.getByRole("radio", { name: /Mesmo paciente/ })).toBeFocused();
+    await dialog.getByRole("button", { name: "Continuar com a cópia" }).click();
+    await expect.poll(() => page.evaluate(() => window.__destination)).toBe("/prontuario/1/plano-ensino?clonarDe=7");
+    assert.deepEqual(await page.evaluate(() => window.__writes), []);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0); await expect(clone.first()).toBeFocused();
+    await clone.last().click();
+    await dialog.getByRole("radio", { name: "Outro paciente", exact: true }).check();
+    await expect(dialog.getByRole("button", { name: "Continuar com a cópia" })).toBeDisabled();
+    await dialog.getByRole("textbox", { name: "Nome do paciente" }).fill("vazio");
+    await dialog.getByRole("button", { name: "Buscar", exact: true }).click();
+    await expect(dialog.getByRole("status")).toContainText("Nenhum outro paciente encontrado");
+    await page.evaluate(() => { window.__failSearch=true; });
+    await dialog.getByRole("button", { name: "Buscar", exact: true }).click();
+    await expect(dialog.getByRole("status")).toHaveText("Falha sintética na busca");
+    await page.evaluate(() => { window.__failSearch=false; });
+    await dialog.getByRole("textbox", { name: "Nome do paciente" }).fill("Outro");
+    await dialog.getByRole("button", { name: "Buscar", exact: true }).click();
+    await dialog.getByRole("combobox", { name: "Selecione o paciente" }).selectOption("2");
+    await expect(dialog.getByRole("option")).toHaveCount(2);
+    await expect(dialog.getByRole("button", { name: "Continuar com a cópia" })).toBeEnabled();
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    const bounds = await dialog.boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 390);
+    if (process.env.AUDIT_EVIDENCE_DIR) {
+      fs.mkdirSync(process.env.AUDIT_EVIDENCE_DIR, { recursive: true });
+      await page.screenshot({ path: path.join(process.env.AUDIT_EVIDENCE_DIR, "clonar-plano-mobile.png"), fullPage: true });
+      await page.setViewportSize({ width: 1366, height: 900 });
+      await page.screenshot({ path: path.join(process.env.AUDIT_EVIDENCE_DIR, "clonar-plano-desktop.png"), fullPage: true });
+    }
+    await dialog.getByRole("button", { name: "Continuar com a cópia" }).click();
+    await expect.poll(() => page.evaluate(() => window.__destination)).toBe("/prontuario/2/plano-ensino?clonarDe=8");
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await expect(dialog).toHaveCount(0);
+    assert.deepEqual(await page.evaluate(() => window.__writes), []);
+    await page.evaluate(() => window.__copy());
+    await expect(page.getByLabel("Responsável Técnico(a)", { exact: true })).toHaveValue("Técnica sintética");
+    await expect(page.getByLabel("Data de inicio", { exact: true })).toHaveValue("2026-10-01");
+    await expect(page.getByLabel("Habilidade", { exact: true })).toHaveValue("Comunicação");
+    await page.getByLabel("Habilidade", { exact: true }).fill("Habilidade adaptada ao destino");
+    await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
+    const write = await page.evaluate(() => window.__writes[0]);
+    assert.equal(write.pacienteId, 2); assert.equal(write.input.documentoId, null); assert.equal(write.input.status, "Rascunho");
+    assert.equal(write.input.payload.blocos[0].habilidade, "Habilidade adaptada ao destino");
+    assert.equal(await page.evaluate(() => window.__original.blocos[0].habilidade), "Comunicação");
     assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();

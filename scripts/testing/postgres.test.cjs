@@ -75,6 +75,56 @@ test("Plano de ensino: rascunho pode ser reaberto e corrigido; finalizacao prese
   assert.deepEqual(await service.obterDocumento(saved.id), finalized);
   assert.equal(Number((await observer.query("select count(*) as n from prontuario_documentos where paciente_id=1")).rows[0].n), 1);
 });
+test("Clonagem de plano: formulário salva registros independentes com paciente e autoria próprios, preservando a origem", async () => {
+  await reset();
+  await observer.query("insert into pacientes(id,nome,cpf) values(1,'Origem sintética','00000000000'),(2,'Destino sintético','11111111111')");
+  const service = await loadSource("apps/web/src/server/modules/prontuario/prontuario.service.ts", fixtures(databases[0]));
+  const sourceUser = { id: 1, role: "admin-geral" };
+  const copyUser = { id: 2, role: "admin-geral" };
+  const access = { exists: true, user: { id: 2 }, canonicalRole: "ADMIN_GERAL", permissions: new Set(["prontuario:create", "prontuario:view"]) };
+  const page = await loadSource("apps/web/src/app/(protected)/prontuario/[pacienteId]/plano-ensino/page.tsx", {
+    ...fixtures(databases[0]),
+    "next/link": { default: () => null },
+    "@/server/auth/auth": { requirePermission: async () => ({ user: copyUser, access }) },
+    "@/app/(protected)/prontuario/[pacienteId]/plano-ensino/plano-ensino-form.client": { PlanoEnsinoFormClient: () => null },
+  });
+  const actions = await loadSource("apps/web/src/app/(protected)/prontuario/prontuario.actions.ts", {
+    ...fixtures(databases[0]),
+    "next/cache": { revalidatePath() {} },
+    "@/server/auth/auth": { requirePermission: async () => ({ user: copyUser, access }) },
+  });
+  for (const status of ["Rascunho", "Finalizado"]) {
+    const original = await service.salvarDocumento(1, { tipo: "PLANO_ENSINO", status, payload: {
+      especialidade: "Psicologia", responsavelTecnico: "Técnica sintética", dataInicio: "2026-10-01", dataFinal: "2026-12-31",
+      blocos: [{ habilidade: "Comunicação", ensino: "Pedir ajuda", objetivoEnsino: "Expressar necessidade" }],
+    } }, sourceUser);
+    await observer.query("update prontuario_documentos set created_at='2026-01-01' where id=$1", [original.id]);
+    const snapshot = (await observer.query("select * from prontuario_documentos where id=$1", [original.id])).rows[0];
+    for (const pacienteId of [1, 2]) {
+      const rendered = await page.default({ params: Promise.resolve({ pacienteId: String(pacienteId) }), searchParams: Promise.resolve({ clonarDe: String(original.id) }) });
+      const initial = rendered.props.children.at(-1).props.initialData;
+      assert.equal(initial.sourceDocumentId, null);
+      const saved = await actions.salvarDocumentoProntuarioAction(pacienteId, {
+        tipo: "PLANO_ENSINO", status: "Rascunho", documentoId: initial.sourceDocumentId, payload: initial,
+      });
+      assert.equal(saved.ok, true);
+      assert.notEqual(saved.data.id, original.id);
+      const copy = (await observer.query("select * from prontuario_documentos where id=$1", [saved.data.id])).rows[0];
+      assert.equal(Number(copy.paciente_id), pacienteId);
+      assert.equal(copy.status, "Rascunho");
+      assert.equal(Number(copy.created_by_user_id), 2);
+      assert.equal(copy.created_by_role, "admin-geral");
+      assert.ok(copy.created_at > snapshot.created_at);
+      assert.deepEqual(copy.payload, snapshot.payload);
+      await service.salvarDocumento(pacienteId, { tipo: "PLANO_ENSINO", status: "Rascunho", documentoId: saved.data.id,
+        payload: { ...copy.payload, blocos: [{ ...copy.payload.blocos[0], habilidade: "Adaptação do destino" }] },
+      }, copyUser);
+      assert.deepEqual((await observer.query("select * from prontuario_documentos where id=$1", [original.id])).rows[0], snapshot);
+    }
+  }
+  assert.equal(Number((await observer.query("select count(*) as n from prontuario_documentos")).rows[0].n), 6);
+});
+
 const update = (service, target, actor) => service.updateUser(target, { nome: "Synthetic", email: `${target}@example.invalid`, role: "profissional" }, actor);
 
 async function professionalAccountHarness() {

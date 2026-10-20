@@ -5,8 +5,9 @@ import { formatDateBr } from "@autismcad/shared/date-only";
 import type { PlanoEnsinoListaItem } from "@/lib/prontuario/plano-ensino-validade";
 import { usePrazoAlertaPlano } from "@/lib/prontuario/use-prazo-alerta-plano";
 import { PlanoEnsinoSituacao } from "./plano-ensino-situacao";
+import { ClonarPlanoEnsinoClient } from "./clonar-plano-ensino.client";
 
-export function PlanosEnsinoListaClient(props: { planos: PlanoEnsinoListaItem[]; hoje: string; userId: number; canAjustarAlerta?: boolean }) {
+export function PlanosEnsinoListaClient(props: { planos: PlanoEnsinoListaItem[]; hoje: string; userId: number; canAjustarAlerta?: boolean; canClonar?: boolean }) {
   const [antecedencia] = usePrazoAlertaPlano(props.userId);
   return (
     <section id="planos-ensino" aria-labelledby="planos-ensino-titulo" className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
@@ -39,6 +40,7 @@ export function PlanosEnsinoListaClient(props: { planos: PlanoEnsinoListaItem[];
                 ))}
               </dl>
               <div className="flex flex-wrap gap-2">
+                {props.canClonar ? <ClonarPlanoEnsinoClient documentoId={plano.id} pacienteId={plano.pacienteId} /> : null}
                 <Link href={`/prontuario/documento/${plano.id}`} aria-label={`Abrir plano de ${plano.especialidade || "especialidade não informada"}, versão ${plano.version}`} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-[var(--marrom)] hover:bg-amber-50">Abrir</Link>
                 <Link href={`/impressao/plano-ensino/individual?pacienteId=${plano.pacienteId}&documentoId=${plano.id}`} target="_blank" rel="noopener noreferrer" aria-label={`Imprimir plano de ${plano.especialidade || "especialidade não informada"}, versão ${plano.version}`} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-[var(--marrom)] hover:bg-amber-50">Imprimir</Link>
               </div>

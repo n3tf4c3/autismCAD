@@ -12,17 +12,21 @@ import { toAppError } from "@/server/shared/errors";
 
 export default async function PlanoEnsinoPage(props: {
   params: Promise<{ pacienteId: string }>;
-  searchParams: Promise<{ documentoId?: string }>;
+  searchParams: Promise<{ documentoId?: string; clonarDe?: string }>;
 }) {
   const { pacienteId } = await props.params;
-  const { documentoId } = await props.searchParams;
+  const { documentoId, clonarDe } = await props.searchParams;
   const { user, access } = await requirePermission(documentoId ? "prontuario:version" : "prontuario:create");
+  if (clonarDe !== undefined) await requirePermission("prontuario:view");
   const id = Number(pacienteId);
-  const sourceDocumentId = documentoId ? Number(documentoId) : null;
-  if (!id) {
+  const isCloning = clonarDe !== undefined;
+  const sourceDocumentId = isCloning ? Number(clonarDe) : documentoId !== undefined ? Number(documentoId) : null;
+  if (!Number.isSafeInteger(id) || id <= 0 ||
+      (sourceDocumentId !== null && (!Number.isSafeInteger(sourceDocumentId) || sourceDocumentId <= 0)) ||
+      (isCloning && documentoId !== undefined)) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
-        <p className="text-sm text-red-600">Paciente inválido.</p>
+        <p className="text-sm text-red-600">Paciente ou documento inválido.</p>
       </main>
     );
   }
@@ -61,7 +65,7 @@ export default async function PlanoEnsinoPage(props: {
     );
   }
 
-  if (sourceDoc && (Number(sourceDoc.pacienteId) !== id || sourceDoc.tipo !== "PLANO_ENSINO")) {
+  if (sourceDoc && ((!isCloning && Number(sourceDoc.pacienteId) !== id) || sourceDoc.tipo !== "PLANO_ENSINO")) {
     return (
       <main className="rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm text-red-600">Documento informado não pode ser usado para editar este plano.</p>
@@ -69,7 +73,20 @@ export default async function PlanoEnsinoPage(props: {
     );
   }
 
-  if (sourceDoc?.status === "Finalizado") {
+  if (sourceDoc && isCloning) {
+    try {
+      await assertPacienteAccess(user, Number(sourceDoc.pacienteId), access);
+    } catch (error) {
+      const err = toAppError(error);
+      return (
+        <main className="rounded-2xl bg-white p-6 shadow-sm">
+          <p className="text-sm text-red-600">{err.message}</p>
+        </main>
+      );
+    }
+  }
+
+  if (sourceDoc?.status === "Finalizado" && !isCloning) {
     return (
       <main className="space-y-4 rounded-2xl bg-white p-6 shadow-sm">
         <p className="text-sm text-gray-600">Este plano de ensino está finalizado e não pode ser editado.</p>
@@ -83,7 +100,7 @@ export default async function PlanoEnsinoPage(props: {
   const initialData = sourceDoc
     ? {
         ...sanitizePlanoEnsinoPayload(sourceDoc.payload),
-        sourceDocumentId: sourceDoc.id,
+        sourceDocumentId: isCloning ? null : sourceDoc.id,
       }
     : null;
 
@@ -92,7 +109,7 @@ export default async function PlanoEnsinoPage(props: {
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gray-500">{sourceDoc ? "Editar plano de ensino" : "Novo plano de ensino"}</p>
+            <p className="text-sm text-gray-500">{isCloning ? "Clonar plano de ensino" : sourceDoc ? "Editar plano de ensino" : "Novo plano de ensino"}</p>
             <h1 className="text-2xl font-bold text-[var(--marrom)]">
               {paciente.nome} <span className="text-gray-500">#{paciente.id}</span>
             </h1>
@@ -103,7 +120,13 @@ export default async function PlanoEnsinoPage(props: {
         </div>
       </section>
 
-      <PlanoEnsinoFormClient pacienteId={paciente.id} initialData={initialData} canFinalize={hasPermission(access, "prontuario:finalize")} />
+      {isCloning ? (
+        <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-[var(--marrom)]">
+          Você está criando uma cópia para este paciente. Revise as datas, o responsável técnico e o conteúdo.
+          A cópia só será criada ao salvar como rascunho ou finalizar. O plano original será preservado.
+        </p>
+      ) : null}
+      <PlanoEnsinoFormClient key={`${id}:${documentoId ?? "novo"}:${clonarDe ?? ""}`} pacienteId={paciente.id} initialData={initialData} canFinalize={hasPermission(access, "prontuario:finalize")} />
     </main>
   );
 }

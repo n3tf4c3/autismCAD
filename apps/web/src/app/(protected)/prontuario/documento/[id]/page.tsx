@@ -8,6 +8,7 @@ import { assertPacienteAccess } from "@/server/auth/paciente-access";
 import { sanitizePlanoEnsinoPayload } from "@/server/modules/prontuario/plano-ensino";
 import { obterDocumento } from "@/server/modules/prontuario/prontuario.service";
 import { toAppError } from "@/server/shared/errors";
+import { ClonarPlanoEnsinoClient } from "@/components/prontuario/clonar-plano-ensino.client";
 
 function ReadonlyField(props: { label: string; value: string | null | undefined }) {
   return (
@@ -150,6 +151,9 @@ export default async function VisualizarDocumentoPage(props: { params: Promise<{
         <div className="mt-4 flex flex-wrap justify-end gap-3">
           {doc.tipo === "PLANO_ENSINO" ? (
             <>
+              {hasPermission(access, "prontuario:create") ? (
+                <ClonarPlanoEnsinoClient documentoId={doc.id} pacienteId={Number(doc.pacienteId)} />
+              ) : null}
               <Link
                 href={`/impressao/plano-ensino/individual?pacienteId=${doc.pacienteId}&documentoId=${doc.id}`}
                 className="rounded-lg border border-[var(--laranja)] bg-white px-4 py-2 text-sm font-semibold text-[var(--laranja)] hover:bg-amber-50"
