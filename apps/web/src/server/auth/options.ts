@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { db } from "@/db";
 import { users } from "@autismcad/db/schema";
 import { verifyCredentials } from "@/server/auth/credentials";
+import { describeErrorForLog } from "@/server/shared/errors";
 
 const TOKEN_ROLE_SYNC_INTERVAL_SECONDS = 5 * 60;
 
@@ -29,7 +30,7 @@ async function refreshTokenRole(token: { sub?: string; role?: string; roleSynced
     token.roleSyncedAt = nowSec;
   } catch (error) {
     // Session refresh should not fail login flow on transient DB errors.
-    console.error("Falha ao sincronizar role do token JWT", error);
+    console.error("Falha ao sincronizar role do token JWT", describeErrorForLog(error));
   }
 
   return token;

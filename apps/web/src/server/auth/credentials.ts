@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { describeErrorForLog } from "@/server/shared/errors";
 import { users } from "@autismcad/db/schema";
 import { loginSchema } from "@autismcad/validators/auth/auth.schema";
 import {
@@ -37,7 +38,7 @@ async function safeRecordLoginAttempt(params: {
     await recordLoginAttemptAccess(params);
   } catch (error) {
     // Login must keep working even if audit logging fails.
-    console.error("Falha ao registrar log de acesso", error);
+    console.error("Falha ao registrar log de acesso", describeErrorForLog(error));
   }
 }
 
@@ -101,15 +102,39 @@ export async function verifyCredentials(
   }
 
   if (isLegacyPasswordHash(user.senhaHash)) {
+    let upgraded: Array<{ id: number }> | null = null;
     try {
       const senhaHash = await hashPassword(parsed.data.password);
-      await db
+      // Achado 159: compare-and-swap. So grava se a credencial e o estado lidos acima
+      // continuam os mesmos; uma troca de senha concorrente nao pode ser sobrescrita
+      // pelo hash da senha antiga.
+      upgraded = await db
         .update(users)
         .set({ senhaHash, updatedAt: sql`now()` })
-        .where(eq(users.id, user.id));
+        .where(
+          and(
+            eq(users.id, user.id),
+            eq(users.senhaHash, user.senhaHash),
+            eq(users.tokenVersion, user.tokenVersion),
+            eq(users.ativo, true),
+            isNull(users.deletedAt)
+          )
+        )
+        .returning({ id: users.id });
     } catch (error) {
       // Login should not fail when legacy hash upgrade fails.
-      console.error("Falha ao migrar hash legado de senha", error);
+      console.error("Falha ao migrar hash legado de senha", describeErrorForLog(error));
+    }
+    if (upgraded && upgraded.length === 0) {
+      // Credencial ou estado mudou entre a leitura e o upgrade: a senha validada pode
+      // nao ser mais a atual. Recusa; o proximo login le o estado novo.
+      await safeRecordLoginAttempt({
+        userId: user.id,
+        userEmail: user.email,
+        status: "FALHA",
+        headers,
+      });
+      return null;
     }
   }
 

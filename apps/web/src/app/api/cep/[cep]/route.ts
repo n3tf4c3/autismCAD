@@ -1,5 +1,6 @@
 import { requireUser } from "@/server/auth/auth";
 import { withErrorHandling } from "@/server/shared/http";
+import { describeErrorForLog } from "@/server/shared/errors";
 
 export const runtime = "nodejs";
 
@@ -47,7 +48,7 @@ export const GET = withErrorHandling(async (
       uf: data.uf || "",
     });
   } catch (error) {
-    console.error("Erro ao consultar CEP", error);
+    console.error("Erro ao consultar CEP", describeErrorForLog(error));
     return Response.json({ error: "Falha ao consultar CEP" }, { status: 502 });
   }
 });

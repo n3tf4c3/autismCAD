@@ -31,7 +31,7 @@ import { runDbTransaction } from "@/server/db/transaction";
 import { normalizeRoleForMatch } from "@/server/auth/permissions";
 import { blocksLastAdminGeralRemoval } from "@/server/modules/users/admin-geral-guard";
 import { lockAdminMembership } from "@/server/modules/users/admin-membership-lock";
-import { AppError } from "@/server/shared/errors";
+import { AppError, describeErrorForLog } from "@/server/shared/errors";
 import { escapeLikePattern } from "@/server/shared/normalize";
 import { isUniqueViolation } from "@/server/shared/pg-errors";
 
@@ -458,7 +458,7 @@ export async function updateUser(
         nextRole: storedRoleSlug,
         removedPacienteIds: removedPacienteIdsForAudit,
         reason,
-        error,
+        error: describeErrorForLog(error),
       });
     }
   }
@@ -579,7 +579,7 @@ export async function deleteUser(id: number, requesterUserId: number) {
         nextRole: "deleted",
         removedPacienteIds: removedPacienteIdsForAudit,
         reason: "user_deleted",
-        error,
+        error: describeErrorForLog(error),
       });
     }
   }

@@ -3,7 +3,7 @@ import { and, desc, eq, gt, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { accessLogs, users } from "@autismcad/db/schema";
 import { runDbTransaction } from "@/server/db/transaction";
-import { AppError } from "@/server/shared/errors";
+import { AppError, describeErrorForLog } from "@/server/shared/errors";
 import { env } from "@/lib/env";
 import {
   DEFAULT_LOGIN_RATE_LIMIT,
@@ -198,7 +198,7 @@ export async function isLoginRateLimited(params: {
       hasIp: !!ip,
     });
   } catch (error) {
-    console.error("Falha ao avaliar rate limit de login", error);
+    console.error("Falha ao avaliar rate limit de login", describeErrorForLog(error));
     return false;
   }
 }
