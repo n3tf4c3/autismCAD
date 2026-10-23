@@ -92,9 +92,9 @@ Auditoria 2026-08-23 (relatorio externo
 | 142 | Texto branco sobre cores de marca falha contraste WCAG AA | Media | RESOLVIDO — token `#333333` substitui texto branco nas acoes laranja e gradientes claros; teste de luminancia confirma pelo menos 4,5:1 nos sete fundos/estados versionados |
 | 143 | Campos de evolucao e dialogos nao completam nome/foco/teclado acessiveis | Media | RESOLVIDO — campos receberam rotulos associados e dialog compartilhado implementa nome acessivel, foco inicial, trap/restauracao, Escape e fechamento por backdrop |
 | 144 | Engajamento e fechado na UI, mas backend aceita texto livre e relatorio ignora valores desconhecidos | Media (potencial) | RESOLVIDO — payload v2 exige `sim|nao` nas novas gravacoes web/API/mobile; updates legados so preservam valores existentes e o relatorio exibe a contagem ignorada |
-| 145 | Expo Doctor aponta drift, duplicidade nativa e regressao de memoria do Hermes | Media (potencial) | RESOLVIDO — novo drift de sete patches fechado em 2026-09-05: Expo 57.0.20/RN 0.86.3, install --check e Doctor 21/21; bundles Android/iOS, build Android release x86_64 e smoke em emulador descartavel passaram. Nao e publicacao de APK nem compilacao iOS/Xcode |
+| 145 | Expo Doctor aponta drift, duplicidade nativa e regressao de memoria do Hermes | Baixa na ocorrencia atual (Media historica) | RESOLVIDO (codigo/local) em 2026-10-23 — `cde6743`: expo 57.0.31, constants 57.0.22, linking 57.0.13, router 57.0.29 via `expo install`; install --check limpo, Doctor 21/21, patches locais reaplicados, bundle Android Metro (Hermes) gerado. Sem build nativo/QA em dispositivo; chega aos usuarios so na proxima release mobile. Antes: REABERTO em 2026-10-21 somente por novo drift de quatro patches: Expo 57.0.27 para 57.0.30, constants 57.0.21 para 57.0.22, linking 57.0.12 para 57.0.13, router 57.0.25 para 57.0.28; Doctor 20/21. Nao demonstrada nova duplicidade/Hermes. Historico: drift anterior fechado em 2026-09-05 com check, Doctor 21/21 e QA Android; nao equivale a release mobile |
 | 146 | Preview sem override explicito herda a API de producao | Media (potencial) | RESOLVIDO — perfil EAS usa ambiente preview e app config falha fechado sem URL ou quando ela coincide com producao; 4 testes e bundle Android validam o isolamento |
-| 147 | Permissao `consultas:presence` ficou inerte: nenhum caminho de codigo a exige | Baixa | RESOLVIDO (codigo/local) — remocao confirmada pelo usuario em 2026-09-05. Retirada da UI, aliases, seed e catalogo/carregamento de acesso; presence nao concede edit. Migration DML 0012 remove somente essa permissao e seus vinculos, validada duas vezes no banco descartavel. Aplicacao em banco persistente pendente e fora deste escopo |
+| 147 | Permissao `consultas:presence` ficou inerte: nenhum caminho de codigo a exige | Baixa | RESOLVIDO — codigo publicado em `af31ec0`; migration 0012 aplicada em producao em 2026-09-05, apos backup verificado. Removidos somente 1 permissao e 4 vinculos; comparacao integral das 18 tabelas com o backup confirmou todos os demais registros inalterados. Journal conferido e nenhuma migration pendente |
 | 148 | Exclusao unitaria de atendimento nao validava posse do registro | Media | RESOLVIDO — `41cdee2` aplica em `excluirAtendimentoAction` a mesma guarda da edicao (papel efetivo PROFISSIONAL so remove atendimento proprio), com teste de regressao. Exposicao anterior: profissional podia soft-deletar atendimento de colega em paciente compartilhado chamando a server action; nao alcancavel pela tela. Escapou do gate `relatorios/seguranca-2026-09-01-151704.md`, que leu o quesito C2 so no caminho de edicao |
 
 ## Resolucao da auditoria 2026-09-04, validada em 2026-09-05
@@ -125,7 +125,7 @@ Typecheck nos cinco workspaces, lint, build de producao, Drizzle check offline,
 Expo check/Doctor e compilacao Android passaram. Evidencias externas em
 `C:\Codes\relatorios\autismcad\evidencias-resolucao-20260905\`.
 
-Pendencias operacionais: publicar somente com autorizacao; coordenar a migration
+Pendencias operacionais no fechamento local (historico): publicar somente com autorizacao; coordenar a migration
 0012 de limpeza de ACL como contract apos adocao do codigo que nao usa a permissao,
 com backup das linhas de permissao/vinculos. Nao usa DROP/ALTER nem toca dados
 clinicos. Nenhuma env nova de producao; manter transacoes reais e assets de fontes
@@ -149,6 +149,70 @@ e nao ha env nova exigida por este diff. A migration 0012 **nao e pre-requisito 
 codigo**: o carregamento/catalogo ja ignora a permissao legada mesmo se sua linha
 continuar no banco. Aplicar essa limpeza somente em etapa contract posterior,
 autorizada e com backup dos vinculos. O push nao executa essa limpeza.
+
+### Migration 0012 com backup — concluida em 2026-09-05
+
+O usuario autorizou a migration e o backup em etapa separada, depois da publicacao
+web de `af31ec0`. Alvo confirmado pelas variaveis de producao do projeto Vercel
+`autismcad` e pelo banco Neon correspondente, sem exibir credenciais.
+
+- Backup de dados `public` fora do Git, com ACL restrita ao usuario Windows e
+  SYSTEM: `C:\Codes\backups\autismcad\pre-0012-20260905\neon-backup-2026-09-05-13-55-31.json`.
+  Formato v2: 18 tabelas, 12.778 linhas e 14 sequences. SHA-256 verificado:
+  `94c6c4ef7044e20aceb547b3e4ea4720072d5a1e2b9ae5d9c0764b6470883728`.
+  Inventario, contagens, metadados/codecs e linhas-alvo conferidos; nao houve
+  drill de restauracao nem copia do dump para servico externo.
+- `npm run db:migrate -w @autismcad/db` executado com URL direta do mesmo banco,
+  `lock_timeout=5s`, `statement_timeout=30s` e `idle_in_transaction_session_timeout=1min`.
+  Apenas 0012 estava pendente. Removidos a permissao ID 9 e seus quatro vinculos;
+  nenhuma permissao de edicao foi concedida ou removida.
+- Postflight: journal 41 -> 42, hash de 0012 confirmado e zero migrations
+  pendentes. As 18 tabelas foram comparadas por conteudo com o backup, descontando
+  somente as cinco linhas previstas: todos os demais registros e as 14 sequences
+  permaneceram identicos. Historico anterior do journal preservado integralmente.
+- O historico inclui 29 migrations anteriores ao squash de `15f9832` e a baseline
+  marcada como aplicada. O hash preexistente dessa marcacao difere do SQL atual;
+  foi documentado e preservado, sem reaplicar a baseline nem reescrever historico.
+  Os hashes das incrementais 0001-0011 conferem; esta operacao executou so 0012.
+- Smoke web apos a migration: health/login 200, API v1 de pacientes 401 sem sessao
+  e dashboard 307 para login. Nenhum novo deploy ou release mobile foi realizado.
+
+**Release mobile: ADIADO (decisao do usuario, 2026-09-05), sem previsao.** Reabrir
+somente quando o usuario solicitar o lancamento. As correcoes estao versionadas;
+as instalacoes existentes nao foram atualizadas. Nao ha migration pendente desta
+auditoria. Este registro operacional foi atualizado localmente, sem novo commit/push.
+
+## Auditoria 2026-10-21
+
+Relatorio externo: `C:\Codes\relatorios\autismcad\auditoria-2026-10-21.md`.
+Snapshot: `363b0a2f6841723d0494b2c88d615205b5c82d47`. Alteracoes documentais
+preexistentes preservadas; nenhuma correcao de codigo ou operacao produtiva.
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 158 | Logger central envia parametros SQL de erros Drizzle ao console, podendo copiar dados clinicos/pessoais | Media | RESOLVIDO (codigo/local) — `e1b9e10`: `describeErrorForLog` (classe, SQLSTATE/errno, constraint, frames da stack; sem mensagem/params/detail/objeto) em `toAppError` (server actions e rotas HTTP/API v1 via `toAppError`) e nos catches de login (`credentials.ts`), sync de role JWT (`options.ts`), rate limit, auditoria de vinculos (`users.service.ts`) e `/api/cep`. Regressao com DrizzleQueryError real falha sem a correcao. Logs ja emitidos no host nao foram expurgados |
+| 159 | Upgrade de hash legado no login pode sobrescrever troca concorrente de senha | Media | RESOLVIDO (codigo/local) — `e1b9e10`: UPDATE vira compare-and-swap (id, senhaHash, tokenVersion, ativo, deletedAt) com `returning`; zero linhas recusa o login. Cobre web (NextAuth) e API v1 mobile, que compartilham `verifyCredentials`. Regressao executa `credentials.ts` real com troca entre SELECT e UPDATE; falha sem a correcao. Sem ensaio em PostgreSQL real |
+| 160 | `next` 16.3.8 na faixa de GHSA-2464-fhr4-w9xw, GHSA-673q-mjm6-r5xr (criticos, RCE) e GHSA-p3m5-59mp-jv5r (DoS em server actions), publicados apos esta auditoria | Critica (raw) / Alta no contexto | RESOLVIDO (codigo/local) — achado em 2026-10-23 por `audit:dependencies` durante a resolucao. `da6b8cc`: next 16.4.2; `eslint-config-next` mantido em 16.3.8 porque 16.4.x puxa react-hooks 7.1, que reprova o lint mobile. App nao usa `"use cache"` nem SVG no otimizador de imagem; DoS em server actions se aplica. Producao segue vulneravel ate o deploy |
+
+#145 reaberto na linha original. #81/#132/#133 mantidos conforme decisoes
+vigentes. Os 23 alertas npm brutos estao cobertos por patches locais verificados
+por hash e controles negativos; nao sao novos achados de exploracao. PASS:
+typecheck, lint oficial, 237 testes existentes, Drizzle check offline. Falha:
+Expo install --check e Doctor (20/21). Sem build release, testes em PostgreSQL
+real ou QA nativa nesta rodada.
+
+### Resolucao em 2026-10-23
+
+Commits locais `cde6743` (#145), `e1b9e10` (#158, #159) e `da6b8cc` (#160); sem
+push, deploy ou release mobile. Validacao: typecheck 5/5, lint 2/2, 235 testes
+(10 seguranca + 209 web + 16 mobile; web 203 -> 209), 8 testes browser, build de
+producao com Next 16.4.2, `audit:dependencies` sem advisory alto/critico
+descoberto, Expo `install --check` limpo e Doctor 21/21.
+
+Pendencias operacionais: deploy web autorizado para levar #158/#159/#160 a
+producao (sem migration nem env nova). #145 so chega aos aparelhos numa release
+mobile, que segue ADIADA. Atualizar `eslint-config-next` para 16.4.x exige antes
+ajustar os `set-state-in-effect` do mobile (ex.: `apps/mobile/app/agenda.tsx`).
 
 ## Historico resolvido (achados 1-101)
 
