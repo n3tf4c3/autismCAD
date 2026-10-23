@@ -190,9 +190,9 @@ preexistentes preservadas; nenhuma correcao de codigo ou operacao produtiva.
 
 | # | Achado | Severidade | Status |
 |---|--------|-----------|--------|
-| 158 | Logger central envia parametros SQL de erros Drizzle ao console, podendo copiar dados clinicos/pessoais | Media | RESOLVIDO (codigo/local) — `e1b9e10`: `describeErrorForLog` (classe, SQLSTATE/errno, constraint, frames da stack; sem mensagem/params/detail/objeto) em `toAppError` (server actions e rotas HTTP/API v1 via `toAppError`) e nos catches de login (`credentials.ts`), sync de role JWT (`options.ts`), rate limit, auditoria de vinculos (`users.service.ts`) e `/api/cep`. Regressao com DrizzleQueryError real falha sem a correcao. Logs ja emitidos no host nao foram expurgados |
-| 159 | Upgrade de hash legado no login pode sobrescrever troca concorrente de senha | Media | RESOLVIDO (codigo/local) — `e1b9e10`: UPDATE vira compare-and-swap (id, senhaHash, tokenVersion, ativo, deletedAt) com `returning`; zero linhas recusa o login. Cobre web (NextAuth) e API v1 mobile, que compartilham `verifyCredentials`. Regressao executa `credentials.ts` real com troca entre SELECT e UPDATE; falha sem a correcao. Sem ensaio em PostgreSQL real |
-| 160 | `next` 16.3.8 na faixa de GHSA-2464-fhr4-w9xw, GHSA-673q-mjm6-r5xr (criticos, RCE) e GHSA-p3m5-59mp-jv5r (DoS em server actions), publicados apos esta auditoria | Critica (raw) / Alta no contexto | RESOLVIDO (codigo/local) — achado em 2026-10-23 por `audit:dependencies` durante a resolucao. `da6b8cc`: next 16.4.2; `eslint-config-next` mantido em 16.3.8 porque 16.4.x puxa react-hooks 7.1, que reprova o lint mobile. App nao usa `"use cache"` nem SVG no otimizador de imagem; DoS em server actions se aplica. Producao segue vulneravel ate o deploy |
+| 158 | Logger central envia parametros SQL de erros Drizzle ao console, podendo copiar dados clinicos/pessoais | Media | RESOLVIDO — publicado em 2026-10-23 (deploy `fe7ded9`). `e1b9e10`: `describeErrorForLog` (classe, SQLSTATE/errno, constraint, frames da stack; sem mensagem/params/detail/objeto) em `toAppError` (server actions e rotas HTTP/API v1 via `toAppError`) e nos catches de login (`credentials.ts`), sync de role JWT (`options.ts`), rate limit, auditoria de vinculos (`users.service.ts`) e `/api/cep`. Regressao com DrizzleQueryError real falha sem a correcao. Logs ja emitidos no host nao foram expurgados |
+| 159 | Upgrade de hash legado no login pode sobrescrever troca concorrente de senha | Media | RESOLVIDO — publicado em 2026-10-23 (deploy `fe7ded9`). `e1b9e10`: UPDATE vira compare-and-swap (id, senhaHash, tokenVersion, ativo, deletedAt) com `returning`; zero linhas recusa o login. Cobre web (NextAuth) e API v1 mobile, que compartilham `verifyCredentials`. Regressao executa `credentials.ts` real com troca entre SELECT e UPDATE; falha sem a correcao. Sem ensaio em PostgreSQL real |
+| 160 | `next` 16.3.8 na faixa de GHSA-2464-fhr4-w9xw, GHSA-673q-mjm6-r5xr (criticos, RCE) e GHSA-p3m5-59mp-jv5r (DoS em server actions), publicados apos esta auditoria | Critica (raw) / Alta no contexto | RESOLVIDO — publicado em 2026-10-23 (deploy `fe7ded9`, Next 16.4.2 no ar). Achado em 2026-10-23 por `audit:dependencies` durante a resolucao. `da6b8cc`: next 16.4.2; `eslint-config-next` mantido em 16.3.8 porque 16.4.x puxa react-hooks 7.1, que reprova o lint mobile. App nao usa `"use cache"` nem SVG no otimizador de imagem; DoS em server actions se aplica. |
 
 #145 reaberto na linha original. #81/#132/#133 mantidos conforme decisoes
 vigentes. Os 23 alertas npm brutos estao cobertos por patches locais verificados
@@ -209,9 +209,15 @@ push, deploy ou release mobile. Validacao: typecheck 5/5, lint 2/2, 235 testes
 producao com Next 16.4.2, `audit:dependencies` sem advisory alto/critico
 descoberto, Expo `install --check` limpo e Doctor 21/21.
 
-Pendencias operacionais: deploy web autorizado para levar #158/#159/#160 a
-producao (sem migration nem env nova). #145 so chega aos aparelhos numa release
-mobile, que segue ADIADA. Atualizar `eslint-config-next` para 16.4.x exige antes
+Deploy web autorizado e publicado em 2026-10-23: push `571d446..fe7ded9`, deploy
+de producao Ready e servido por `www.girassois.com.br` (alias conferido, log de
+build com commit `fe7ded9` e Next 16.4.2). Antes do push, integracao PostgreSQL
+17 descartavel 20/20 e Drizzle check. Smoke so leitura: `/`, `/login` e
+`/api/health` 200; `/dashboard` 307 para login; `/api/v1/pacientes` 401 sem
+token; CSP e HSTS presentes. Um POST vazio em `/api/v1/auth/login` (401) gerou
+uma linha FALHA sem e-mail em access_logs. Sem migration nem env nova.
+
+Pendencias: #145 so chega aos aparelhos numa release mobile, que segue ADIADA. Atualizar `eslint-config-next` para 16.4.x exige antes
 ajustar os `set-state-in-effect` do mobile (ex.: `apps/mobile/app/agenda.tsx`).
 
 ## Historico resolvido (achados 1-101)
