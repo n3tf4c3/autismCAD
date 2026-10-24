@@ -220,6 +220,17 @@ uma linha FALHA sem e-mail em access_logs. Sem migration nem env nova.
 Pendencias: #145 so chega aos aparelhos numa release mobile, que segue ADIADA. Atualizar `eslint-config-next` para 16.4.x exige antes
 ajustar os `set-state-in-effect` do mobile (ex.: `apps/mobile/app/agenda.tsx`).
 
+## Verificacao CVE-2026-111497 (Node/Brotli), 2026-10-24
+
+Fonte: Node.js October 2026 Security Releases (21/10/2026); corrigido em 22.23.4,
+24.22.1 e 26.12.1. Verificacao so leitura, sem alteracao de codigo ou producao.
+Premissa recebida (servidor Go estatico, `FROM scratch`, Cloudflare Tunnel) nao
+corresponde a este projeto: nao ha Dockerfile, Compose, Go nem cloudflared.
+
+| # | Achado | Severidade | Status |
+|---|--------|-----------|--------|
+| 161 | Runtime Node 24.x das funcoes Vercel na faixa da CVE-2026-111497 (escrita fora dos limites no decoder Brotli de `node:zlib`) | Alta (raw) / Baixa no contexto | ABERTO — aplicavel a arquitetura verificada; patch do runtime nao verificado. `www.girassois.com.br` e servido pela Vercel (CNAME `vercel-dns`, `Server: Vercel`, sem Cloudflare); deploy ativo `dpl_HfcTeHb1fczXgw7HoASFcwTCSBkD` = commit `6fe6ec9` (HEAD), funcoes em `iad1`, projeto com Node.js 24.x. A Vercel nao expoe o patch exato. App nao chama `node:zlib`; o decoder so e alcancavel pelo `fetch` (undici envia `br` em HTTPS e decodifica com `createBrotliDecompress`) em `/api/cep/[cep]` (viacep.com.br, usuario autenticado) e `/api/health/r2` (objeto proprio). Exploracao exige controlar a resposta do upstream sob TLS. Otimizador de imagem sem `remotePatterns`; fontkit usa decoder JS com fontes locais; corpo de requisicao nao e descomprimido. CI e `.nvmrc` em 22.22.0 (abaixo de 22.23.4), sem entrada nao confiavel. Fechamento: confirmar com a Vercel runtime >= 24.22.1 e, se necessario, redeploy do mesmo SHA (exige aprovacao); opcional subir `.nvmrc`/CI para 22.23.4. Sem troca de stack nem de dependencias |
+
 ## Historico resolvido (achados 1-101)
 
 Reconstruido de `git log --grep=achado -i`. Agrupado pelo commit que resolveu cada
